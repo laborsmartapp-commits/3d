@@ -18,6 +18,7 @@ export default function Game() {
     const onPanel = (p) => setPanel((cur) => (p === 'toggle-dev' ? (cur === 'dev' ? null : 'dev') : p));
     const e = new Engine(mount, setS, onPanel);
     setEngine(e);
+    window.__celestia = e;
     e.init();
     return () => e.dispose();
   }, [mount]);

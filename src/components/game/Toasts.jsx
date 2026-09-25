@@ -23,7 +23,7 @@ export default function Toasts({ notice, discovery }) {
             <motion.div key={d.id} initial={{ opacity: 0, letterSpacing: '0.5em' }} animate={{ opacity: 1, letterSpacing: '0.12em' }} exit={{ opacity: 0 }} transition={{ duration: 1.2 }} className="text-center px-4">
               <p className="font-display text-3xl md:text-5xl font-semibold drop-shadow-[0_2px_20px_rgba(0,0,0,0.8)]">{d.title}</p>
               <div className="mx-auto my-2 h-px w-40 bg-gradient-to-r from-transparent via-primary to-transparent" />
-              <p className="text-xs uppercase tracking-[0.4em] text-primary drop-shadow">{d.sub}</p>
+              <p className="inline-block rounded-full bg-background/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-primary">{d.sub}</p>
             </motion.div>
           )}
         </AnimatePresence>

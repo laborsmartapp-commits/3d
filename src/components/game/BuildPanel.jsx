@@ -12,7 +12,7 @@ export default function BuildPanel({ engine, s, onClose }) {
   const items = cat === 'stored' ? [] : CATALOG.filter((d) => d.cat === cat);
   return (
     <SidePanel title="Structure Catalog" subtitle={s.build?.devPlace ? 'Dev placement: free & unrestricted' : 'Select a structure, then place it on your land'} onClose={onClose} wide>
-      <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1">
+      <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {[...CATEGORIES, { id: 'stored', label: `Stored (${s.stored?.length || 0})` }].map((c) => (
           <button key={c.id} onClick={() => setCat(c.id)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition ${cat === c.id ? 'bg-primary text-primary-foreground' : 'bg-white/5 hover:bg-white/10'}`}>{c.label}</button>
         ))}
