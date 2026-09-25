@@ -1,0 +1,44 @@
+{
+  "name": "IslandObject",
+  "type": "object",
+  "properties": {
+    "island_id": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "x": {
+      "type": "number"
+    },
+    "z": {
+      "type": "number"
+    },
+    "rotation": {
+      "type": "number",
+      "default": 0
+    },
+    "scale": {
+      "type": "number",
+      "default": 1
+    },
+    "tier": {
+      "type": "number",
+      "default": 1
+    },
+    "is_stored": {
+      "type": "boolean",
+      "default": false
+    },
+    "plot_id": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "island_id",
+    "type"
+  ]
+}

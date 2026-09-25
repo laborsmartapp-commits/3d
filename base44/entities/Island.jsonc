@@ -1,0 +1,51 @@
+{
+  "name": "Island",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "owner_label": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "player",
+        "sample",
+        "test"
+      ],
+      "default": "player"
+    },
+    "description": {
+      "type": "string"
+    },
+    "shards": {
+      "type": "number",
+      "default": 1200
+    },
+    "owned_plots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "discovered": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true
+    },
+    "weather_pref": {
+      "type": "string",
+      "default": "auto"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
