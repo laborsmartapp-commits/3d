@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gem, Home, Store, Landmark, Theater, TreePalm, Wheat, Sparkles, Flower2, Lamp, Archive } from 'lucide-react';
+import { Gem, Home, Store, Landmark, Theater, Trees as TreePalm, Wheat, Sparkles, Flower2, Lamp, Archive } from 'lucide-react';
 import SidePanel from './SidePanel';
 import { CATALOG, CATEGORIES } from '@/game/build/catalog';
 

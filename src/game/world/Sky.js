@@ -81,6 +81,7 @@ const sphDir = (az, el) => new V(Math.cos(el) * Math.cos(az), Math.sin(el), Math
 export class Sky {
   constructor(scene) {
     const rng = mulberry32(99);
+    this.o = new THREE.Object3D();
     this.uniforms = {
       uSun: { value: new V(0, 1, 0) }, uMoon: { value: new V(0, -1, 0) }, uDay: { value: 1 }, uTime: U.time,
       uCloud: { value: 0 }, uFlash: { value: 0 }, uNight: { value: 0 },
@@ -196,7 +197,6 @@ export class Sky {
     this.shoot = null;
     this.nextShoot = 8;
     this.rng = rng;
-    this.o = new THREE.Object3D();
   }
 
   setIntroSpread(s) {
