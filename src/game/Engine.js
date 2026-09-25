@@ -147,8 +147,8 @@ export class Engine {
     };
     window.addEventListener('resize', this.onResize);
     this.clock = new THREE.Clock();
-    this.frame();
     this.emit({ progress: 100, step: 'The island awaits', phase: 'ready', isTouch: this.isTouch, quality: this.qName });
+    this.frame();
   }
 
   buildWaterfalls() {
@@ -454,7 +454,7 @@ export class Engine {
     this.handleKeys(inp);
     this.env.update(dt);
     const m = this.mode;
-    if (this.hud.phase === 'ready') { this.camera.position.set(420 + Math.sin(this.time * 0.1) * 10, 260, 800); this.camera.lookAt(0, 20, 0); }
+    if (this.hud.phase === 'ready' || (m === 'intro' && !this.intro)) { this.camera.position.set(420 + Math.sin(this.time * 0.1) * 10, 260, 800); this.camera.lookAt(0, 20, 0); }
     else if (m === 'intro') this.updateIntro(dt);
     else if (m === 'cine') { this.player.update(dt, NOINPUT, this.rig.yaw, false, true); this.updateCine(dt); }
     else {
