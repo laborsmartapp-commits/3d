@@ -182,6 +182,11 @@ export class Engine {
   }
 
   async loadMyIsland() {
+    if (this.renderBundle) { // cloud render: rebuild the island exactly as it was snapshotted at Record
+      const s = this.renderBundle.take.world_snapshot || {};
+      this.myIsland = { ...(s.island || {}), id: s.island?.id || 'render', shards: 0 };
+      return this.loadIsland(this.myIsland);
+    }
     const id = localStorage.getItem('celestia_island_id');
     let isl = null;
     if (id) isl = (await base44.entities.Island.filter({ id }))[0];
@@ -198,7 +203,7 @@ export class Engine {
     this.readOnly = isl.id !== this.myIsland.id;
     this.localDisc = new Set(isl.discovered || []);
     this.build.clear();
-    const objs = await base44.entities.IslandObject.filter({ island_id: isl.id }, '-created_date', 500);
+    const objs = this.renderBundle ? this.renderBundle.take.world_snapshot?.structures || [] : await base44.entities.IslandObject.filter({ island_id: isl.id }, '-created_date', 500);
     for (const r of objs) if (!r.is_stored) this.build.addRecord(r);
     this.build.stored = objs.filter((r) => r.is_stored);
     this.plots.refresh();

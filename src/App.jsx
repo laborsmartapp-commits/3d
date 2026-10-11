@@ -12,9 +12,13 @@ import Scenes from '@/pages/Scenes';
 import SceneView from '@/pages/SceneView';
 import Game from '@/pages/Game';
 import Convergence from '@/pages/Convergence';
+import Render from '@/pages/Render';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+
+  // Cloud-render page: no user session, authorised per job by its worker token.
+  if (window.location.pathname === '/render') return <Render />;
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -45,6 +49,7 @@ const AuthenticatedApp = () => {
       <Route path="/scenes" element={<Scenes />} />
       <Route path="/scenes/:id" element={<SceneView />} />
       <Route path="/convergence" element={<Convergence />} />
+      <Route path="/render" element={<Render />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

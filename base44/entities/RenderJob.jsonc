@@ -50,16 +50,35 @@
     },
     "progress": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "0-100"
     },
     "runpod_job_id": {
+      "type": "string"
+    },
+    "runpod_status": {
       "type": "string"
     },
     "manifest": {
       "type": "object"
     },
-    "video_uri": {
+    "frame_count": {
+      "type": "number"
+    },
+    "render_token_hash": {
+      "type": "string",
+      "description": "SHA-256 of the per-job worker token (token itself is never stored)"
+    },
+    "worker_run_id": {
+      "type": "string",
+      "description": "RunPod job id that claimed this render (duplicate-execution guard)"
+    },
+    "claimed_at": {
       "type": "string"
+    },
+    "video_uri": {
+      "type": "string",
+      "description": "s3://bucket/key in the render storage bucket"
     },
     "video_width": {
       "type": "number",
@@ -68,8 +87,18 @@
     "video_height": {
       "type": "number"
     },
+    "video_fps": {
+      "type": "number"
+    },
+    "video_duration": {
+      "type": "number"
+    },
     "file_size": {
       "type": "number"
+    },
+    "gpu": {
+      "type": "string",
+      "description": "WebGL renderer string reported by the worker"
     },
     "attempts": {
       "type": "number",

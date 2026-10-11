@@ -23,6 +23,7 @@ export async function retryRender(job) {
 }
 
 export async function videoUrl(job) {
+  if (job.video_uri?.startsWith('s3://')) return (await base44.functions.invoke('renderJobControl', { job_id: job.id, action: 'download' })).data.url;
   const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: job.video_uri, expires_in: 3600 });
   return signed_url;
 }

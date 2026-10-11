@@ -142,11 +142,11 @@ export class SceneManager {
   endTake() { this.take = null; this.recCamId = null; this.status = 'idle'; this.libVersion++; this.emit(); }
 
   // ---- playback
-  async playTake(take) {
+  async playTake(take, chunks) {
     if (this.busy) return;
     if (takeStage(take) !== this.stage.id) { this.error = `This take was recorded in ${take.stage_name || takeStage(take)}. Open that stage to play it.`; this.emit(); return; }
     this.status = 'loading'; this.emit();
-    const n = await this.play.load(take);
+    const n = await this.play.load(take, chunks);
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
     this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, env: this.stage.env.save() };
