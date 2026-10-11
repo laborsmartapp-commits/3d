@@ -47,7 +47,8 @@ export class DirectorManager {
   placeHere(id) { const p = this.e.actors[id]; if (p) this.setActor(id, { x: +p.pos.x.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); }
   control(id) { if (this.sm.status !== 'capturing') { this.actors.control(id); this.sm.emit(); } }
 
-  addAnim(actor, anim, len = 4, at = this.t) { const start = +at.toFixed(2); this.edit((tl) => tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, anim, start, end: start + len })); }
+  // anim: built-in key, or a patch {anim, anim_uri, clip_name, label, len} for a library clip.
+  addAnim(actor, anim, len = 4, at = this.t) { const start = +at.toFixed(2), a = typeof anim === 'string' ? { anim } : anim; this.edit((tl) => tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, ...a, start, end: start + len })); }
   duplicateClip(id) { this.edit((tl) => { const c = tl.clips.find((x) => x.id === id), d = clipEnd(c) - c.start; tl.clips.push({ ...c, id: uid(c.kind), start: +(clipEnd(c)).toFixed(2), ...(c.kind === 'anim' ? { end: +(clipEnd(c) + d).toFixed(2) } : {}) }); }); }
   setClip(id, patch) { this.edit((tl) => Object.assign(tl.clips.find((c) => c.id === id), patch)); }
   deleteClip(id) { this.edit((tl) => { tl.clips = tl.clips.filter((c) => c.id !== id); }); }

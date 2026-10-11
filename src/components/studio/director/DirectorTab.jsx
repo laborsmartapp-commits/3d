@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { UserPlus, Sparkles } from 'lucide-react';
 import { CHARACTERS, ANIMATIONS } from '@/game/studio/characters';
 import ActorRow from './ActorRow';
+import AnimSelect from './AnimSelect';
 
 export default function DirectorTab({ engine, st }) {
   const d = st.director, D = engine.studio.dir, busy = st.status !== 'idle';
-  const [anim, setAnim] = useState('dance'), [len, setLen] = useState(4), [who, setWho] = useState('');
+  const [anim, setAnim] = useState({ anim: 'dance' }), [len, setLen] = useState(4), [who, setWho] = useState('');
   if (!st.scene) return <p className="text-sm text-muted-foreground">Open or create a scene first. Its actors and timeline are saved with the scene.</p>;
   const target = d.actors.find((a) => a.id === who) ? who : d.controlled;
   return (
@@ -31,7 +32,7 @@ export default function DirectorTab({ engine, st }) {
         <h4 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Schedule Animation at Playhead</h4>
         <div className="flex flex-wrap gap-2 items-center text-sm">
           <select value={target} onChange={(e) => setWho(e.target.value)} className="bg-white/5 rounded-md px-2 py-1.5">{d.actors.map((a) => <option key={a.id} value={a.id} className="bg-card">{a.name}</option>)}</select>
-          <select value={anim} onChange={(e) => setAnim(e.target.value)} className="bg-white/5 rounded-md px-2 py-1.5">{ANIMATIONS.map(([k, l]) => <option key={k} value={k} className="bg-card">{l}</option>)}</select>
+          <AnimSelect c={anim} set={(p) => setAnim({ ...anim, ...p })} />
           <input type="number" min="0.5" step="0.5" value={len} onChange={(e) => setLen(+e.target.value)} className="w-16 bg-white/5 rounded-md px-2 py-1.5" />s
           <button onClick={() => D.addAnim(target, anim, len)} disabled={busy} className="rounded-md bg-accent text-accent-foreground px-3 py-1.5 text-xs font-semibold flex items-center gap-1 disabled:opacity-40"><Sparkles className="w-3.5 h-3.5" />Add at {d.t.toFixed(1)}s</button>
         </div>
