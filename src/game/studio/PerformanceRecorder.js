@@ -13,7 +13,8 @@ async function saveChunk(data, n = 0) {
   net.attempts++; if (n) net.retries++;
   try {
     if (net.failUploads) throw new Error('Simulated upload failure (diagnostics test)');
-    const res = await base44.entities.PerformanceChunk.upsert([data], { key: 'chunk_key' });
+    const { chunk_key, ...payload } = data;
+    const res = (await base44.functions.invoke('uploadPerformanceChunk', payload)).data;
     net.ok++; net.lastSync = Date.now();
     return res;
   } catch (err) {
