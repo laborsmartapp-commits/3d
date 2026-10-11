@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { RESOLUTIONS, PRESETS } from './quality';
+import { MANIFEST_SCHEMA, ACTOR_ASSETS } from './versions';
 
 // Flip to true on the main branch once the `submitRenderJob` + `renderWebhook` backend functions
 // and the RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID secrets exist. Until then jobs stay honestly "queued".
@@ -28,13 +29,18 @@ export function mapRunpodStatus(status, output = {}) {
 export function buildManifest(take, settings) {
   const r = RESOLUTIONS[settings.resolution];
   return {
-    schema: 'krush.render.v1',
+    schema: MANIFEST_SCHEMA,
     world: take.world, island_id: take.island_id, location: take.location,
+    world_snapshot: take.world_snapshot, actor_assets: take.actor_assets || { krush: ACTOR_ASSETS.krush }, recording_timing: take.timing,
+    access: {
+      route: '/render?job=<render_job_id>', performance: 'backend function getRenderPerformance({job_id}) authorised by the RENDER_WORKER_TOKEN secret',
+      note: 'World is rebuilt from engine code + world_snapshot; no user browser session or login is needed',
+    },
     take_id: take.id, performance_take_id: take.source_take_id || take.id, duration: take.duration,
     output: { width: r.w, height: r.h, fps: settings.fps, frame_count: Math.ceil(take.duration * settings.fps), codec: 'h264', container: 'mp4', preset: settings.preset, quality: PRESETS[settings.preset] },
     camera: take.camera_snapshot, camera_mode: take.camera_mode, env_start: take.env_start, actors: take.actors,
     timeline: {
-      clock: 'scene seconds from record start', source: 'PerformanceChunk where take_id = performance_take_id, ordered by index',
+      clock: 'real elapsed seconds from Record (monotonic wall clock); samples are irregular, up to 60 Hz', source: 'PerformanceChunk where take_id = performance_take_id, ordered by index',
       frame_time: 't = frame_index / fps (fixed step, independent of the recording browser frame rate)',
       interpolation: 'linear actor position/phase, shortest-arc yaw, slerp camera quaternion, step for animation mode and weather',
       camera_source: 'samples[].c is the exact production camera pose (static or follow) per sample',

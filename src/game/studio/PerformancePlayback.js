@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { base44 } from '@/api/base44Client';
+import { now } from './PerformanceRecorder';
 
 const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -32,8 +33,11 @@ export class PerformancePlayback {
     };
   }
 
-  // Advance the scene clock by dt and pose the world. Returns false at the end of the take.
+  begin() { this.t0 = now(); this.t = 0; this.i = 0; }
+
+  // Pose the world at real elapsed time since begin() (frame-rate independent). False at the end.
   step(dt) {
+    this.t = now() - this.t0;
     if (!this.samples.length || this.t > this.duration) return false;
     const s = this.at(this.t), p = this.e.player, k = s.krush;
     p.pos.set(k.p[0], k.p[1], k.p[2]); p.yaw = k.y; p.vel.set(0, 0, 0);
@@ -42,7 +46,6 @@ export class PerformancePlayback {
     this.cam.position.fromArray(s.c.p); this.cam.quaternion.copy(s.c.q);
     if (this.cam.fov !== s.c.fov) { this.cam.fov = s.c.fov; this.cam.updateProjectionMatrix(); }
     if (s.e) { this.e.env.hour = s.e.h; if (this.e.env.weather !== s.e.w) this.e.env.setWeather(s.e.w); }
-    this.t += dt;
     return true;
   }
 }

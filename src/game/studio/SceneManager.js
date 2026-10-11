@@ -4,6 +4,7 @@ import { PerformanceRecorder } from './PerformanceRecorder';
 import { PerformancePlayback } from './PerformancePlayback';
 import { defaultCloud } from './quality';
 import { queueRender } from './RecordingJobManager';
+import { worldSnapshot, ACTOR_ASSETS } from './versions';
 
 const WORLD = 'celestia-grotto';
 const LEVELS = ['low', 'medium', 'high'];
@@ -79,6 +80,7 @@ export class SceneManager {
     if (!this.scene || !c || this.busy) return;
     this.error = ''; this.recCamId = c.id; this.status = 'capturing';
     this.rec.start(); // clock starts now; chunks upload once the take id exists
+    const world = worldSnapshot(this.e);
     this.emit();
     await this.saveScene();
     const n = (this.scene.take_count || 0) + 1;
@@ -89,12 +91,14 @@ export class SceneManager {
       scene_id: this.scene.id, scene_name: this.scene.name, take_number: n, name: `Take ${String(n).padStart(2, '0')} — ${c.mode === 'follow' ? 'Follow Camera' : 'Stationary Camera'}`,
       world: WORLD, location: this.scene.location, island_id: this.scene.island_id, camera_id: c.id, camera_name: c.name, camera_mode: c.mode, camera_snapshot: { ...c, follow: { ...c.follow } },
       env_start: { hour: v.hour, weather: v.weather, timeScale: v.timeScale, rate: v.rate }, actors: ['krush'], status: 'capturing', render_settings: this.cloud, local_quality: this.e.qName,
+      world_snapshot: world, actor_assets: { krush: ACTOR_ASSETS.krush },
     });
     this.rec.takeId = this.take.id;
   }
 
   async stop() {
     if (this.status !== 'capturing') return;
+    this.rec.finish(this.cams.pose(this.recCamId), this.envState());
     this.status = 'uploading'; this.emit();
     const thumb = this.grabThumb();
     while (!this.take) await new Promise((r) => setTimeout(r, 100));
@@ -127,6 +131,7 @@ export class SceneManager {
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
     this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, hour: this.e.env.hour, weather: this.e.env.weather };
+    this.play.begin();
     this.playing = take; this.viewThrough = true; this.status = 'playing'; this.emit();
   }
   stopPlayback() {
@@ -142,7 +147,7 @@ export class SceneManager {
     this.cams.helpers = this.active && this.status !== 'playing';
     if (this.status === 'playing') { if (!this.play.step(dt)) this.stopPlayback(); }
     else this.cams.update(dt, this.recCamId);
-    if (this.status === 'capturing') this.rec.sample(dt, this.cams.pose(this.recCamId), this.envState());
+    if (this.status === 'capturing') this.rec.sample(this.cams.pose(this.recCamId), this.envState());
     if (this.saveT > 0 && (this.saveT -= dt) <= 0) this.saveScene();
     if ((this.emitT -= dt) < 0 && (this.active || this.busy)) { this.emitT = 0.2; this.emit(); }
   }

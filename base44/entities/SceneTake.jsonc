@@ -81,6 +81,18 @@
     },
     "thumb_uri": {
       "type": "string"
+    },
+    "world_snapshot": {
+      "type": "object",
+      "description": "World config + structures at record time"
+    },
+    "actor_assets": {
+      "type": "object",
+      "description": "Avatar/rig/animation versions per actor"
+    },
+    "timing": {
+      "type": "object",
+      "description": "Clock source and real sample statistics"
     }
   },
   "required": [
