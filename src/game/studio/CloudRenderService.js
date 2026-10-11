@@ -1,0 +1,49 @@
+import { base44 } from '@/api/base44Client';
+import { RESOLUTIONS, PRESETS } from './quality';
+
+// Flip to true on the main branch once the `submitRenderJob` + `renderWebhook` backend functions
+// and the RUNPOD_API_KEY / RUNPOD_ENDPOINT_ID secrets exist. Until then jobs stay honestly "queued".
+export const CLOUD_CONNECTED = false;
+
+// RunPod Serverless REST API v2 (https://docs.runpod.io/serverless/endpoints/operations).
+// Called only from backend functions — the API key must never reach the browser.
+export const RUNPOD_V2 = {
+  base: 'https://api.runpod.ai/v2',
+  run: (ep) => `/${ep}/run`,                 // POST {input, webhook} -> {id, status:"IN_QUEUE"}
+  status: (ep, id) => `/${ep}/status/${id}`, // GET -> {id, status, output?, error?}
+  cancel: (ep, id) => `/${ep}/cancel/${id}`, // POST
+  retry: (ep, id) => `/${ep}/retry/${id}`,   // POST (failed / timed-out jobs)
+  health: (ep) => `/${ep}/health`,           // GET worker + queue counts
+};
+
+// RunPod job status -> our render status. The worker reports its stage in output/stream.
+export function mapRunpodStatus(status, output = {}) {
+  if (status === 'IN_QUEUE') return 'queued';
+  if (status === 'IN_PROGRESS') return output?.stage === 'encoding' ? 'encoding' : 'rendering';
+  if (status === 'COMPLETED') return 'completed';
+  return 'failed'; // FAILED, CANCELLED, TIMED_OUT
+}
+
+// Everything the remote worker needs to reproduce a take deterministically.
+export function buildManifest(take, settings) {
+  const r = RESOLUTIONS[settings.resolution];
+  return {
+    schema: 'krush.render.v1',
+    world: take.world, island_id: take.island_id, location: take.location,
+    take_id: take.id, performance_take_id: take.source_take_id || take.id, duration: take.duration,
+    output: { width: r.w, height: r.h, fps: settings.fps, frame_count: Math.ceil(take.duration * settings.fps), codec: 'h264', container: 'mp4', preset: settings.preset, quality: PRESETS[settings.preset] },
+    camera: take.camera_snapshot, camera_mode: take.camera_mode, env_start: take.env_start, actors: take.actors,
+    timeline: {
+      clock: 'scene seconds from record start', source: 'PerformanceChunk where take_id = performance_take_id, ordered by index',
+      frame_time: 't = frame_index / fps (fixed step, independent of the recording browser frame rate)',
+      interpolation: 'linear actor position/phase, shortest-arc yaw, slerp camera quaternion, step for animation mode and weather',
+      camera_source: 'samples[].c is the exact production camera pose (static or follow) per sample',
+    },
+  };
+}
+
+export async function submitToCloud(job) {
+  if (!CLOUD_CONNECTED) return false;
+  await base44.functions.invoke('submitRenderJob', { job_id: job.id });
+  return true;
+}

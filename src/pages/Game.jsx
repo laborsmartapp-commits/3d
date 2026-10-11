@@ -24,6 +24,7 @@ export default function Game() {
   }, [mount]);
 
   useEffect(() => { if (engine) engine.devOpen = panel === 'dev'; }, [panel, engine]);
+  useEffect(() => { engine?.studio?.open(panel === 'studio'); }, [panel, engine, s.phase]);
 
   const playing = s.phase === 'game';
   const photoHidden = s.mode === 'photo' && hideUI;

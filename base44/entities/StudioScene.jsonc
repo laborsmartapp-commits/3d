@@ -1,0 +1,50 @@
+{
+  "name": "StudioScene",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "world": {
+      "type": "string",
+      "default": "celestia-grotto"
+    },
+    "location": {
+      "type": "string"
+    },
+    "island_id": {
+      "type": "string"
+    },
+    "cameras": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Production camera configs (stable ids)"
+    },
+    "selected_camera_id": {
+      "type": "string"
+    },
+    "local_quality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "auto"
+      ],
+      "default": "auto"
+    },
+    "cloud_settings": {
+      "type": "object",
+      "description": "{resolution, preset, fps}"
+    },
+    "take_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

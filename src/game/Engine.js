@@ -21,6 +21,7 @@ import { SkyLife } from './actors/SkyLife';
 import { Particles, FX } from './fx/Particles';
 import { Plots } from './build/Plots';
 import { BuildManager } from './build/BuildManager';
+import { SceneManager } from './studio/SceneManager';
 import { R, WATER, SPAWN, DISCOVERIES, RIVER_S, OUTLET_S, GROTTO } from './world/layout';
 
 const V = THREE.Vector3;
@@ -141,6 +142,7 @@ export class Engine {
     if (await step(95, 'Loading your island')) return;
     await this.loadMyIsland();
     this.applyQuality(this.qName);
+    this.studio = new SceneManager(this);
     this.onResize = () => {
       const w = this.container.clientWidth, h = this.container.clientHeight;
       this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
@@ -459,7 +461,7 @@ export class Engine {
     else if (m === 'cine') { this.player.update(dt, NOINPUT, this.rig.yaw, false, true); this.updateCine(dt); }
     else {
       const frozen = m === 'photo' || m === 'build' || m === 'free' || !!this.dialogueNpc;
-      this.player.update(dt, frozen ? NOINPUT : inp, this.rig.yaw, m === 'first', frozen);
+      if (!this.studio.freeze) this.player.update(dt, frozen ? NOINPUT : inp, this.rig.yaw, m === 'first', frozen);
       if (m === 'play') this.rig.third(dt, inp, this.player);
       else if (m === 'first') this.rig.first(dt, inp, this.player);
       else if (m === 'photo') this.rig.photoCam(dt, inp);
@@ -471,6 +473,7 @@ export class Engine {
       }
     }
     this.rig.applyBlend(dt);
+    if (this.hud.phase === 'game') this.studio.update(dt);
     U.player.value.copy(this.player.pos);
     const cam = this.camera.position;
     this.build.tick(dt);
@@ -502,7 +505,7 @@ export class Engine {
       this.audioCtx = { wind: this.env.p.wind, rain: this.env.p.rain, night: this.env.night, day: this.env.day, waterDist: wd, crystalDist: Math.hypot(p.x - GROTTO.x, p.z - GROTTO.z), forest: forestMask(p.x, p.z), altitude: Math.min(1, Math.max(0, p.y / 60)) };
     }
     if (this.audioCtx) this.audio.update(dt, this.audioCtx);
-    this.renderer.render(this.scene, this.camera);
+    if (this.studio) this.studio.render(); else this.renderer.render(this.scene, this.camera);
     this.frames++;
     this.statT += dt;
     if (this.statT > 0.5) {

@@ -1,0 +1,35 @@
+{
+  "name": "PerformanceChunk",
+  "type": "object",
+  "properties": {
+    "take_id": {
+      "type": "string"
+    },
+    "index": {
+      "type": "number"
+    },
+    "start_t": {
+      "type": "number"
+    },
+    "end_t": {
+      "type": "number"
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Timestamped samples: {t, a:{actorId:{p,y,m,ph,sp,at,sit,sw}}, c:[x,y,z,qx,qy,qz,qw,fov], e:{h,w}}"
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": [
+    "take_id",
+    "index"
+  ]
+}
