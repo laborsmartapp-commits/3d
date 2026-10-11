@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
+import Home from '@/pages/Home';
 import Game from '@/pages/Game';
 import Convergence from '@/pages/Convergence';
 
@@ -36,7 +37,8 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={<Game />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/realm" element={<Game />} />
       <Route path="/convergence" element={<Convergence />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -27,7 +27,7 @@ export default function Convergence() {
       )}
       {s.phase === 'game' && (
         <div className="absolute top-4 left-4 flex items-center gap-2">
-          <Link to="/" className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2 hover:bg-card/80"><ArrowLeft className="w-4 h-4" />Realm</Link>
+          <Link to="/" className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2 hover:bg-card/80"><ArrowLeft className="w-4 h-4" />Home</Link>
           {s.zone && <div className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{s.zone}</div>}
         </div>
       )}
