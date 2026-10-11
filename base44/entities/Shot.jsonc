@@ -1,0 +1,86 @@
+{
+  "name": "Shot",
+  "type": "object",
+  "properties": {
+    "production_id": {
+      "type": "string"
+    },
+    "scene_id": {
+      "type": "string",
+      "description": "StudioScene id"
+    },
+    "name": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number",
+      "default": 0
+    },
+    "camera_id": {
+      "type": "string",
+      "description": "Production camera id inside the scene"
+    },
+    "start_t": {
+      "type": "number",
+      "default": 0
+    },
+    "end_t": {
+      "type": "number"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "take_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "production_id",
+    "scene_id",
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

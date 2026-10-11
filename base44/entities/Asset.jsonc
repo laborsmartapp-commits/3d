@@ -1,0 +1,129 @@
+{
+  "name": "Asset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "character",
+        "object",
+        "animation",
+        "audio",
+        "texture"
+      ]
+    },
+    "subcategory": {
+      "type": "string",
+      "description": "e.g. variant, costume, furniture, vehicle, dance, song, sfx"
+    },
+    "folder": {
+      "type": "string",
+      "default": ""
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private file uri"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "format": {
+      "type": "string"
+    },
+    "size": {
+      "type": "number"
+    },
+    "thumbnail_uri": {
+      "type": "string"
+    },
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "root_id": {
+      "type": "string",
+      "description": "Id of version 1; versions never overwrite each other"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "import_status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "failed"
+      ],
+      "default": "ok"
+    },
+    "import_error": {
+      "type": "string"
+    },
+    "rig": {
+      "type": "string",
+      "description": "Rig/skeleton compatibility label"
+    },
+    "duration": {
+      "type": "number"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "file_uri"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

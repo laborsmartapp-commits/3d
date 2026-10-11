@@ -1,0 +1,86 @@
+{
+  "name": "AppSettings",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "default": "studio"
+    },
+    "default_fps": {
+      "type": "number",
+      "default": 30
+    },
+    "default_preview_quality": {
+      "type": "string",
+      "default": "720p"
+    },
+    "default_render_resolution": {
+      "type": "string",
+      "default": "1080p"
+    },
+    "default_render_preset": {
+      "type": "string",
+      "default": "high"
+    },
+    "max_scene_duration": {
+      "type": "number",
+      "default": 600
+    },
+    "max_upload_mb": {
+      "type": "number",
+      "default": 250
+    },
+    "allowed_formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "default_camera_fov": {
+      "type": "number",
+      "default": 50
+    },
+    "recording_chunk_seconds": {
+      "type": "number",
+      "default": 5
+    },
+    "storage_retention_days": {
+      "type": "number",
+      "default": 0
+    },
+    "max_active_renders_per_user": {
+      "type": "number",
+      "default": 3
+    },
+    "diagnostic_retention_days": {
+      "type": "number",
+      "default": 90
+    },
+    "gpu_cost_per_hour": {
+      "type": "number",
+      "default": 0.69,
+      "description": "Estimate used for cost reporting"
+    }
+  },
+  "required": [
+    "key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -14,11 +14,18 @@ export default function useStageStudio(engine, phase, onOpenStudio) {
   useEffect(() => {
     if (phase !== 'game' || !engine?.studio) return;
     const q = new URLSearchParams(window.location.search), id = q.get('studioTake'), act = q.get('do');
-    const diag = q.get('sceneDiag') === '1';
-    if (!id && !diag) return;
+    const diag = q.get('sceneDiag') === '1', sceneId = q.get('studioScene'), shotId = q.get('shot');
+    if (!id && !diag && !sceneId) return;
     window.history.replaceState(null, '', window.location.pathname);
     base44.auth.me().then(async (u) => {
       if (diag && u?.role === 'admin') { engine.isAdmin = true; engine.diag.setEnabled(true); }
+      if (sceneId) { // restore the exact scene (timeline, actors, cameras) and the shot's camera from the Production Manager
+        const scene = await base44.entities.StudioScene.get(sceneId);
+        onOpenStudio?.(); engine.studio.open(true); engine.studio.openScene(scene);
+        const shot = shotId ? await base44.entities.Shot.get(shotId).catch(() => null) : null;
+        if (shot?.camera_id && engine.studio.cams.get(shot.camera_id)) engine.studio.selectCamera(shot.camera_id);
+        if (shot?.start_t) engine.studio.dir.t = shot.start_t;
+      }
       if (!id) return;
       const take = await base44.entities.SceneTake.get(id);
       onOpenStudio?.();

@@ -54,13 +54,30 @@
       "items": {
         "type": "string"
       },
-      "description": "StudioScene ids in this production"
+      "description": "StudioScene ids in this production, in order"
     },
     "collaborators": {
       "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Collaborator emails"
+    },
+    "asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Library assets used (references only)"
+    },
+    "last_scene_id": {
+      "type": "string"
+    },
+    "last_shot_id": {
+      "type": "string"
+    },
+    "last_opened_at": {
+      "type": "string"
     }
   },
   "required": [

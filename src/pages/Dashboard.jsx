@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Plus, FolderOpen, Mountain, Clapperboard, Server, ArrowRight } from 'lucide-react';
+import { Plus, FolderOpen, Mountain, Clapperboard, Server, ArrowRight, Upload } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { stageInfo } from '@/game/stages/registry';
 import StatusBadge from '@/components/shell/StatusBadge';
 import StudioStatus from '@/components/dashboard/StudioStatus';
+import { continueUrl } from '@/lib/studioLinks';
 
-const QUICK = [['/productions?new=1', 'New Production', Plus], ['/productions', 'Open Production', FolderOpen], ['/stages', 'Enter Stage', Mountain], ['/world', 'Director Mode', Clapperboard], ['/renders', 'Render Queue', Server]];
+const QUICK = [['/productions?new=1', 'New Production', Plus], ['/productions', 'Open Production', FolderOpen], ['/stages', 'Enter Stage', Mountain], ['/world', 'Director Mode', Clapperboard],
+  ['/assets?cat=character&upload=1', 'Import Character', Upload], ['/assets?cat=object&upload=1', 'Import Object', Upload], ['/assets?cat=animation&upload=1', 'Import Animation', Upload], ['/renders', 'Render Queue', Server]];
 
 const Section = ({ title, to, children }) => (
   <section className="mt-12">
@@ -34,7 +36,7 @@ export default function Dashboard() {
         <div className="glass rounded-3xl p-8 mt-8 flex flex-wrap items-center justify-between gap-6 bg-gradient-to-br from-accent/10 to-transparent">
           <div><p className="text-xs text-quiet uppercase tracking-widest">Continue working</p><h2 className="font-heading text-3xl mt-2">{cur.title}</h2>
             <p className="text-sm text-muted-foreground mt-2">{stageInfo(cur.stage_id).name} · edited {format(new Date(cur.updated_date), 'MMM d, HH:mm')}</p></div>
-          <Link to={stageInfo(cur.stage_id).path} className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-3 font-semibold">Continue Editing <ArrowRight className="w-4 h-4" /></Link>
+          <Link to={continueUrl(cur)} className="inline-flex items-center gap-2 rounded-xl bg-primary text-primary-foreground px-5 py-3 font-semibold">Continue Editing <ArrowRight className="w-4 h-4" /></Link>
         </div>
       ) : d && <Link to="/productions?new=1" className="block glass rounded-3xl p-8 mt-8 text-muted-foreground hover:text-foreground">Start your first production →</Link>}
       <div className="flex flex-wrap gap-2 mt-6">
