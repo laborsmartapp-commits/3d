@@ -19,6 +19,10 @@ import Productions from '@/pages/Productions';
 import Stages from '@/pages/Stages';
 import Recordings from '@/pages/Recordings';
 import RenderQueue from '@/pages/RenderQueue';
+import ProductionDetail from '@/pages/ProductionDetail';
+import AssetLibrary from '@/pages/AssetLibrary';
+import Settings from '@/pages/Settings';
+import AdminPortal from '@/pages/AdminPortal';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -55,7 +59,12 @@ const AuthenticatedApp = () => {
         <Route path="/stages" element={<Stages />} />
         <Route path="/recordings" element={<Recordings />} />
         <Route path="/renders" element={<RenderQueue />} />
+        <Route path="/productions/:id" element={<ProductionDetail />} />
+        <Route path="/assets" element={<AssetLibrary />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
+      <Route path="/admin" element={<AdminPortal />} />
+      <Route path="/admin/:section" element={<AdminPortal />} />
       <Route path="/destinations" element={<Home />} />
       <Route path="/realm" element={<Game />} />
       <Route path="/world" element={<Game />} />
