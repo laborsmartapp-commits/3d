@@ -446,10 +446,17 @@ export class Engine {
     }
   }
 
+  // Fixed sub-steps (≤50 ms) over the real frame time, so movement distance doesn't depend on FPS.
+  stepPlayer(raw, inp, fp, frozen) {
+    const n = Math.max(1, Math.ceil(raw / 0.05 - 1e-6)), h = raw / n;
+    for (let i = 0; i < n; i++) this.player.update(h, i ? { ...inp, jump: false, interact: false } : inp, this.rig.yaw, fp, frozen);
+  }
+
   frame = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    const raw = Math.min(this.clock.getDelta(), 0.25); // real elapsed time (capped only for tab-switch stalls)
+    const dt = Math.min(raw, 0.05);
     this.time += dt;
     U.time.value = this.time;
     const inp = this.input.consume();
@@ -461,7 +468,7 @@ export class Engine {
     else if (m === 'cine') { this.player.update(dt, NOINPUT, this.rig.yaw, false, true); this.updateCine(dt); }
     else {
       const frozen = m === 'photo' || m === 'build' || m === 'free' || !!this.dialogueNpc;
-      if (!this.studio.freeze) this.player.update(dt, frozen ? NOINPUT : inp, this.rig.yaw, m === 'first', frozen);
+      if (!this.studio.freeze) this.stepPlayer(raw, frozen ? NOINPUT : inp, m === 'first', frozen);
       if (m === 'play') this.rig.third(dt, inp, this.player);
       else if (m === 'first') this.rig.first(dt, inp, this.player);
       else if (m === 'photo') this.rig.photoCam(dt, inp);

@@ -26,6 +26,10 @@
       "items": {
         "type": "object"
       }
+    },
+    "chunk_key": {
+      "type": "string",
+      "description": "Stable id `${take_id}:${index}` for idempotent upserts"
     }
   },
   "required": [

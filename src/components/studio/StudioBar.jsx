@@ -1,8 +1,8 @@
 import React from 'react';
-import { Circle, Square, Eye, EyeOff, PictureInPicture2, Save, Trash2, Loader2, Video } from 'lucide-react';
+import { Circle, Square, Eye, EyeOff, PictureInPicture2, Save, Trash2, Loader2, Video, RefreshCw } from 'lucide-react';
 
 const fmt = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', playing: 'Playback', loading: 'Loading take' };
+const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', pending: 'Pending upload — not saved yet', playing: 'Playback', loading: 'Loading take' };
 
 export default function StudioBar({ engine, st }) {
   const S = engine.studio, cam = st.cameras.find((c) => c.id === (st.recCamId || st.selId));
@@ -16,6 +16,10 @@ export default function StudioBar({ engine, st }) {
       ) : (
         <button onClick={() => S.record()} disabled={!idle || !cam || !st.scene} className={`${btn} bg-destructive text-destructive-foreground disabled:opacity-40`}><Circle className="w-3.5 h-3.5 fill-current" />Record</button>
       )}
+      {st.status === 'pending' && (<>
+        <button onClick={() => S.retryUpload()} className={`${btn} bg-ember text-background`}><RefreshCw className="w-3.5 h-3.5" />Retry upload</button>
+        <button onClick={() => S.discardTake()} className={`${btn} bg-white/10 hover:bg-white/20`}><Trash2 className="w-3.5 h-3.5" />Discard</button>
+      </>)}
       {st.status === 'review' && (<>
         <button onClick={() => S.saveTake()} className={`${btn} bg-primary text-primary-foreground`}><Save className="w-3.5 h-3.5" />Save Take</button>
         <button onClick={() => S.discardTake()} className={`${btn} bg-white/10 hover:bg-white/20`}><Trash2 className="w-3.5 h-3.5" />Discard</button>

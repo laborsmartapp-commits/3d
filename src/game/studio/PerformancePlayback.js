@@ -12,7 +12,8 @@ export class PerformancePlayback {
 
   async load(take) {
     const page = await base44.entities.PerformanceChunk.filter({ take_id: take.source_take_id || take.id }, { sort: 'index', limit: 1000 });
-    this.samples = page.items.sort((a, b) => a.index - b.index).flatMap((c) => c.samples || []);
+    const byIndex = new Map(page.items.map((c) => [c.index, c])); // tolerate legacy duplicate rows
+    this.samples = [...byIndex.values()].sort((a, b) => a.index - b.index).flatMap((c) => c.samples || []);
     this.t = 0; this.i = 0;
     this.duration = this.samples.length ? this.samples[this.samples.length - 1].t : 0;
     return this.samples.length;

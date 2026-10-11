@@ -62,8 +62,8 @@ export class SceneManager {
   deleteCamera(id) { if (id === this.recCamId) return; this.cams.remove(id); this.dirty(); }
 
   // ---- quality
-  setLocalQuality(q) { this.localQuality = q; localStorage.setItem('studio.localQuality', q); if (q !== 'auto') this.e.applyQuality(q); this.dirty(); }
-  setCloud(patch) { this.cloud = { ...this.cloud, ...patch }; this.dirty(); }
+  setLocalQuality(q) { this.localQuality = q; localStorage.setItem('studio.localQuality', q); if (q !== 'auto') this.e.applyQuality(q); this.emit(); return this.saveScene(); }
+  setCloud(patch) { this.cloud = { ...this.cloud, ...patch }; this.emit(); return this.saveScene(); }
   autoQuality(dt) {
     if (this.localQuality !== 'auto' || (this.autoT -= dt) > 0) return;
     this.autoT = 3;
@@ -102,12 +102,28 @@ export class SceneManager {
     this.status = 'uploading'; this.emit();
     const thumb = this.grabThumb();
     while (!this.take) await new Promise((r) => setTimeout(r, 100));
-    const res = await this.rec.stop();
-    const patch = { ...res, status: 'captured' };
-    const blob = await thumb;
-    if (blob) patch.thumb_uri = (await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) })).file_uri;
-    this.take = await Takes().update(this.take.id, patch);
-    this.status = 'review'; this.emit();
+    this.final = { res: await this.rec.stop(), blob: await thumb };
+    await this.finalize();
+  }
+
+  // Only marks the take saved once every chunk is on the server; otherwise it stays pending on this device.
+  async finalize() {
+    const left = this.rec.unsent.length;
+    if (left) { this.status = 'pending'; this.error = `${left} chunk${left > 1 ? 's' : ''} not uploaded yet — kept on this device.`; this.emit(); return; }
+    try {
+      const { res, blob } = this.final, patch = { ...res, status: 'captured' };
+      if (blob && !this.final.thumb) this.final.thumb = (await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) })).file_uri;
+      if (this.final.thumb) patch.thumb_uri = this.final.thumb;
+      this.take = await Takes().update(this.take.id, patch);
+      this.error = ''; this.status = 'review';
+    } catch { this.status = 'pending'; this.error = 'Could not finish saving the take — data is kept on this device.'; }
+    this.emit();
+  }
+  async retryUpload() {
+    if (this.status !== 'pending') return;
+    this.status = 'uploading'; this.emit();
+    await this.rec.retry();
+    await this.finalize();
   }
 
   async saveTake() {
@@ -116,7 +132,8 @@ export class SceneManager {
     this.endTake();
   }
   async discardTake() {
-    if (this.status !== 'review') return;
+    if (this.status !== 'review' && this.status !== 'pending') return;
+    this.rec.unsent = [];
     await base44.entities.PerformanceChunk.deleteMany({ take_id: this.take.id });
     await Takes().delete(this.take.id);
     this.endTake();

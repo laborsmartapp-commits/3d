@@ -23,7 +23,8 @@ export default function TakeActions({ engine, st, take, jobs, interrupted, reloa
     ['retry', RefreshCw, 'Retry render', !!failed, () => retryRender(failed)],
     ['recover', LifeBuoy, 'Recover performance', interrupted, async () => {
       const ch = (await base44.entities.PerformanceChunk.filter({ take_id: take.id }, { sort: '-index', limit: 1, fields: ['end_t', 'index'] })).items[0];
-      await T().update(take.id, { status: 'captured', duration: ch?.end_t || 0, chunk_count: ch ? ch.index + 1 : 0 });
+      if (!ch) { await T().delete(take.id); return; } // nothing was ever captured — remove the empty shell
+      await T().update(take.id, { status: 'captured', duration: ch.end_t, chunk_count: ch.index + 1 });
     }],
     ['delete', Trash2, confirmDel ? 'Confirm delete' : 'Delete', st.take?.id !== take.id, async () => {
       if (!confirmDel) { setConfirmDel(true); setTimeout(() => setConfirmDel(false), 4000); return; }
