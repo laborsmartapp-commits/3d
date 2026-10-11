@@ -32,6 +32,9 @@ export class ActorManager {
       this.e.scene.remove(p.h.root); delete this.e.actors[id];
     }
     for (const a of actors) if (!this.e.actors[a.id]) this.create(a);
+    // The default walker only appears when the scene's cast includes it; otherwise it stays as an invisible free-roam body.
+    this.base.hidden = !want.has('krush');
+    if (this.e.player === this.base && !want.has('krush') && actors[0]) this.control(actors[0].id);
   }
 
   control(id) { const p = this.e.actors[id]; if (p) { p.vel.set(0, 0, 0); p.anim.layers = []; this.e.player = p; } }

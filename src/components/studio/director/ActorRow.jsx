@@ -15,7 +15,7 @@ export default function ActorRow({ engine, a, controlled, busy }) {
       <button title={a.locked ? 'Unlock track' : 'Lock track'} onClick={() => D.setActor(a.id, { locked: !a.locked })} disabled={busy} className={I}>{a.locked ? <Lock className="w-3.5 h-3.5 text-ember" /> : <Unlock className="w-3.5 h-3.5" />}</button>
       <button title={a.muted ? 'Enable playback' : 'Mute (freeze) track'} onClick={() => D.setActor(a.id, { muted: !a.muted })} disabled={busy} className={I}>{a.muted ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
       <button title="Save current position as start placement" onClick={() => D.placeHere(a.id)} disabled={busy || a.id === 'krush'} className={I}><MapPin className="w-3.5 h-3.5" /></button>
-      <button title="Remove from scene" onClick={() => D.removeActor(a.id)} disabled={busy || a.id === 'krush' || controlled} className={I}><Trash2 className="w-3.5 h-3.5" /></button>
+      <button title="Remove from scene" onClick={() => D.removeActor(a.id)} disabled={busy || (controlled && a.id !== 'krush')} className={I}><Trash2 className="w-3.5 h-3.5" /></button>
     </div>
   );
 }

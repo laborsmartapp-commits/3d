@@ -113,7 +113,7 @@ export class Player {
     const r = this.h.root;
     r.position.copy(this.pos);
     r.rotation.y = this.yaw;
-    r.visible = !fp && this.e.mode !== 'intro';
+    r.visible = !fp && !this.hidden && this.e.mode !== 'intro';
     animateHumanoid(this.h, this.anim, dt);
   }
 }
