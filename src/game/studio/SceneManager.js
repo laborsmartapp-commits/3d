@@ -7,6 +7,8 @@ import { queueRender } from './RecordingJobManager';
 import { ACTOR_ASSETS } from './versions';
 import { PreviewEncoder, previewFormat, FPS } from './PreviewEncoder';
 import { takeStage } from '../stages/registry';
+import { DirectorManager } from './DirectorManager';
+import { CHARACTERS } from './characters';
 
 const LEVELS = ['low', 'medium', 'high'];
 const Scenes = () => base44.entities.StudioScene, Takes = () => base44.entities.SceneTake;
@@ -16,14 +18,14 @@ export class SceneManager {
   constructor(e) {
     this.e = e; this.stage = e.stage;
     e.camera.layers.enable(1); // editor camera sees gizmos; production cameras don't
-    this.cams = new CameraManager(e); this.rec = new PerformanceRecorder(e); this.play = new PerformancePlayback(e);
+    this.cams = new CameraManager(e); this.rec = new PerformanceRecorder(e); this.play = new PerformancePlayback(e); this.dir = new DirectorManager(this);
     this.active = false; this.scene = null; this.viewThrough = false; this.preview = true;
     this.cloud = defaultCloud(); this.localQuality = localStorage.getItem('studio.localQuality') || 'auto';
     if (this.localQuality !== 'auto') e.applyQuality(this.localQuality); // keep the chosen preview quality after a refresh
     this.status = 'idle'; this.take = null; this.recCamId = null; this.emitT = 0; this.autoT = 0; this.saveT = 0; this.libVersion = 0; this.error = '';
   }
 
-  get freeze() { return this.status === 'playing'; }
+  get freeze() { return this.status === 'playing' || this.status === 'directing'; }
   get busy() { return this.status !== 'idle'; }
 
   open(on) { this.active = on; this.emit(); }
@@ -37,6 +39,7 @@ export class SceneManager {
   }
   openScene(s) {
     this.scene = s; this.cloud = { ...defaultCloud(), ...s.cloud_settings };
+    this.dir.load(s.timeline);
     this.cams.load(s.cameras); if (s.selected_camera_id && this.cams.get(s.selected_camera_id)) this.cams.selId = s.selected_camera_id;
     this.emit();
   }
@@ -45,7 +48,7 @@ export class SceneManager {
   async saveScene() {
     if (!this.scene) return;
     this.saveT = 0;
-    const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, cloud_settings: this.cloud, local_quality: this.localQuality };
+    const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, timeline: this.dir.tl, cloud_settings: this.cloud, local_quality: this.localQuality };
     Object.assign(this.scene, patch);
     await Scenes().update(this.scene.id, patch);
   }
@@ -80,6 +83,7 @@ export class SceneManager {
     const c = this.cams.selected;
     if (!this.scene || !c || this.busy) return;
     this.error = ''; this.recCamId = c.id; this.status = 'capturing';
+    const pass = this.pass; this.rec.actorId = pass?.actor || 'krush';
     this.rec.start(); // clock starts now; chunks upload once the take id exists
     const world = this.stage.snapshot();
     this.emit();
@@ -89,10 +93,10 @@ export class SceneManager {
     Scenes().update(this.scene.id, { take_count: n });
     const st = this.stage;
     this.take = await Takes().create({
-      scene_id: this.scene.id, scene_name: this.scene.name, take_number: n, name: `Take ${String(n).padStart(2, '0')} — ${c.mode === 'follow' ? 'Follow Camera' : 'Stationary Camera'}`,
+      scene_id: this.scene.id, scene_name: this.scene.name, take_number: n, name: pass ? `Take ${String(n).padStart(2, '0')} — ${pass.name} pass @ ${pass.t0.toFixed(1)}s` : `Take ${String(n).padStart(2, '0')} — ${c.mode === 'follow' ? 'Follow Camera' : 'Stationary Camera'}`,
       world: st.id, stage_name: st.name, stage_version: st.version, location: this.scene.location, island_id: this.scene.island_id, camera_id: c.id, camera_name: c.name, camera_mode: c.mode, camera_snapshot: { ...c, follow: { ...c.follow } },
-      env_start: st.env.start(), actors: st.actors, status: 'capturing', render_settings: this.cloud, local_quality: this.e.qName,
-      world_snapshot: world, actor_assets: { krush: ACTOR_ASSETS.krush },
+      env_start: st.env.start(), actors: pass ? [pass.actor] : st.actors, status: 'capturing', render_settings: this.cloud, local_quality: this.e.qName,
+      world_snapshot: world, actor_assets: pass ? { [pass.actor]: { ...ACTOR_ASSETS.krush, avatar: `krush-studio/${this.e.player.charId}`, character: CHARACTERS[this.e.player.charId]?.name } } : { krush: ACTOR_ASSETS.krush },
     });
     this.rec.takeId = this.take.id;
   }
@@ -116,7 +120,9 @@ export class SceneManager {
       if (blob && !this.final.thumb) this.final.thumb = (await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], 'thumb.jpg', { type: 'image/jpeg' }) })).file_uri;
       if (this.final.thumb) patch.thumb_uri = this.final.thumb;
       this.take = await Takes().update(this.take.id, patch);
-      this.error = ''; this.status = 'review';
+      this.error = '';
+      if (this.pass) { const pass = this.pass, take = this.take; this.endTake(); this.dir.addPass(take, pass, res.duration); return; }
+      this.status = 'review';
     } catch { this.status = 'pending'; this.error = 'Could not finish saving the take — data is kept on this device.'; }
     this.emit();
   }
@@ -139,7 +145,7 @@ export class SceneManager {
     await Takes().delete(this.take.id);
     this.endTake();
   }
-  endTake() { this.take = null; this.recCamId = null; this.status = 'idle'; this.libVersion++; this.emit(); }
+  endTake() { this.pass = null; this.take = null; this.recCamId = null; this.status = 'idle'; this.libVersion++; this.emit(); }
 
   // ---- playback
   async playTake(take, chunks) {
@@ -194,9 +200,10 @@ export class SceneManager {
     this.cams.helpers = this.active && this.status !== 'playing';
     if (this.status === 'playing') { if (!this.play.step(dt)) this.stopPlayback(true); }
     else this.cams.update(dt, this.recCamId);
+    this.dir.tick(dt);
     if (this.status === 'capturing') this.rec.sample(this.cams.pose(this.recCamId), this.envState());
     if (this.saveT > 0 && (this.saveT -= dt) <= 0) this.saveScene();
-    if ((this.emitT -= dt) < 0 && (this.active || this.busy)) { this.emitT = 0.2; this.emit(); }
+    if ((this.emitT -= dt) < 0 && (this.active || this.busy)) { this.emitT = this.status === 'idle' ? 0.2 : 0.08; this.emit(); }
   }
 
   outputCam() { return this.status === 'playing' ? this.play.cam : this.cams.cam(this.recCamId || this.cams.selId); }
@@ -240,7 +247,7 @@ export class SceneManager {
         scene: this.scene ? { id: this.scene.id, name: this.scene.name, location: this.scene.location } : null,
         cameras: this.cams.list.map((c) => ({ ...c, follow: { ...c.follow } })), selId: sel?.id || null, recCamId: this.recCamId,
         recT: this.rec.active ? this.rec.t : this.take?.duration || 0, playT: this.play.t || 0, playDur: this.play.duration || 0, playing: this.playing?.name,
-        take: this.take ? { id: this.take.id, name: this.take.name } : null, cloud: this.cloud, localQuality: this.localQuality, liveQuality: this.e.qName, libVersion: this.libVersion,
+        take: this.take ? { id: this.take.id, name: this.take.name } : null, cloud: this.cloud, localQuality: this.localQuality, liveQuality: this.e.qName, libVersion: this.libVersion, director: this.dir.state_(),
       },
     });
   }
