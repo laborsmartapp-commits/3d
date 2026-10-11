@@ -3,6 +3,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+
+const draco = new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
 export default function SceneViewer({ url }) {
   const ref = useRef(null);
@@ -21,14 +25,18 @@ export default function SceneViewer({ url }) {
     const controls = new OrbitControls(cam, r.domElement); controls.enableDamping = true;
     let mixer, raf, alive = true;
     const clock = new THREE.Clock();
-    new GLTFLoader().load(url, (g) => {
+    r.domElement.addEventListener('webglcontextlost', () => setStatus('This scene is too heavy for your device. Re-export it from Blender with compression (see the library tips).'));
+    const loader = new GLTFLoader().setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder);
+    loader.load(url, (g) => {
       if (!alive) return;
       scene.add(g.scene);
       const box = new THREE.Box3().setFromObject(g.scene), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length() || 1;
       controls.target.copy(c); cam.position.copy(c).add(new THREE.Vector3(s * 0.6, s * 0.4, s * 0.6)); cam.near = s / 1000; cam.far = s * 20; cam.updateProjectionMatrix();
       if (g.animations.length) { mixer = new THREE.AnimationMixer(g.scene); g.animations.forEach((a) => mixer.clipAction(a).play()); }
       setStatus('');
-    }, undefined, () => setStatus('This file could not be loaded.'));
+    }, (p) => {
+      if (alive && p.total) setStatus(p.loaded < p.total ? `Downloading scene… ${Math.round((p.loaded / p.total) * 100)}%` : 'Preparing scene… this can take a while for large files');
+    }, (err) => setStatus(`This file could not be loaded: ${err?.message || 'unknown error'}`));
     const loop = () => { raf = requestAnimationFrame(loop); mixer?.update(clock.getDelta()); controls.update(); r.render(scene, cam); };
     loop();
     const onResize = () => { r.setSize(el.clientWidth, el.clientHeight); cam.aspect = el.clientWidth / el.clientHeight; cam.updateProjectionMatrix(); };
