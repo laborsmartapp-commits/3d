@@ -39,6 +39,10 @@ export class DirectorManager {
     const id = n ? uid(char) : char, p = this.e.player.pos;
     this.edit((tl) => tl.actors.push({ id, char, name: n ? `${c.name} ${n + 1}` : c.name, x: p.x + 2, z: p.z + 1, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
   }
+  addLibraryActor(asset) {
+    const n = this.tl.actors.filter((a) => a.asset_id === asset.id).length, p = this.e.player.pos;
+    this.edit((tl) => tl.actors.push({ id: uid('lib'), char: 'lib', asset_id: asset.id, asset_uri: asset.file_uri, name: n ? `${asset.name} ${n + 1}` : asset.name, x: p.x + 2, z: p.z + 1, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
+  }
   removeActor(id) { if (id !== 'krush') this.edit((tl) => { tl.actors = tl.actors.filter((a) => a.id !== id); tl.clips = tl.clips.filter((c) => c.actor !== id); }); }
   setActor(id, patch) { this.edit((tl) => { if (patch.armed) tl.actors.forEach((a) => { a.armed = false; }); Object.assign(tl.actors.find((a) => a.id === id), patch); }); }
   placeHere(id) { const p = this.e.actors[id]; if (p) this.setActor(id, { x: +p.pos.x.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); }

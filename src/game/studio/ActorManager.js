@@ -1,5 +1,6 @@
 import { Player } from '../actors/Player';
 import { CHARACTERS } from './characters';
+import { attachGlb } from './GlbAvatar';
 
 // One Player instance (own transform, rig, animation state) per actor. e.player is only "who has the controls".
 export class ActorManager {
@@ -17,6 +18,7 @@ export class ActorManager {
     const p = new Player(this.e, c.colors, { x, z, yaw: a.yaw ?? p0.yaw });
     Object.assign(p, { actorId: a.id, charId: a.char });
     p.finish(0, false);
+    if (a.asset_uri) attachGlb(p, a.asset_uri).catch((err) => console.warn('Library character failed to load', err));
     this.e.actors[a.id] = p;
     return p;
   }

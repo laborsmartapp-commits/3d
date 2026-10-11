@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import DirectorTransport from './DirectorTransport';
 import TimelineClip from './TimelineClip';
 import ClipInspector from './ClipInspector';
+import AddLibraryActor from './AddLibraryActor';
 
 const ROWS = [['perf', 'Movement'], ['anim', 'Body Anim']];
 
@@ -21,6 +22,7 @@ export default function TimelineDock({ engine, st, open, setOpen }) {
             {d.actors.map((a) => ROWS.map(([k, l]) => (
               <div key={a.id + k} className={`h-7 px-2 flex items-center truncate border-t border-white/5 ${a.id === d.controlled ? 'text-primary' : ''}`}>{k === 'perf' ? <b className="truncate">{a.name}</b> : <span className="text-muted-foreground">{l}</span>}</div>
             )))}
+            <AddLibraryActor engine={engine} disabled={st.status !== 'idle' || !st.scene} />
           </div>
           <div className="flex-1 overflow-x-auto">
             <div className="relative" style={{ width: W + 40 }}>
