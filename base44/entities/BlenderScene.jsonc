@@ -1,0 +1,22 @@
+{
+  "name": "BlenderScene",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "file_uri": {
+      "type": "string"
+    },
+    "file_name": {
+      "type": "string"
+    },
+    "size": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "name",
+    "file_uri"
+  ]
+}

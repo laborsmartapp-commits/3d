@@ -8,6 +8,8 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Home from '@/pages/Home';
+import Scenes from '@/pages/Scenes';
+import SceneView from '@/pages/SceneView';
 import Game from '@/pages/Game';
 import Convergence from '@/pages/Convergence';
 
@@ -39,6 +41,8 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/realm" element={<Game />} />
+      <Route path="/scenes" element={<Scenes />} />
+      <Route path="/scenes/:id" element={<SceneView />} />
       <Route path="/convergence" element={<Convergence />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
