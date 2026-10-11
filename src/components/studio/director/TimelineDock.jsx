@@ -20,7 +20,7 @@ export default function TimelineDock({ engine, st, open, setOpen }) {
           <div className="w-28 shrink-0 text-[11px]">
             <div className="h-5" />
             {d.actors.map((a) => ROWS.map(([k, l]) => (
-              <div key={a.id + k} className={`h-7 px-2 flex items-center truncate border-t border-white/5 ${a.id === d.controlled ? 'text-primary' : ''}`}>{k === 'perf' ? <button onClick={() => D.control(a.id)} disabled={st.status === 'capturing'} title="Control this character" className="truncate font-bold hover:text-primary text-left">{a.name}</button> : <span className="text-muted-foreground">{l}</span>}</div>
+              <div key={a.id + k} className={`h-7 px-2 flex items-center truncate border-t border-white/5 ${a.id === d.controlled ? 'text-primary' : ''}`}>{k === 'perf' ? <button onClick={() => { D.control(a.id); if (!a.armed) D.setActor(a.id, { armed: true }); }} disabled={st.status === 'capturing'} title="Control this character" className="truncate font-bold hover:text-primary text-left">{a.name}</button> : <span className="text-muted-foreground">{l}</span>}</div>
             )))}
             <AddLibraryActor engine={engine} disabled={st.status !== 'idle' || !st.scene} />
           </div>
