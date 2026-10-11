@@ -5,6 +5,10 @@
     "take_id": {
       "type": "string"
     },
+    "owner_id": {
+      "type": "string",
+      "description": "User id of the take owner, set by the secure upload function"
+    },
     "index": {
       "type": "number"
     },
@@ -45,6 +49,9 @@
     "read": {
       "$or": [
         {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
           "created_by_id": "{{user.id}}"
         },
         {
@@ -61,6 +68,9 @@
     },
     "delete": {
       "$or": [
+        {
+          "data.owner_id": "{{user.id}}"
+        },
         {
           "created_by_id": "{{user.id}}"
         },
