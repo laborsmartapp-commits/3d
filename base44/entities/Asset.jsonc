@@ -73,6 +73,14 @@
     "duration": {
       "type": "number"
     },
+    "clip_name": {
+      "type": "string",
+      "description": "Animation clip inside the file (for clips extracted from a character)"
+    },
+    "source_asset_id": {
+      "type": "string",
+      "description": "Character asset this clip was extracted from"
+    },
     "tags": {
       "type": "array",
       "items": {

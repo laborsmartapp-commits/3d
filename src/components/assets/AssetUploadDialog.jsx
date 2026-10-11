@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { base44 } from '@/api/base44Client';
 import { CATEGORIES, extOf } from '@/lib/assets';
+import { extractCharacterClips } from '@/lib/glbClips';
 
 const field = 'w-full bg-background border border-border rounded-xl px-3 py-2 text-sm';
 
@@ -22,6 +23,7 @@ export default function AssetUploadDialog({ open, onOpenChange, category, base, 
         : { name: f.name || file.name.replace(/\.[^.]+$/, ''), category: cat, subcategory: f.subcategory, folder: f.folder, rig: f.rig, version: 1 };
       const a = await base44.entities.Asset.create({ ...meta, file_uri, file_name: file.name, format: extOf(file.name), size: file.size, status: 'active', import_status: 'ok' });
       if (!base) await base44.entities.Asset.update(a.id, { root_id: a.id });
+      if (!base && cat === 'character') await extractCharacterClips(a, file);
       onDone(); setFile(null); setF({ name: '', subcategory: '', folder: '', rig: '' });
     } catch (x) { setErr(x.message || 'Upload failed'); }
     setBusy(false);

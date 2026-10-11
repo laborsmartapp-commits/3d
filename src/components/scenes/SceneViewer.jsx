@@ -8,7 +8,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 
 const draco = new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-export default function SceneViewer({ url }) {
+export default function SceneViewer({ url, clip }) {
   const ref = useRef(null);
   const [status, setStatus] = useState('Loading scene…');
 
@@ -32,7 +32,7 @@ export default function SceneViewer({ url }) {
       scene.add(g.scene);
       const box = new THREE.Box3().setFromObject(g.scene), c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length() || 1;
       controls.target.copy(c); cam.position.copy(c).add(new THREE.Vector3(s * 0.6, s * 0.4, s * 0.6)); cam.near = s / 1000; cam.far = s * 20; cam.updateProjectionMatrix();
-      if (g.animations.length) { mixer = new THREE.AnimationMixer(g.scene); g.animations.forEach((a) => mixer.clipAction(a).play()); }
+      if (g.animations.length) { mixer = new THREE.AnimationMixer(g.scene); const pick = clip ? g.animations.filter((a) => a.name === clip) : g.animations; (pick.length ? pick : g.animations).forEach((a) => mixer.clipAction(a).play()); }
       setStatus('');
     }, (p) => {
       if (alive && p.total) setStatus(p.loaded < p.total ? `Downloading scene… ${Math.round((p.loaded / p.total) * 100)}%` : 'Preparing scene… this can take a while for large files');
@@ -42,7 +42,7 @@ export default function SceneViewer({ url }) {
     const onResize = () => { r.setSize(el.clientWidth, el.clientHeight); cam.aspect = el.clientWidth / el.clientHeight; cam.updateProjectionMatrix(); };
     window.addEventListener('resize', onResize);
     return () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener('resize', onResize); controls.dispose(); r.dispose(); r.domElement.remove(); };
-  }, [url]);
+  }, [url, clip]);
 
   return (
     <div ref={ref} className="absolute inset-0">
