@@ -455,7 +455,7 @@ export class Engine {
   frame = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const raw = Math.min(this.clock.getDelta(), 0.25); // real elapsed time (capped only for tab-switch stalls)
+    const raw = Math.min(this.clock.getDelta(), 1); // real elapsed time (capped only for tab-switch stalls)
     const dt = Math.min(raw, 0.05);
     this.time += dt;
     U.time.value = this.time;
