@@ -1,9 +1,10 @@
+import { studioSettings } from '@/lib/studioSettings';
 // Pure timeline model with track-specific evaluation.
 // - Movement ('perf') track: owns the world transform. One active take at a time: highest priority wins,
 //   ties go to the newest pass (punch-in retakes); disable or delete it to fall back to the take below.
 // - Body animation ('anim') track: never touches the root transform (root motion = 'ignore'). Every active clip
 //   becomes a weighted pose layer, ordered by priority then position, with blend-in/out, speed, trim and loops.
-export const newTimeline = () => ({ version: 2, fps: 30, duration: 20, actors: [{ id: 'krush', char: 'krush', name: 'Krush', armed: true, locked: false, muted: false }], clips: [] });
+export const newTimeline = () => ({ version: 2, fps: studioSettings().default_fps, duration: 20, actors: [{ id: 'krush', char: 'krush', name: 'Krush', armed: true, locked: false, muted: false }], clips: [] });
 
 export const ANIM_DEFAULTS = { speed: 1, in: 0, loops: 0, weight: 1, blendIn: 0.25, blendOut: 0.25, priority: 0, rootMotion: 'ignore' };
 export const animClip = (c) => ({ ...ANIM_DEFAULTS, ...c });

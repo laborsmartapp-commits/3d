@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { studioSettings } from '@/lib/studioSettings';
 
 const uid = () => 'cam_' + Math.random().toString(36).slice(2, 10);
 export const followDefaults = () => ({ target: 'krush', fwd: -8, side: 0, up: 3, lookHeight: 1.4, posSmooth: 5, rotSmooth: 8, rigid: false, followRotation: true, lockYaw: 0 });
@@ -74,7 +75,7 @@ export class CameraManager {
   aimAtActor(c) { const a = this.actor(); c.target = null; this.aimAt(c, a.x, a.y + 1.4, a.z); }
 
   add() {
-    const c = { id: uid(), name: `Camera ${this.list.length + 1}`, mode: 'static', yaw: 0, pitch: 0, fov: 45, target: null, follow: followDefaults() };
+    const c = { id: uid(), name: `Camera ${this.list.length + 1}`, mode: 'static', yaw: 0, pitch: 0, fov: studioSettings().default_camera_fov, target: null, follow: followDefaults() };
     this.resetPose(c);
     this.list.push(c); this.mount(c); this.selId = c.id;
     return c;

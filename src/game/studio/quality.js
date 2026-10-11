@@ -1,3 +1,4 @@
+import { studioSettings } from '@/lib/studioSettings';
 // Cloud output settings. These never touch the local viewport — they travel in the render manifest.
 export const RESOLUTIONS = { '1080p': { w: 1920, h: 1080 }, '1440p': { w: 2560, h: 1440 }, '4k': { w: 3840, h: 2160 } };
 export const PRESETS = {
@@ -8,5 +9,5 @@ export const PRESETS = {
 };
 export const FRAME_RATES = [24, 30, 60];
 export const LOCAL_QUALITY = ['low', 'medium', 'high', 'auto'];
-export const defaultCloud = () => ({ resolution: '1080p', preset: 'high', fps: 30 });
+export const defaultCloud = () => { const s = studioSettings(); return { resolution: s.default_render_resolution, preset: s.default_render_preset, fps: s.default_fps }; };
 export const cloudLabel = (c) => `${c.resolution === '4k' ? '4K' : c.resolution} · ${PRESETS[c.preset]?.label} · ${c.fps} fps`;

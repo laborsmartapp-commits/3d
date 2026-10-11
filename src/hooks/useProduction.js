@@ -39,7 +39,7 @@ export default function useProduction(id) {
     }),
     // Removing a scene from a production keeps the scene, its takes and renders; only this production's shots go.
     removeScene: (s) => run(async () => { await E.Shot.deleteMany({ production_id: p.id, scene_id: s.id }); await setScenes(p.scene_ids.filter((x) => x !== s.id)); }),
-    saveShot: (scene, shot, f) => run(() => (shot?.id ? E.Shot.update(shot.id, f) : E.Shot.create({ ...f, production_id: p.id, scene_id: scene.id, order: d.shots.filter((x) => x.scene_id === scene.id).length }))),
+    saveShot: (scene, shot, f) => run(() => (shot?.id ? E.Shot.update(shot.id, { ...f, collaborators: p.collaborators || [] }) : E.Shot.create({ ...f, collaborators: p.collaborators || [], production_id: p.id, scene_id: scene.id, order: d.shots.filter((x) => x.scene_id === scene.id).length }))),
     moveShot: (list, i, dir) => run(() => E.Shot.bulkUpdate([{ id: list[i].id, order: list[i + dir].order }, { id: list[i + dir].id, order: list[i].order }])),
     duplicateShot: (s, n) => run(() => E.Shot.create({ production_id: s.production_id, scene_id: s.scene_id, name: `${s.name} (Copy)`, order: n, camera_id: s.camera_id, start_t: s.start_t, end_t: s.end_t, notes: s.notes })),
     deleteShot: (s) => run(() => E.Shot.delete(s.id)),

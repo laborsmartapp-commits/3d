@@ -2,7 +2,8 @@ import { base44 } from '@/api/base44Client';
 import { net } from './net';
 
 const r3 = (v) => +v.toFixed(3), r4 = (v) => +v.toFixed(4);
-const MAX_HZ = 60, FLUSH_EVERY = 2;
+import { studioSettings } from '@/lib/studioSettings';
+const MAX_HZ = 60;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Monotonic wall clock (seconds). Never derived from the render loop's dt.
 export const now = () => performance.now() / 1000;
@@ -48,7 +49,7 @@ export class PerformanceRecorder {
     if (p.anim.mode !== this.lastM) { this.events.push({ t, type: 'anim', actor: id, from: this.lastM, to: p.anim.mode }); this.lastM = p.anim.mode; this.nAnim++; }
     this.buf.push({ t, a: { [id]: { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase), sp: r3(p.anim.speed), at: r4(p.anim.t), sit: !!p.sitting, sw: !!p.swimming } }, c: cam, e: env });
     this.count++;
-    if (this.t - this.lastFlush >= FLUSH_EVERY) this.flush();
+    if (this.t - this.lastFlush >= studioSettings().recording_chunk_seconds) this.flush();
   }
 
   event(type, data) { if (this.active) { this.tick(); this.events.push({ t: r4(this.t), type, ...data }); } }

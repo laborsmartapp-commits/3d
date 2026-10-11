@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { APP_URL, SIZES, FPS, PRESETS, MAX_DURATION, sha256, runpod } from '../../shared/render.ts';
+import { APP_URL, SIZES, FPS, PRESETS, sha256, runpod } from '../../shared/render.ts';
+import { canSubmitRender, isAdmin, loadSettings } from '../../shared/roles.ts';
 
 // Owner submits one of their RenderJobs to RunPod. A fresh single-job worker token is minted per submit.
 export default async function (req) {
@@ -12,7 +13,13 @@ export default async function (req) {
     if (typeof job_id !== 'string' || !job_id) return Response.json({ error: 'job_id required' }, { status: 400 });
     svc = base44.asServiceRole.entities;
     const job = (await svc.RenderJob.filter({ id: job_id }))[0];
-    if (!job || (job.created_by_id !== user.id && user.role !== 'admin')) return Response.json({ error: 'Not found' }, { status: 404 });
+    if (!job) return Response.json({ error: 'Not found' }, { status: 404 });
+    if (!canSubmitRender(user)) return Response.json({ error: 'Only directors and admins can submit renders' }, { status: 403 });
+    if (job.created_by_id !== user.id && !isAdmin(user)) return Response.json({ error: 'Not found' }, { status: 404 });
+    const settings = await loadSettings(svc);
+    const active = await svc.RenderJob.count({ created_by_id: job.created_by_id, status: { $in: ['queued', 'rendering', 'encoding'] }, runpod_job_id: { $nin: ['', null] }, id: { $ne: job.id } });
+    if (active >= settings.max_active_renders_per_user) return Response.json({ error: `Limit of ${settings.max_active_renders_per_user} active renders reached` }, { status: 429 });
+    const MAX_DURATION = settings.max_scene_duration;
     jobId = job.id;
     if (job.status === 'completed') return Response.json({ error: 'Already rendered' }, { status: 409 });
     if (job.runpod_job_id && (job.status === 'rendering' || job.status === 'encoding')) return Response.json({ error: 'Render already running' }, { status: 409 });

@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from 'base44:runtime';
 import { runpod } from '../../shared/render.ts';
+import { ROLES } from '../../shared/roles.ts';
 import { listObjects, headObject, deleteObject, parseUri } from '../../shared/storage.ts';
 
 const SAFE_META = (m) => JSON.parse(JSON.stringify(m || {}, (k, v) => (/token|key|secret|password/i.test(k) ? undefined : v)));
@@ -44,7 +45,7 @@ export default async function (req) {
         return Response.json({ me: me.id, users: users.map((u) => ({ id: u.id, email: u.email, full_name: u.full_name, role: u.role, created_date: u.created_date, updated_date: u.updated_date, productions: counts[u.id] || 0 })) });
       }
       case 'setRole': {
-        if (!['admin', 'user'].includes(body.role)) return Response.json({ error: 'Unknown role' }, { status: 400 });
+        if (!ROLES.includes(body.role)) return Response.json({ error: 'Unknown role' }, { status: 400 });
         if (body.user_id === me.id) return Response.json({ error: 'You cannot change your own role' }, { status: 400 });
         await svc.User.update(body.user_id, { role: body.role });
         await log('user.role_changed', 'User', body.user_id, { role: body.role });

@@ -24,12 +24,11 @@ export default function AdminUsers() {
           <tr key={u.id} className="border-t border-border">
             <td className="py-2">{u.full_name || '—'}</td><td>{u.email}</td>
             <td>{u.id === data.me ? <span className="text-xs text-quiet">{u.role} (you)</span> : (
-              <select value={u.role} onChange={(e) => setRole(u, e.target.value)} className="bg-background border border-border rounded-lg px-2 py-1 text-xs"><option value="admin">admin</option><option value="user">user</option></select>)}</td>
+              <select value={u.role} onChange={(e) => setRole(u, e.target.value)} className="bg-background border border-border rounded-lg px-2 py-1 text-xs">{['admin', 'director', 'animator', 'editor', 'viewer', 'user'].map((r) => <option key={r} value={r}>{r === 'user' ? 'user (viewer)' : r}</option>)}</select>)}</td>
             <td>{format(new Date(u.created_date), 'MMM d, yyyy')}</td><td>{u.updated_date ? format(new Date(u.updated_date), 'MMM d') : '—'}</td><td>{u.productions}</td>
           </tr>
         ))}</tbody>
       </table></div>
-      <p className="text-xs text-quiet">Director / Animator / Editor / Viewer roles need a role change on the main branch before they can be assigned and enforced by the server.</p>
     </div>
   );
 }
