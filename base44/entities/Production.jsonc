@@ -70,6 +70,10 @@
       },
       "description": "Library assets used (references only)"
     },
+    "asset_versions": {
+      "type": "object",
+      "description": "Pinned asset versions: {root_id: asset_id}"
+    },
     "last_scene_id": {
       "type": "string"
     },
@@ -84,17 +88,56 @@
     "title"
   ],
   "rls": {
-    "create": {
-      "created_by_id": "{{user.id}}"
-    },
     "read": {
       "$or": [
         {
           "created_by_id": "{{user.id}}"
         },
         {
+          "data.collaborators": "{{user.email}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "animator"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "editor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "viewer"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director"
           }
         }
       ]
@@ -105,8 +148,20 @@
           "created_by_id": "{{user.id}}"
         },
         {
+          "data.collaborators": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
+        },
+        {
           "user_condition": {
             "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "director"
           }
         }
       ]
