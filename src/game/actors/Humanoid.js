@@ -87,6 +87,7 @@ export function animateHumanoid(h, s, dt) {
     case 'talk': T.aR = -0.5 + Math.sin(t * 2.6) * 0.35; T.eR = -0.8; T.hx = Math.sin(t * 1.3) * 0.08; break;
     case 'warm': T.aL = T.aR = -1.2; T.eL = T.eR = -0.2; T.azL = -0.3; T.azR = 0.3; break;
     case 'garden': T.hy = 0.62; T.lL = -1.2; T.kL = 1.9; T.lR = 0.3; T.kR = 1.5; T.tx = 0.6; T.aL = -0.9 + Math.sin(t * 3) * 0.3; T.aR = -0.8; break;
+    case 'dance': T.hy = 0.9 + Math.abs(Math.sin(t * 5)) * 0.08; T.azL = 1.2 + Math.sin(t * 5) * 0.9; T.azR = -1.2 + Math.sin(t * 5) * 0.9; T.eL = T.eR = -0.8; T.lL = Math.sin(t * 5) * 0.35; T.lR = -T.lL; T.kL = T.kR = 0.35; T.tx = Math.sin(t * 2.5) * 0.15; break;
     case 'play': T.hy = 0.95 + Math.abs(Math.sin(t * 6)) * 0.12; T.azL = 2.4; T.azR = -2.4; break;
     case 'swim': T.bx = 1.35; T.by = 0.25; T.aL = Math.sin(p) * 1.6 - 1.6; T.aR = -Math.sin(p) * 1.6 - 1.6; T.lL = Math.sin(t * 9) * 0.3; T.lR = -T.lL; T.hx = -0.9; T.cl = 1.4; break;
     case 'tread': T.bx = 0.15; T.azL = 0.9 + Math.sin(t * 3) * 0.3; T.azR = -T.azL; T.lL = Math.sin(t * 3) * 0.4; T.lR = -T.lL; T.kL = T.kR = 0.6; break;

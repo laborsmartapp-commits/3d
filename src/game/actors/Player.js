@@ -4,14 +4,14 @@ import { lerpAngle } from '../core/noise';
 import { SPAWN, WATER } from '../world/layout';
 
 export class Player {
-  constructor(e) {
+  constructor(e, colors = { skin: '#d8a88a', shirt: '#0f4f4a', pants: '#1e1b2e', hair: '#2b1b3a', accent: '#05ce91', cloak: '#3b1d5e', boots: '#1a1320' }, spawn) {
     this.e = e;
-    this.h = createHumanoid({ skin: '#d8a88a', shirt: '#0f4f4a', pants: '#1e1b2e', hair: '#2b1b3a', accent: '#05ce91', cloak: '#3b1d5e', boots: '#1a1320' });
+    this.h = createHumanoid(colors);
     e.scene.add(this.h.root);
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.anim = { mode: 'idle', phase: 0, t: 0, speed: 0 };
-    this.respawn();
+    this.respawn(spawn);
   }
 
   respawn(sp = this.spawnPoint || SPAWN) {

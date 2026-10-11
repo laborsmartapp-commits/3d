@@ -42,6 +42,10 @@
     "take_count": {
       "type": "number",
       "default": 0
+    },
+    "timeline": {
+      "type": "object",
+      "description": "Director timeline: {version, fps, duration, actors:[{id,char,name,x,z,yaw,armed,locked,muted}], clips:[perf|anim]}"
     }
   },
   "required": [

@@ -1,6 +1,7 @@
 import { testA, testB, testE, testF } from './testsRecording';
 import { testC, testD } from './testsCamera';
 import { testG, testH, testI } from './testsSystems';
+import { testK } from './testsDirector';
 
 export const STATUSES = ['NOT TESTED', 'RUNNING', 'PASS', 'FAIL', 'INCONCLUSIVE'];
 
@@ -17,5 +18,6 @@ export const TESTS = [
   { id: 'G', title: 'Recover Interrupted Take', desc: 'Interrupts a recording before Stop, then recovers it. Also checks an empty take.', run: testG },
   { id: 'H', title: 'Recording Settings', desc: 'Two steps with a page refresh in between. Checks persistence and the render manifest.', run: testH },
   { id: 'I', title: 'Network Recovery', desc: 'Simulated in-app upload failure, Pending state, retry, no duplicates.', run: testI },
+  { id: 'K', title: 'Multi-Actor Overlap (Director)', desc: 'Records Krush 10 s, rewinds, records Jay 10 s while Krush replays, plays both, reloads from the server.', run: testK },
   { id: 'J', title: 'Realm Regression', desc: 'Manual: confirm each item with diagnostics on and off.' },
 ];

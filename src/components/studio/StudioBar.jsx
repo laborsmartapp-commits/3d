@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
+import TimelineDock from './director/TimelineDock';
 import { Circle, Square, Eye, EyeOff, PictureInPicture2, Save, Trash2, Loader2, Video, RefreshCw } from 'lucide-react';
 
 const fmt = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', pending: 'Pending upload — not saved yet', playing: 'Playback', loading: 'Loading take', saving: 'Saving preview video' };
+const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', pending: 'Pending upload — not saved yet', playing: 'Playback', loading: 'Loading take', saving: 'Saving preview video', directing: 'Director playback' };
 
 export default function StudioBar({ engine, st }) {
   const S = engine.studio, cam = st.cameras.find((c) => c.id === (st.recCamId || st.selId));
   const btn = 'h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-semibold transition';
   const idle = st.status === 'idle';
   const toggle = (k) => { S[k] = !S[k]; S.emit(); };
-  return (
-    <div className="absolute bottom-6 left-1/2 md:left-[calc(50%-260px)] -translate-x-1/2 z-20 max-w-[calc(100vw-1rem)] flex-wrap justify-center glass rounded-full px-2 py-1.5 flex items-center gap-1.5">
+  const [open, setOpen] = useState(true), dock = !!(st.scene && st.director);
+  return (<>
+    {dock && <TimelineDock engine={engine} st={st} open={open} setOpen={setOpen} />}
+    <div className={`absolute ${dock ? (open ? 'bottom-[19rem]' : 'bottom-16') : 'bottom-6'} left-1/2 md:left-[calc(50%-260px)] -translate-x-1/2 z-20 max-w-[calc(100vw-1rem)] flex-wrap justify-center glass rounded-full px-2 py-1.5 flex items-center gap-1.5`}>
       {st.status === 'capturing' ? (
         <button onClick={() => S.stop()} className={`${btn} bg-white text-background`}><Square className="w-3.5 h-3.5 fill-current" />Stop</button>
       ) : (
@@ -37,5 +40,5 @@ export default function StudioBar({ engine, st }) {
       </button>
       <button onClick={() => toggle('preview')} title="Live camera preview" className={`${btn} ${st.preview ? 'bg-white/20' : 'bg-white/5'} hover:bg-white/20`}><PictureInPicture2 className="w-3.5 h-3.5" /></button>
     </div>
-  );
+  </>);
 }
