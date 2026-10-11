@@ -1,4 +1,4 @@
-"""Headless Chromium with GPU WebGL. Tries several GL backends and keeps the first hardware one."""
+"""Headless Chromium with GPU WebGL (Playwright async API). Tries several GL backends and keeps the first hardware one."""
 import os
 
 BASE_ARGS = ["--no-sandbox", "--ignore-gpu-blocklist", "--enable-gpu", "--enable-gpu-rasterization",
@@ -19,21 +19,21 @@ def is_software(renderer):
     return not renderer or any(s in renderer.lower() for s in SOFTWARE)
 
 
-def launch_gpu(p, allow_software=False):
+async def launch_gpu(p, allow_software=False):
     """Returns (browser, backend_name, gl_renderer_string)."""
     forced = os.environ.get("CHROME_GL_BACKEND")
     tried = []
     for name, args in GL_BACKENDS:
         if forced and name != forced:
             continue
-        browser = p.chromium.launch(headless=True, channel="chromium", args=BASE_ARGS + args)
-        page = browser.new_page()
-        renderer = page.evaluate(GL_PROBE)
-        page.close()
+        browser = await p.chromium.launch(headless=True, channel="chromium", args=BASE_ARGS + args)
+        page = await browser.new_page()
+        renderer = await page.evaluate(GL_PROBE)
+        await page.close()
         tried.append(f"{name}: {renderer}")
         if not is_software(renderer):
             return browser, name, renderer
         if allow_software and renderer:
             return browser, name, renderer
-        browser.close()
+        await browser.close()
     raise RuntimeError("No hardware WebGL available. Tried " + "; ".join(tried))
