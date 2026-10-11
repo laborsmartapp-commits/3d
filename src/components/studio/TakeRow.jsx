@@ -26,6 +26,7 @@ export default function TakeRow({ engine, st, take, jobs, reload }) {
         <div className="min-w-0 flex-1 text-xs space-y-0.5">
           <p className="text-sm font-semibold truncate">{take.name}</p>
           <p className="text-muted-foreground"><span className="text-primary">{take.stage_name || stageInfo(takeStage(take)).name}</span> · Take {take.take_number} · {take.location} · {new Date(take.created_date).toLocaleString()}</p>
+          {take.kind === 'final' && <p className="text-accent">Final take · {take.cast?.length || take.actors?.length} actors: {(take.cast || []).map((a) => a.name).join(', ')}</p>}
           <p className="text-muted-foreground">{(take.duration || 0).toFixed(1)}s · {take.camera_name} · {take.camera_mode === 'follow' ? 'Follow' : 'Stationary'}</p>
           <p>Preview: {take.preview_status === 'ready' ? <span className="text-primary">{take.preview_width}×{take.preview_height} {take.preview_ext?.toUpperCase()} · {mb(take.preview_size)}</span> : take.preview_status === 'failed' ? <span className="text-destructive">failed, performance kept</span> : <span className="text-muted-foreground">not generated</span>}</p>
           {job ? <p>Master: {job.resolution === '4k' ? '4K' : job.resolution} · {job.fps} fps · {job.preset} · <span className={COLOR[job.status]}>{JOB_STATUS[job.status]}</span> · {mb(job.file_size)}</p>

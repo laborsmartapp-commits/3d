@@ -5,7 +5,7 @@ import { now } from './PerformanceRecorder';
 const qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 const lerp = (a, b, k) => a + (b - a) * k;
 const lerpAng = (a, b, k) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return a + d * k; };
-const actorAt = (A, B, k) => ({ p: A.p.map((v, j) => lerp(v, B.p[j], k)), y: lerpAng(A.y, B.y, k), m: A.m, ph: lerp(A.ph, B.ph, k), sp: lerp(A.sp, B.sp, k), at: lerp(A.at, B.at, k) });
+const actorAt = (A, B, k) => ({ p: A.p.map((v, j) => lerp(v, B.p[j], k)), y: lerpAng(A.y, B.y, k), m: A.m, ph: lerp(A.ph, B.ph, k), sp: lerp(A.sp, B.sp, k), at: lerp(A.at, B.at, k), ly: A.ly });
 
 // Reproduces a take from its stored samples. Shared by local playback and the cloud renderer.
 // Every actor track in samples[].a is evaluated; the camera track (samples[].c) is independent and
@@ -48,7 +48,7 @@ export class PerformancePlayback {
       const p = this.actorFor(id);
       if (!p) continue;
       p.pos.set(k.p[0], k.p[1], k.p[2]); p.yaw = k.y; p.vel.set(0, 0, 0);
-      Object.assign(p.anim, { mode: k.m, phase: k.ph, speed: k.sp, t: k.at });
+      Object.assign(p.anim, { mode: k.m, phase: k.ph, speed: k.sp, t: k.at, layers: k.ly || [] });
       p.finish(dt, false);
     }
     this.cam.position.fromArray(s.c.p); this.cam.quaternion.copy(s.c.q);

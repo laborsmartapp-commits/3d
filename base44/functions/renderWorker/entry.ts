@@ -22,7 +22,7 @@ export default async function (req) {
       const page = await svc.PerformanceChunk.filter({ take_id: perfId }, { sort: 'index', limit: 1000 });
       return Response.json({
         job: { id: job.id, width: job.width, height: job.height, fps: job.fps, preset: job.preset, frame_count: job.frame_count },
-        take: { id: take.id, world: take.world || 'celestia-grotto', stage_name: take.stage_name, stage_version: take.stage_version, duration: take.duration, world_snapshot: take.world_snapshot, actor_assets: take.actor_assets, env_start: take.env_start, actors: take.actors, camera_snapshot: take.camera_snapshot, camera_mode: take.camera_mode, source_take_id: take.source_take_id },
+        take: { id: take.id, world: take.world || 'celestia-grotto', stage_name: take.stage_name, stage_version: take.stage_version, duration: take.duration, world_snapshot: take.world_snapshot, actor_assets: take.actor_assets, env_start: take.env_start, actors: take.actors, camera_snapshot: take.camera_snapshot, camera_mode: take.camera_mode, kind: take.kind, cast: take.cast, source_take_id: take.source_take_id },
         chunks: page.items.map((c) => ({ index: c.index, samples: c.samples })),
       });
     }

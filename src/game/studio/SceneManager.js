@@ -9,6 +9,7 @@ import { PreviewEncoder, previewFormat, FPS } from './PreviewEncoder';
 import { takeStage } from '../stages/registry';
 import { DirectorManager } from './DirectorManager';
 import { CHARACTERS } from './characters';
+import { finalizeTake } from './finalizeTake';
 
 const LEVELS = ['low', 'medium', 'high'];
 const Scenes = () => base44.entities.StudioScene, Takes = () => base44.entities.SceneTake;
@@ -47,10 +48,22 @@ export class SceneManager {
   dirty() { this.saveT = 1; this.emit(); }
   async saveScene() {
     if (!this.scene) return;
-    this.saveT = 0;
-    const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, timeline: this.dir.tl, cloud_settings: this.cloud, local_quality: this.localQuality };
+    this.saveT = 0; this.saving = true; this.emit();
+    const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, timeline: JSON.parse(JSON.stringify(this.dir.tl)), cloud_settings: this.cloud, local_quality: this.localQuality };
     Object.assign(this.scene, patch);
-    await Scenes().update(this.scene.id, patch);
+    try { await Scenes().update(this.scene.id, patch); this.saveError = ''; }
+    catch (err) { this.saveError = err.message; this.saveT = 5; }
+    this.saving = false; this.emit();
+  }
+  get saveState() { return this.saving ? 'saving' : this.saveError ? 'error' : this.saveT > 0 ? 'unsaved' : 'saved'; }
+
+  // Bakes the whole multi-actor timeline into one new, immutable take version.
+  async finalizeTake() {
+    if (!this.scene || this.busy) return;
+    this.error = ''; this.status = 'finalizing'; this.emit();
+    try { const t = await finalizeTake(this); this.notice = `Finalized “${t.name}”. Find it in Recorded Scenes.`; }
+    catch (err) { this.error = `Finalize failed: ${err.message}`; }
+    this.status = 'idle'; this.libVersion++; this.emit();
   }
 
   // ---- cameras
@@ -152,6 +165,7 @@ export class SceneManager {
     if (this.busy) return;
     if (takeStage(take) !== this.stage.id) { this.error = `This take was recorded in ${take.stage_name || takeStage(take)}. Open that stage to play it.`; this.emit(); return; }
     this.status = 'loading'; this.emit();
+    if (take.cast?.length) this.dir.actors.sync(take.cast); // finalized multi-actor take brings its own cast
     const n = await this.play.load(take, chunks);
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
@@ -165,6 +179,7 @@ export class SceneManager {
     p.pos.set(s.x, s.y, s.z); p.yaw = s.yaw; p.vel.set(0, 0, 0);
     this.stage.env.apply(s.env);
     this.viewThrough = s.view; this.playing = null; this.status = 'idle';
+    this.dir.actors.sync(this.dir.tl.actors); this.dir.drive(0);
     const job = this.previewJob; this.previewJob = null;
     if (job) { this.status = 'saving'; this.finishPreview(job, completed); }
     this.emit();
@@ -247,7 +262,7 @@ export class SceneManager {
         scene: this.scene ? { id: this.scene.id, name: this.scene.name, location: this.scene.location } : null,
         cameras: this.cams.list.map((c) => ({ ...c, follow: { ...c.follow } })), selId: sel?.id || null, recCamId: this.recCamId,
         recT: this.rec.active ? this.rec.t : this.take?.duration || 0, playT: this.play.t || 0, playDur: this.play.duration || 0, playing: this.playing?.name,
-        take: this.take ? { id: this.take.id, name: this.take.name } : null, cloud: this.cloud, localQuality: this.localQuality, liveQuality: this.e.qName, libVersion: this.libVersion, director: this.dir.state_(),
+        take: this.take ? { id: this.take.id, name: this.take.name } : null, cloud: this.cloud, localQuality: this.localQuality, liveQuality: this.e.qName, libVersion: this.libVersion, director: this.dir.state_(), saveState: this.saveState, notice: this.notice || '',
       },
     });
   }

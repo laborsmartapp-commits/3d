@@ -1,4 +1,5 @@
 import React from 'react';
+import SceneSaveControls from './SceneSaveControls';
 import { SkipBack, Play, Pause, Circle, Square, Undo2, Redo2, ZoomIn, ZoomOut, ChevronDown, ChevronUp } from 'lucide-react';
 
 export const tc = (t, fps = 30) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}:${String(Math.floor((t % 1) * fps)).padStart(2, '0')}`;
@@ -21,6 +22,7 @@ export default function DirectorTransport({ engine, st, d, zoom, setZoom, open, 
       <label className="hidden md:flex items-center gap-1 text-[11px] text-muted-foreground ml-2">Stop at
         <input type="number" step="0.1" min="0" value={d.stopAt ?? ''} placeholder="—" onChange={(e) => { D.stopAt = e.target.value === '' ? null : +e.target.value; engine.studio.emit(); }} className="w-14 bg-white/5 rounded px-1 py-0.5 text-foreground" />s
       </label>
+      <SceneSaveControls engine={engine} st={st} />
       <div className="ml-auto flex items-center gap-0.5">
         <button className={B} onClick={() => D.undo()} disabled={!d.canUndo || !free} title="Undo"><Undo2 className="w-4 h-4" /></button>
         <button className={B} onClick={() => D.redo()} disabled={!d.canRedo || !free} title="Redo"><Redo2 className="w-4 h-4" /></button>

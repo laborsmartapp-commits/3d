@@ -15,6 +15,7 @@ export default function TimelineDock({ engine, st, open, setOpen }) {
   return (
     <div className={`absolute bottom-0 inset-x-0 z-20 glass rounded-t-2xl ${st.active ? 'md:mr-[520px]' : ''}`}>
       <DirectorTransport engine={engine} st={st} d={d} zoom={zoom} setZoom={setZoom} open={open} setOpen={setOpen} />
+      {(st.error || st.notice) && <p className={`px-3 py-1 text-[11px] ${st.error ? 'text-destructive' : 'text-primary'}`}>{st.error || st.notice}</p>}
       {open && (
         <div className="flex max-h-56 overflow-y-auto">
           <div className="w-28 shrink-0 text-[11px]">

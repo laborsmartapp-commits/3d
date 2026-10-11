@@ -14,6 +14,21 @@
     "name": {
       "type": "string"
     },
+    "kind": {
+      "type": "string",
+      "description": "pass (one actor recording) | final (baked multi-actor timeline)"
+    },
+    "cast": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Timeline actors in a finalized take"
+    },
+    "timeline": {
+      "type": "object",
+      "description": "Frozen copy of the Director timeline at finalize time"
+    },
     "world": {
       "type": "string"
     },
