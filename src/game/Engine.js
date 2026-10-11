@@ -22,6 +22,7 @@ import { Particles, FX } from './fx/Particles';
 import { Plots } from './build/Plots';
 import { BuildManager } from './build/BuildManager';
 import { SceneManager } from './studio/SceneManager';
+import { DiagManager, MAX_STEPS } from './diag/DiagManager';
 import { R, WATER, SPAWN, DISCOVERIES, RIVER_S, OUTLET_S, GROTTO } from './world/layout';
 
 const V = THREE.Vector3;
@@ -143,6 +144,7 @@ export class Engine {
     await this.loadMyIsland();
     this.applyQuality(this.qName);
     this.studio = new SceneManager(this);
+    this.diag = new DiagManager(this);
     this.onResize = () => {
       const w = this.container.clientWidth, h = this.container.clientHeight;
       this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
@@ -447,20 +449,24 @@ export class Engine {
   }
 
   // Fixed sub-steps (≤50 ms) over the real frame time, so movement distance doesn't depend on FPS.
+  // Hard cap of MAX_STEPS per frame; time beyond the 1 s frame cap is dropped and reported by diagnostics.
   stepPlayer(raw, inp, fp, frozen) {
-    const n = Math.max(1, Math.ceil(raw / 0.05 - 1e-6)), h = raw / n;
+    const n = Math.min(MAX_STEPS, Math.max(1, Math.ceil(raw / 0.05 - 1e-6))), h = raw / n;
     for (let i = 0; i < n; i++) this.player.update(h, i ? { ...inp, jump: false, interact: false } : inp, this.rig.yaw, fp, frozen);
+    return n;
   }
 
   frame = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const raw = Math.min(this.clock.getDelta(), 1); // real elapsed time (capped only for tab-switch stalls)
+    if (this.diag.skipFrame()) return; // diagnostics "Simulate 15 FPS": skip whole frames, never block
+    const delta = this.clock.getDelta(), raw = Math.min(delta, 1); // real elapsed time (capped only for tab-switch stalls)
     const dt = Math.min(raw, 0.05);
     this.time += dt;
     U.time.value = this.time;
-    const inp = this.input.consume();
+    const inp = this.diag.input(this.input.consume());
     this.handleKeys(inp);
+    let steps = 0;
     this.env.update(dt);
     const m = this.mode;
     if (this.hud.phase === 'ready' || (m === 'intro' && !this.intro)) { this.camera.position.set(420 + Math.sin(this.time * 0.1) * 10, 260, 800); this.camera.lookAt(0, 20, 0); }
@@ -468,7 +474,7 @@ export class Engine {
     else if (m === 'cine') { this.player.update(dt, NOINPUT, this.rig.yaw, false, true); this.updateCine(dt); }
     else {
       const frozen = m === 'photo' || m === 'build' || m === 'free' || !!this.dialogueNpc;
-      if (!this.studio.freeze) this.stepPlayer(raw, frozen ? NOINPUT : inp, m === 'first', frozen);
+      if (!this.studio.freeze) steps = this.stepPlayer(raw, frozen ? NOINPUT : inp, m === 'first', frozen);
       if (m === 'play') this.rig.third(dt, inp, this.player);
       else if (m === 'first') this.rig.first(dt, inp, this.player);
       else if (m === 'photo') this.rig.photoCam(dt, inp);
@@ -480,6 +486,7 @@ export class Engine {
       }
     }
     this.rig.applyBlend(dt);
+    if (this.diag.enabled) this.diag.frame(delta, raw, steps);
     if (this.hud.phase === 'game') this.studio.update(dt);
     U.player.value.copy(this.player.pos);
     const cam = this.camera.position;

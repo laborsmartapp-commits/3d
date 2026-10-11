@@ -41,6 +41,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/realm" element={<Game />} />
+      <Route path="/world" element={<Game />} />
       <Route path="/scenes" element={<Scenes />} />
       <Route path="/scenes/:id" element={<SceneView />} />
       <Route path="/convergence" element={<Convergence />} />

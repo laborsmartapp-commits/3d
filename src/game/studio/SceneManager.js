@@ -18,6 +18,7 @@ export class SceneManager {
     this.cams = new CameraManager(e); this.rec = new PerformanceRecorder(e); this.play = new PerformancePlayback(e);
     this.active = false; this.scene = null; this.viewThrough = false; this.preview = true;
     this.cloud = defaultCloud(); this.localQuality = localStorage.getItem('studio.localQuality') || 'auto';
+    if (this.localQuality !== 'auto') e.applyQuality(this.localQuality); // keep the chosen preview quality after a refresh
     this.status = 'idle'; this.take = null; this.recCamId = null; this.emitT = 0; this.autoT = 0; this.saveT = 0; this.libVersion = 0; this.error = '';
   }
 

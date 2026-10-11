@@ -1,0 +1,48 @@
+{
+  "name": "DiagnosticSession",
+  "type": "object",
+  "properties": {
+    "admin_email": {
+      "type": "string"
+    },
+    "build": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "description": "test id -> status"
+    },
+    "report": {
+      "type": "object",
+      "description": "Full diagnostic report (no secrets)"
+    }
+  },
+  "required": [
+    "build"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

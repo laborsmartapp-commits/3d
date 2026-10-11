@@ -20,7 +20,7 @@ export default function StudioPanel({ engine, s, onClose }) {
       {tab === 'scene' && <ScenePicker engine={engine} st={st} />}
       {tab === 'cameras' && <CameraList engine={engine} st={st} />}
       {tab === 'takes' && <RecordedSceneLibrary engine={engine} st={st} />}
-      {tab === 'settings' && <StudioSettings engine={engine} st={st} />}
+      {tab === 'settings' && <StudioSettings engine={engine} st={st} diagOn={s.diag} />}
     </SidePanel>
   );
 }

@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { queueRender, retryRender, videoUrl } from '@/game/studio/RecordingJobManager';
 import { cloudLabel } from '@/game/studio/quality';
 import TakeRename from './TakeRename';
+import { recoverTake, deleteTake } from '@/game/studio/takeOps';
 
 const T = () => base44.entities.SceneTake;
 
@@ -21,17 +22,10 @@ export default function TakeActions({ engine, st, take, jobs, interrupted, reloa
     }],
     ['rerender', RefreshCw, `Re-render ${cloudLabel(st.cloud)}`, !interrupted, () => queueRender(take, st.cloud)],
     ['retry', RefreshCw, 'Retry render', !!failed, () => retryRender(failed)],
-    ['recover', LifeBuoy, 'Recover performance', interrupted, async () => {
-      const ch = (await base44.entities.PerformanceChunk.filter({ take_id: take.id }, { sort: '-index', limit: 1, fields: ['end_t', 'index'] })).items[0];
-      if (!ch) { await T().delete(take.id); return; } // nothing was ever captured — remove the empty shell
-      await T().update(take.id, { status: 'captured', duration: ch.end_t, chunk_count: ch.index + 1 });
-    }],
+    ['recover', LifeBuoy, 'Recover performance', interrupted, () => recoverTake(take)],
     ['delete', Trash2, confirmDel ? 'Confirm delete' : 'Delete', st.take?.id !== take.id, async () => {
       if (!confirmDel) { setConfirmDel(true); setTimeout(() => setConfirmDel(false), 4000); return; }
-      const shared = take.source_take_id || (await T().count({ source_take_id: take.id }));
-      if (!shared) await base44.entities.PerformanceChunk.deleteMany({ take_id: take.id });
-      await base44.entities.RenderJob.deleteMany({ take_id: take.id });
-      await T().delete(take.id);
+      await deleteTake(take);
     }],
   ];
   if (renaming) return <TakeRename name={take.name} onCancel={() => setRenaming(false)} onSave={async (n) => { await T().update(take.id, { name: n }); setRenaming(false); reload(); }} />;

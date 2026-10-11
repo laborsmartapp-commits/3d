@@ -1,6 +1,7 @@
 import React from 'react';
 import { LOCAL_QUALITY, RESOLUTIONS, PRESETS, FRAME_RATES } from '@/game/studio/quality';
 import { CLOUD_CONNECTED } from '@/game/studio/CloudRenderService';
+import StudioDiagnostics from './StudioDiagnostics';
 
 function Seg({ items, value, onChange, label = (v) => v }) {
   return (
@@ -10,7 +11,7 @@ function Seg({ items, value, onChange, label = (v) => v }) {
   );
 }
 
-export default function StudioSettings({ engine, st }) {
+export default function StudioSettings({ engine, st, diagOn }) {
   const S = engine.studio, c = st.cloud;
   return (
     <div className="space-y-5">
@@ -30,6 +31,7 @@ export default function StudioSettings({ engine, st }) {
       <div className={`rounded-lg p-3 text-xs ${CLOUD_CONNECTED ? 'bg-primary/15 text-primary' : 'bg-ember/15 text-ember'}`}>
         {CLOUD_CONNECTED ? 'Cloud renderer: RunPod connected.' : 'Cloud renderer: RunPod not connected yet. Takes are saved and queued, and will render once it is connected.'}
       </div>
+      <StudioDiagnostics engine={engine} on={diagOn} />
     </div>
   );
 }

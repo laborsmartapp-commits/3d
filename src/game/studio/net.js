@@ -1,0 +1,2 @@
+// Upload transport counters (always on, trivially cheap) plus a diagnostics-only fault switch.
+export const net = { failUploads: false, attempts: 0, retries: 0, ok: 0, failed: 0, lastSync: null, lastError: '' };
