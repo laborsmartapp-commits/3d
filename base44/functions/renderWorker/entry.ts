@@ -20,7 +20,16 @@ export default async function (req) {
       if (!take || take.created_by_id !== job.created_by_id) return bad('Take not found', 404);
       const perfId = take.source_take_id || take.id;
       const page = await svc.PerformanceChunk.filter({ take_id: perfId }, { sort: 'index', limit: 1000 });
+      // Library characters and animation clips are private files: sign them here, the render page has no session.
+      const uris = new Set();
+      for (const a of take.cast || []) if (typeof a.asset_uri === 'string') uris.add(a.asset_uri);
+      for (const c of take.timeline?.clips || []) if (typeof c.anim_uri === 'string') uris.add(c.anim_uri);
+      const file_urls = {};
+      await Promise.all([...uris].slice(0, 50).map(async (u) => {
+        file_urls[u] = (await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: u, expires_in: 7200 })).signed_url;
+      }));
       return Response.json({
+        file_urls,
         job: { id: job.id, width: job.width, height: job.height, fps: job.fps, preset: job.preset, frame_count: job.frame_count },
         take: { id: take.id, world: take.world || 'celestia-grotto', stage_name: take.stage_name, stage_version: take.stage_version, duration: take.duration, world_snapshot: take.world_snapshot, actor_assets: take.actor_assets, env_start: take.env_start, actors: take.actors, camera_snapshot: take.camera_snapshot, camera_mode: take.camera_mode, kind: take.kind, cast: take.cast, source_take_id: take.source_take_id },
         chunks: page.items.map((c) => ({ index: c.index, samples: c.samples })),

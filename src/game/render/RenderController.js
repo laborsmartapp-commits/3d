@@ -1,4 +1,5 @@
 import { PRESETS } from '@/game/studio/quality';
+import { setPresignedUrls } from '@/game/studio/GlbAvatar';
 
 // Configures a live stage engine for the master render and exposes frame(i) to the RunPod worker.
 export async function prepareRender(e, clock, bundle) {
@@ -16,8 +17,13 @@ export async function prepareRender(e, clock, bundle) {
   e.hud.phase = 'game';
   await new Promise((r) => setTimeout(r, 300)); // let the last real-time frame land before taking over
   clock.takeover();
+  setPresignedUrls(bundle.file_urls);
   await e.studio.playTake(take, chunks);
   if (e.studio.status !== 'playing') throw new Error(e.studio.error || 'Performance failed to load');
+  await Promise.all(Object.values(e.actors || {}).map((p) => p.ready)); // library characters must be in the frame before frame 0
+  const lib = (take.timeline?.clips || []).filter((c) => c.anim_uri);
+  for (const p of Object.values(e.actors || {})) p.preloadClips?.(lib);
+  await Promise.all(Object.values(e.actors || {}).map((p) => p.clipsReady));
   const t0 = clock.now, fps = job.fps;
   const frames = Math.max(1, Math.ceil(e.studio.play.duration * fps));
   return {
