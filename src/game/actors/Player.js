@@ -14,10 +14,11 @@ export class Player {
     this.respawn();
   }
 
-  respawn() {
-    this.pos.set(SPAWN.x, this.e.groundAt(SPAWN.x, SPAWN.z), SPAWN.z);
+  respawn(sp = this.spawnPoint || SPAWN) {
+    this.spawnPoint = sp;
+    this.pos.set(sp.x, this.e.groundAt(sp.x, sp.z), sp.z);
     this.vel.set(0, 0, 0);
-    this.yaw = SPAWN.yaw;
+    this.yaw = sp.yaw;
     this.onGround = true;
     this.sitting = null;
     this.swimming = false;
