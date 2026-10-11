@@ -3,17 +3,18 @@ import { Play, Download, Pencil, Copy, RefreshCw, Trash2, Info, LifeBuoy, Loader
 import { base44 } from '@/api/base44Client';
 import { queueRender, retryRender, videoUrl } from '@/game/studio/RecordingJobManager';
 import { cloudLabel } from '@/game/studio/quality';
+import TakeRename from './TakeRename';
 
 const T = () => base44.entities.SceneTake;
 
 export default function TakeActions({ engine, st, take, jobs, interrupted, reload, onDetails }) {
-  const S = engine.studio, [busy, setBusy] = useState(null);
+  const S = engine.studio, [busy, setBusy] = useState(null), [renaming, setRenaming] = useState(false), [confirmDel, setConfirmDel] = useState(false);
   const done = jobs.find((j) => j.status === 'completed' && j.video_uri), failed = jobs[0]?.status === 'failed' ? jobs[0] : null;
   const run = (k, fn) => async () => { setBusy(k); await fn(); setBusy(null); reload(); };
   const actions = [
     ['play', Play, 'Play in world', !interrupted && st.status === 'idle', () => S.playTake(take)],
     ['watch', Download, 'Download video', !!done, async () => window.open(await videoUrl(done), '_blank')],
-    ['rename', Pencil, 'Rename', true, async () => { const n = window.prompt('Take name', take.name); if (n) await T().update(take.id, { name: n }); }],
+    ['rename', Pencil, 'Rename', true, () => setRenaming(true)],
     ['dup', Copy, 'Duplicate', !interrupted, async () => {
       const { id, created_date, updated_date, created_by_id, ...rest } = take;
       await T().create({ ...rest, name: `${take.name} (copy)`, source_take_id: take.source_take_id || take.id });
@@ -24,14 +25,15 @@ export default function TakeActions({ engine, st, take, jobs, interrupted, reloa
       const ch = (await base44.entities.PerformanceChunk.filter({ take_id: take.id }, { sort: '-index', limit: 1, fields: ['end_t', 'index'] })).items[0];
       await T().update(take.id, { status: 'captured', duration: ch?.end_t || 0, chunk_count: ch ? ch.index + 1 : 0 });
     }],
-    ['delete', Trash2, 'Delete', st.take?.id !== take.id, async () => {
-      if (!window.confirm(`Delete "${take.name}"?`)) return;
+    ['delete', Trash2, confirmDel ? 'Confirm delete' : 'Delete', st.take?.id !== take.id, async () => {
+      if (!confirmDel) { setConfirmDel(true); setTimeout(() => setConfirmDel(false), 4000); return; }
       const shared = take.source_take_id || (await T().count({ source_take_id: take.id }));
       if (!shared) await base44.entities.PerformanceChunk.deleteMany({ take_id: take.id });
       await base44.entities.RenderJob.deleteMany({ take_id: take.id });
       await T().delete(take.id);
     }],
   ];
+  if (renaming) return <TakeRename name={take.name} onCancel={() => setRenaming(false)} onSave={async (n) => { await T().update(take.id, { name: n }); setRenaming(false); reload(); }} />;
   return (
     <div className="flex flex-wrap gap-1.5">
       {actions.filter((a) => a[3]).map(([k, Icon, label, , fn]) => (
