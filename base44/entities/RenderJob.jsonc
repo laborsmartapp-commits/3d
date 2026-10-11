@@ -1,0 +1,85 @@
+{
+  "name": "RenderJob",
+  "type": "object",
+  "properties": {
+    "take_id": {
+      "type": "string"
+    },
+    "scene_id": {
+      "type": "string"
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "1080p",
+        "1440p",
+        "4k"
+      ]
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
+    "fps": {
+      "type": "number"
+    },
+    "preset": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "high",
+        "ultra",
+        "maximum"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "rendering",
+        "encoding",
+        "completed",
+        "failed"
+      ],
+      "default": "queued"
+    },
+    "status_message": {
+      "type": "string"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0
+    },
+    "runpod_job_id": {
+      "type": "string"
+    },
+    "manifest": {
+      "type": "object"
+    },
+    "video_uri": {
+      "type": "string"
+    },
+    "video_width": {
+      "type": "number",
+      "description": "Measured by the worker from the encoded file"
+    },
+    "video_height": {
+      "type": "number"
+    },
+    "file_size": {
+      "type": "number"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "take_id"
+  ]
+}

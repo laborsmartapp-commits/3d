@@ -21,6 +21,10 @@ import { SkyLife } from './actors/SkyLife';
 import { Particles, FX } from './fx/Particles';
 import { Plots } from './build/Plots';
 import { BuildManager } from './build/BuildManager';
+import { SceneManager } from './studio/SceneManager';
+import { DiagManager } from './diag/DiagManager';
+import { stepPlayer } from './core/step';
+import { celestiaStage } from './stages/adapters';
 import { R, WATER, SPAWN, DISCOVERIES, RIVER_S, OUTLET_S, GROTTO } from './world/layout';
 
 const V = THREE.Vector3;
@@ -141,6 +145,9 @@ export class Engine {
     if (await step(95, 'Loading your island')) return;
     await this.loadMyIsland();
     this.applyQuality(this.qName);
+    this.stage = celestiaStage(this);
+    this.studio = new SceneManager(this);
+    this.diag = new DiagManager(this);
     this.onResize = () => {
       const w = this.container.clientWidth, h = this.container.clientHeight;
       this.renderer.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix();
@@ -444,14 +451,20 @@ export class Engine {
     }
   }
 
+  // Time beyond the 1 s frame cap is dropped and reported by diagnostics.
+  stepPlayer(raw, inp, fp, frozen) { return stepPlayer(this, raw, inp, fp, frozen); }
+
   frame = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    if (this.diag.skipFrame()) return; // diagnostics "Simulate 15 FPS": skip whole frames, never block
+    const delta = this.clock.getDelta(), raw = Math.min(delta, 1); // real elapsed time (capped only for tab-switch stalls)
+    const dt = Math.min(raw, 0.05);
     this.time += dt;
     U.time.value = this.time;
-    const inp = this.input.consume();
+    const inp = this.diag.input(this.input.consume());
     this.handleKeys(inp);
+    let steps = 0;
     this.env.update(dt);
     const m = this.mode;
     if (this.hud.phase === 'ready' || (m === 'intro' && !this.intro)) { this.camera.position.set(420 + Math.sin(this.time * 0.1) * 10, 260, 800); this.camera.lookAt(0, 20, 0); }
@@ -459,7 +472,7 @@ export class Engine {
     else if (m === 'cine') { this.player.update(dt, NOINPUT, this.rig.yaw, false, true); this.updateCine(dt); }
     else {
       const frozen = m === 'photo' || m === 'build' || m === 'free' || !!this.dialogueNpc;
-      this.player.update(dt, frozen ? NOINPUT : inp, this.rig.yaw, m === 'first', frozen);
+      if (!this.studio.freeze) steps = this.stepPlayer(raw, frozen ? NOINPUT : inp, m === 'first', frozen);
       if (m === 'play') this.rig.third(dt, inp, this.player);
       else if (m === 'first') this.rig.first(dt, inp, this.player);
       else if (m === 'photo') this.rig.photoCam(dt, inp);
@@ -471,6 +484,8 @@ export class Engine {
       }
     }
     this.rig.applyBlend(dt);
+    if (this.diag.enabled) this.diag.frame(delta, raw, steps);
+    if (this.hud.phase === 'game') this.studio.update(dt);
     U.player.value.copy(this.player.pos);
     const cam = this.camera.position;
     this.build.tick(dt);
@@ -502,7 +517,7 @@ export class Engine {
       this.audioCtx = { wind: this.env.p.wind, rain: this.env.p.rain, night: this.env.night, day: this.env.day, waterDist: wd, crystalDist: Math.hypot(p.x - GROTTO.x, p.z - GROTTO.z), forest: forestMask(p.x, p.z), altitude: Math.min(1, Math.max(0, p.y / 60)) };
     }
     if (this.audioCtx) this.audio.update(dt, this.audioCtx);
-    this.renderer.render(this.scene, this.camera);
+    if (this.studio) this.studio.render(); else this.renderer.render(this.scene, this.camera);
     this.frames++;
     this.statT += dt;
     if (this.statT > 0.5) {

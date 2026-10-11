@@ -3,17 +3,26 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { ConvergenceEngine } from '@/game/convergence/ConvergenceEngine';
 import Toasts from '@/components/game/Toasts';
+import StageStudio from '@/components/studio/StageStudio';
+import useStageStudio from '@/hooks/useStageStudio';
 
 export default function Convergence() {
   const [mount, setMount] = useState(null);
+  const [engine, setEngine] = useState(null);
+  const [studioOpen, setStudioOpen] = useState(false);
   const [s, setS] = useState({ phase: 'loading', progress: 0, step: 'Preparing' });
 
   useEffect(() => {
     if (!mount) return;
     const e = new ConvergenceEngine(mount, setS);
+    setEngine(e);
+    window.__stage = e;
     e.init();
     return () => e.dispose();
   }, [mount]);
+
+  useStageStudio(engine, s.phase, () => setStudioOpen(true));
+  useEffect(() => { if (s.phase === 'game') engine?.studio?.open(studioOpen); }, [studioOpen, engine, s.phase]);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-background text-foreground select-none font-body">
@@ -31,6 +40,7 @@ export default function Convergence() {
           {s.zone && <div className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{s.zone}</div>}
         </div>
       )}
+      {s.phase === 'game' && engine?.studio && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
       {s.phase === 'game' && <Toasts notice={s.notice} />}
     </div>
   );

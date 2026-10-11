@@ -5,6 +5,8 @@ import LoadingScreen from '@/components/game/LoadingScreen';
 import HUD from '@/components/game/HUD';
 import Toasts from '@/components/game/Toasts';
 import PhotoPanel from '@/components/game/PhotoPanel';
+import DiagOverlay from '@/components/diag/DiagOverlay';
+import useStageStudio from '@/hooks/useStageStudio';
 
 export default function Game() {
   const [mount, setMount] = useState(null);
@@ -23,7 +25,10 @@ export default function Game() {
     return () => e.dispose();
   }, [mount]);
 
+  useStageStudio(engine, s.phase, () => setPanel('studio'));
+
   useEffect(() => { if (engine) engine.devOpen = panel === 'dev'; }, [panel, engine]);
+  useEffect(() => { engine?.studio?.open(panel === 'studio'); }, [panel, engine, s.phase]);
 
   const playing = s.phase === 'game';
   const photoHidden = s.mode === 'photo' && hideUI;
@@ -42,6 +47,7 @@ export default function Game() {
       <div className={`absolute inset-0 bg-background pointer-events-none transition-opacity duration-500 ${s.fade ? 'opacity-100' : 'opacity-0'}`} />
       {playing && !s.cine && !photoHidden && <HUD engine={engine} s={s} panel={panel} setPanel={setPanel} />}
       {playing && s.mode === 'photo' && !s.cine && <PhotoPanel engine={engine} s={s} hideUI={hideUI} setHideUI={setHideUI} />}
+      {playing && s.diag && <DiagOverlay engine={engine} />}
       {playing && <Toasts notice={s.notice} discovery={s.discovery} />}
     </div>
   );

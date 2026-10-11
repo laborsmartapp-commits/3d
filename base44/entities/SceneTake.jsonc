@@ -1,0 +1,140 @@
+{
+  "name": "SceneTake",
+  "type": "object",
+  "properties": {
+    "scene_id": {
+      "type": "string"
+    },
+    "scene_name": {
+      "type": "string"
+    },
+    "take_number": {
+      "type": "number"
+    },
+    "name": {
+      "type": "string"
+    },
+    "world": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "island_id": {
+      "type": "string"
+    },
+    "camera_id": {
+      "type": "string"
+    },
+    "camera_name": {
+      "type": "string"
+    },
+    "camera_mode": {
+      "type": "string",
+      "enum": [
+        "static",
+        "follow"
+      ]
+    },
+    "camera_snapshot": {
+      "type": "object"
+    },
+    "env_start": {
+      "type": "object"
+    },
+    "actors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "duration": {
+      "type": "number",
+      "default": 0
+    },
+    "sample_count": {
+      "type": "number",
+      "default": 0
+    },
+    "chunk_count": {
+      "type": "number",
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "capturing",
+        "uploading",
+        "captured"
+      ],
+      "default": "capturing"
+    },
+    "render_settings": {
+      "type": "object"
+    },
+    "local_quality": {
+      "type": "string"
+    },
+    "source_take_id": {
+      "type": "string",
+      "description": "Duplicates reuse the performance chunks of this take"
+    },
+    "thumb_uri": {
+      "type": "string"
+    },
+    "world_snapshot": {
+      "type": "object",
+      "description": "World config + structures at record time"
+    },
+    "actor_assets": {
+      "type": "object",
+      "description": "Avatar/rig/animation versions per actor"
+    },
+    "timing": {
+      "type": "object",
+      "description": "Clock source and real sample statistics"
+    },
+    "stage_name": {
+      "type": "string"
+    },
+    "stage_version": {
+      "type": "string"
+    },
+    "preview_status": {
+      "type": "string",
+      "description": "none | ready | failed"
+    },
+    "preview_uri": {
+      "type": "string",
+      "description": "Private browser-encoded preview video (never a cloud master)"
+    },
+    "preview_mime": {
+      "type": "string"
+    },
+    "preview_ext": {
+      "type": "string"
+    },
+    "preview_width": {
+      "type": "number"
+    },
+    "preview_height": {
+      "type": "number"
+    },
+    "preview_fps": {
+      "type": "number"
+    },
+    "preview_size": {
+      "type": "number"
+    },
+    "preview_info": {
+      "type": "object",
+      "description": "Source pixels, local quality, encoder, created_at"
+    },
+    "preview_error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "scene_id"
+  ]
+}
