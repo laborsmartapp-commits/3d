@@ -41,7 +41,7 @@ export function animSample(c0, t) {
   const local = c.in + (c.loops > 0 ? Math.min(el, cycle * c.loops - 1e-3) % cycle : el % cycle);
   const fi = c.blendIn > 0 ? (t - c.start) / c.blendIn : 1, fo = c.blendOut > 0 ? (c.end - t) / c.blendOut : 1;
   const w = Math.max(0, Math.min(1, fi, fo)) * c.weight;
-  return w > 0 ? { mode: c.anim, t: local, w, priority: c.priority } : null;
+  return w > 0 ? { mode: c.anim, t: local, w, priority: c.priority, uri: c.anim_uri, clip: c.clip_name } : null;
 }
 
 export function animLayers(clips, actor, t) {

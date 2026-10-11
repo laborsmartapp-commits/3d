@@ -101,7 +101,7 @@ function poseTargets(s) {
 export function animateHumanoid(h, s, dt) {
   const k = 1 - Math.exp(-dt * 12), t = s.t || 0;
   const T = poseTargets(s);
-  for (const l of s.layers || []) { const U = poseTargets(l); for (const key in T) T[key] = L(T[key], U[key], l.w); }
+  for (const l of s.layers || []) { if (l.uri) continue; const U = poseTargets(l); for (const key in T) T[key] = L(T[key], U[key], l.w); }
   h.legL.rotation.x = L(h.legL.rotation.x, T.lL, k); h.legR.rotation.x = L(h.legR.rotation.x, T.lR, k);
   h.kneeL.rotation.x = L(h.kneeL.rotation.x, T.kL, k); h.kneeR.rotation.x = L(h.kneeR.rotation.x, T.kR, k);
   h.armL.rotation.x = L(h.armL.rotation.x, T.aL, k); h.armR.rotation.x = L(h.armR.rotation.x, T.aR, k);

@@ -26,13 +26,32 @@ export async function attachGlb(p, uri) {
   p.h.body.visible = false; p.h.root.add(model);
   const walk = g.animations.find(isWalk) || await libraryWalk() || g.animations[0];
   const mixer = new THREE.AnimationMixer(model), act = walk && mixer.clipAction(walk).play();
+  const libActs = new Map(); // `${uri}|${clip}` -> action (null while loading)
+  const libAction = (l) => {
+    const key = `${l.uri}|${l.clip}`;
+    if (!libActs.has(key)) {
+      libActs.set(key, null);
+      load(l.uri).then((lg) => { const c = lg.animations.find((x) => x.name === l.clip) || lg.animations[0]; if (c) libActs.set(key, mixer.clipAction(c)); });
+    }
+    return libActs.get(key);
+  };
   const fin = p.finish.bind(p);
   p.finish = (dt, fp) => {
     fin(dt, fp);
-    if (!act) return;
-    const v = p.anim.speed || 0, moving = v > 0.15;
-    act.timeScale = moving ? Math.min(2.2, Math.max(0.6, v / 1.6)) : 0;
-    if (!moving) act.time = 0;
-    mixer.update(dt);
+    // Library body animations (dance, basketball…) scheduled on the timeline, blended over the walk cycle.
+    const used = new Set(); let total = 0;
+    for (const l of p.anim.layers || []) {
+      if (!l.uri) continue;
+      const a = libAction(l); if (!a) continue;
+      used.add(a); total += l.w;
+      a.enabled = true; a.play(); a.setEffectiveWeight(l.w); a.time = l.t % (a.getClip().duration || 1);
+    }
+    for (const a of libActs.values()) if (a && !used.has(a)) a.enabled = false;
+    if (act) {
+      const v = p.anim.speed || 0, moving = v > 0.15;
+      act.setEffectiveWeight(Math.max(0, 1 - Math.min(1, total)));
+      if (moving) act.time = (act.time + dt * Math.min(2.2, Math.max(0.6, v / 1.6))) % (walk.duration || 1); else act.time = 0;
+    }
+    mixer.update(0);
   };
 }

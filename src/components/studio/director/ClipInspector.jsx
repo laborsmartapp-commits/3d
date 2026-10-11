@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trash2, VolumeX, Volume2, Copy } from 'lucide-react';
-import { ANIMATIONS } from '@/game/studio/characters';
+import AnimSelect from './AnimSelect';
 import { animClip } from '@/game/studio/Timeline';
 
 const F = ({ label, value, onChange, step = 0.1 }) => (
@@ -21,9 +21,7 @@ export default function ClipInspector({ engine, c: raw }) {
         <F label="Trim out" value={c.out} onChange={(v) => set({ out: Math.max(c.in + 0.1, v) })} />
       </>) : (<>
         <F label="End" value={c.end} onChange={(v) => set({ end: Math.max(c.start + 0.1, v) })} />
-        <select value={c.anim} onChange={(e) => set({ anim: e.target.value })} className="bg-white/5 rounded px-1 py-0.5">
-          {ANIMATIONS.map(([k, l]) => <option key={k} value={k} className="bg-card">{l}</option>)}
-        </select>
+        <AnimSelect c={c} set={set} />
         <F label="Speed" value={c.speed} onChange={(v) => set({ speed: cl(v, 0.1, 4) })} />
         <F label="Trim in" value={c.in} onChange={(v) => set({ in: Math.max(0, v) })} />
         <F label="Loops (0=∞)" value={c.loops} step={1} onChange={(v) => set({ loops: Math.max(0, Math.round(v)) })} />
