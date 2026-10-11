@@ -32,5 +32,5 @@ export class ActorManager {
     for (const a of actors) if (!this.e.actors[a.id]) this.create(a);
   }
 
-  control(id) { const p = this.e.actors[id]; if (p) { p.vel.set(0, 0, 0); this.e.player = p; } }
+  control(id) { const p = this.e.actors[id]; if (p) { p.vel.set(0, 0, 0); p.anim.layers = []; this.e.player = p; } }
 }

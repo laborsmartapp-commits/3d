@@ -2,7 +2,7 @@ import { ActorManager } from './ActorManager';
 import { PerformancePlayback } from './PerformancePlayback';
 import { now } from './PerformanceRecorder';
 import { CHARACTERS } from './characters';
-import { newTimeline, coverAt, holdAt, clipEnd, uid } from './Timeline';
+import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, ANIM_DEFAULTS } from './Timeline';
 
 // Director Mode: one master clock driving every actor's tracks. While one armed actor is recorded live,
 // every other actor replays its own clips at the same timeline time (synchronized multi-pass recording).
@@ -44,7 +44,8 @@ export class DirectorManager {
   placeHere(id) { const p = this.e.actors[id]; if (p) this.setActor(id, { x: +p.pos.x.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); }
   control(id) { if (this.sm.status !== 'capturing') { this.actors.control(id); this.sm.emit(); } }
 
-  addAnim(actor, anim, len = 4) { const start = +this.t.toFixed(2); this.edit((tl) => tl.clips.push({ id: uid('anim'), kind: 'anim', actor, anim, start, end: start + len })); }
+  addAnim(actor, anim, len = 4, at = this.t) { const start = +at.toFixed(2); this.edit((tl) => tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, anim, start, end: start + len })); }
+  duplicateClip(id) { this.edit((tl) => { const c = tl.clips.find((x) => x.id === id), d = clipEnd(c) - c.start; tl.clips.push({ ...c, id: uid(c.kind), start: +(clipEnd(c)).toFixed(2), ...(c.kind === 'anim' ? { end: +(clipEnd(c) + d).toFixed(2) } : {}) }); }); }
   setClip(id, patch) { this.edit((tl) => Object.assign(tl.clips.find((c) => c.id === id), patch)); }
   deleteClip(id) { this.edit((tl) => { tl.clips = tl.clips.filter((c) => c.id !== id); }); }
   setDuration(d) { this.edit((tl) => { tl.duration = Math.max(1, d); }); }
@@ -63,8 +64,8 @@ export class DirectorManager {
       p.pos.set(k.p[0], k.p[1], k.p[2]); p.yaw = k.y; p.vel.set(0, 0, 0);
       Object.assign(p.anim, c ? { mode: k.m, phase: k.ph, speed: k.sp, t: k.at } : { mode: 'idle', speed: 0, t });
     }
-    const a = coverAt(clips, id, 'anim', t); // body animation layers over movement; never moves the root
-    if (a) { p.anim.mode = a.anim; p.anim.t = t - a.start; p.anim.speed = 0; }
+    // Body animation layers blend over the locomotion pose; they never move the root (movement track owns it).
+    p.anim.layers = animLayers(clips, id, t);
     p.finish(dt, false);
   }
   drive(dt, except) { for (const a of this.tl.actors) if (a.id !== except && !a.muted) this.apply(a.id, this.t, dt); }

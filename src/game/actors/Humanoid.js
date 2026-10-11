@@ -57,8 +57,8 @@ export function createHumanoid(o = {}) {
 
 const L = (a, b, k) => a + (b - a) * k;
 
-export function animateHumanoid(h, s, dt) {
-  const k = 1 - Math.exp(-dt * 12);
+// Target joint pose for one animation state (no root transform: root motion is owned by the movement track).
+function poseTargets(s) {
   const p = s.phase || 0, t = s.t || 0, sp = s.speed || 0;
   const T = { lL: 0, lR: 0, kL: 0.05, kR: 0.05, aL: 0, aR: 0, azL: 0.08, azR: -0.08, eL: -0.12, eR: -0.12, ezR: 0, hy: 0.95, tx: 0, bx: 0, by: 0, hx: 0, cl: 0.12 };
   const sitLegs = () => { T.hy = 0.5; T.lL = T.lR = -1.5; T.kL = T.kR = 1.5; T.tx = -0.05; T.cl = 0; };
@@ -94,6 +94,14 @@ export function animateHumanoid(h, s, dt) {
     default: break;
   }
   if (s.carry) { T.aL = T.aR = -1.1; T.eL = T.eR = -0.5; }
+  return T;
+}
+
+// Base locomotion pose, then each body-animation layer (ordered by priority) blended on top by its weight.
+export function animateHumanoid(h, s, dt) {
+  const k = 1 - Math.exp(-dt * 12), t = s.t || 0;
+  const T = poseTargets(s);
+  for (const l of s.layers || []) { const U = poseTargets(l); for (const key in T) T[key] = L(T[key], U[key], l.w); }
   h.legL.rotation.x = L(h.legL.rotation.x, T.lL, k); h.legR.rotation.x = L(h.legR.rotation.x, T.lR, k);
   h.kneeL.rotation.x = L(h.kneeL.rotation.x, T.kL, k); h.kneeR.rotation.x = L(h.kneeR.rotation.x, T.kR, k);
   h.armL.rotation.x = L(h.armL.rotation.x, T.aL, k); h.armR.rotation.x = L(h.armR.rotation.x, T.aR, k);

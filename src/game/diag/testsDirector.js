@@ -8,13 +8,17 @@ async function pass(e, id, sec, probe) {
   D.seek(0); D.setActor(id, { armed: true }); D.actors.control(id); face(e);
   await D.record();
   if (S.status !== 'capturing') return { error: S.error || `Recording did not start (${S.status})` };
-  e.diag.script = walk(sec);
-  const s0 = performance.now();
-  while (performance.now() - s0 < sec * 1000) { await wait(200); if (probe) log.push(probe()); }
-  e.diag.script = null;
-  await S.stop();
+  // The timeline stops the pass itself at exactly `sec` (stop marker), so the take length is measured on the
+  // recording clock, not on the test's setTimeout loop (which runs late when frames are slow).
+  D.stopAt = sec; e.diag.script = walk(sec + 2);
+  const s0 = performance.now(); let gap = 0, last = s0;
+  while (S.status === 'capturing' && performance.now() - s0 < (sec + 20) * 1000) { await wait(100); const n2 = performance.now(); gap = Math.max(gap, n2 - last); last = n2; if (probe) log.push(probe()); }
+  const wall = (performance.now() - s0) / 1000;
+  e.diag.script = null; D.stopAt = null;
+  if (S.status === 'capturing') await S.stop();
   if (!(await until(() => D.tl.clips.length > n && S.status === 'idle'))) return { error: S.error || `Pass did not save (${S.status})` };
-  return { clip: D.tl.clips.at(-1), log };
+  const clip = D.tl.clips.at(-1);
+  return { clip, log, timing: { requested_s: sec, recorded_s: rd(clip.out, 3), overshoot_s: rd(clip.out - sec, 3), test_loop_wall_s: rd(wall, 2), worst_test_tick_gap_ms: Math.round(gap) } };
 }
 
 const expected = (D, clip, t) => D.pbs.get(clip.take_id)?.at(t - clip.start + clip.in).actors[clip.key]?.p;
@@ -56,12 +60,27 @@ export async function testK(e) {
   D.actors.control('krush');
   const reloadDev = { krush: rd(d3(pos(K()), expected(D, a.clip, 5)), 3), jay: rd(d3(pos(J()), expected(D, b.clip, 5)), 3) };
 
+  // Dances: Krush at 5 s, Jay at 7 s. Check layer onset at the exact timestamps and that the movement path is untouched.
+  D.addAnim('krush', 'dance', 6, 5); D.addAnim('jay', 'wave', 6, 7);
+  const layerAt = (id, t) => { D.seek(t); return (e.actors[id].anim.layers || []).find((l) => l.mode === (id === 'krush' ? 'dance' : 'wave')); };
+  const dance = {
+    krush_before_5: !!layerAt('krush', 4.98), krush_at_5_05: !!layerAt('krush', 5.05), jay_before_7: !!layerAt('jay', 6.98), jay_at_7_05: !!layerAt('jay', 7.05),
+    krush_full_weight_6: rd(layerAt('krush', 6)?.w || 0, 2),
+  };
+  D.seek(8); dance.krush_path_dev_at_8_m = rd(d3(pos(K()), expected(D, a.clip, 8)), 3);
+  await S.saveScene();
+  const f2 = (await E.StudioScene.filter({ id: S.scene.id }))[0];
+  dance.persisted = (f2?.timeline?.clips || []).filter((c) => c.kind === 'anim').length === 2;
+  const danceOk = !dance.krush_before_5 && dance.krush_at_5_05 && !dance.jay_before_7 && dance.jay_at_7_05 && dance.krush_full_weight_6 === 1 && dance.krush_path_dev_at_8_m < 0.25 && dance.persisted;
+
   const m = {
-    krush_pass_s: rd(a.clip.out, 2), krush_walked_m: rd(d3(kStart, kEnd), 2), jay_pass_s: rd(b.clip.out, 2),
+    krush_pass: a.timing, jay_pass: b.timing, dance, krush_walked_m: rd(d3(kStart, kEnd), 2),
     krush_replay_samples_during_jay: replay.length, krush_replay_max_dev_m: rd(maxDev, 3), krush_moved_during_jay_m: rd(krushMovedDuringJay, 2),
     playback_both: both, persisted_both_clips: persisted, after_reload_dev_m: reloadDev,
   };
-  const ok = a.clip.out > 9.5 && b.clip.out > 9.5 && replay.length >= 5 && maxDev < 0.25 && krushMovedDuringJay > 2
-    && both.krush_moved_m > 2 && both.jay_moved_m > 2 && persisted && reloadDev.krush < 0.25 && reloadDev.jay < 0.25;
-  return result(ok, m, 'Both passes ~10 s; Krush replays his take (≤0.25 m) while Jay records; both move together; both clips survive a server reload.');
+  const ok = Math.abs(a.clip.out - 10) < 0.5 && Math.abs(b.clip.out - 10) < 0.5 && replay.length > 10 && maxDev < 0.25 && krushMovedDuringJay > 2
+    && both.krush_moved_m > 2 && both.jay_moved_m > 2 && persisted && reloadDev.krush < 0.25 && reloadDev.jay < 0.25 && danceOk;
+  // Too few replay probes means the browser was too slow to judge, not that the feature failed.
+  const slow = replay.length <= 10 && maxDev < 0.25;
+  return result(ok, m, 'Passes 10 s ±0.5; Krush replays (>10 probes, ≤0.25 m) while Jay records; both move together; clips persist; dances start at 5 s / 7 s without moving the path.', !ok && slow);
 }
