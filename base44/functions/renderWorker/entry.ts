@@ -26,7 +26,7 @@ export default async function (req) {
       for (const c of take.timeline?.clips || []) if (typeof c.anim_uri === 'string') uris.add(c.anim_uri);
       const file_urls = {};
       await Promise.all([...uris].slice(0, 50).map(async (u) => {
-        file_urls[u] = (await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: u, expires_in: 7200 })).signed_url;
+        file_urls[u] = (await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: u, expires_in: 3600 })).signed_url;
       }));
       return Response.json({
         file_urls,
