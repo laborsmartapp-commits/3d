@@ -2,7 +2,7 @@ import { metrics } from './metrics';
 import { TESTS } from './tests';
 import { net } from '../studio/net';
 
-export const MAX_STEPS = 20;
+export { MAX_STEPS } from '../core/step';
 const RES_KEY = 'diag.results';
 
 // Admin-only diagnostics. Every hook is a single boolean check while disabled.

@@ -4,23 +4,26 @@ import { base44 } from '@/api/base44Client';
 import { queueRender, retryRender, videoUrl } from '@/game/studio/RecordingJobManager';
 import { cloudLabel } from '@/game/studio/quality';
 import TakeRename from './TakeRename';
+import { useNavigate } from 'react-router-dom';
+import { stageInfo, takeStage } from '@/game/stages/registry';
 import { recoverTake, deleteTake } from '@/game/studio/takeOps';
 
 const T = () => base44.entities.SceneTake;
 
 export default function TakeActions({ engine, st, take, jobs, interrupted, reload, onDetails }) {
   const S = engine.studio, [busy, setBusy] = useState(null), [renaming, setRenaming] = useState(false), [confirmDel, setConfirmDel] = useState(false);
+  const nav = useNavigate(), here = takeStage(take) === engine.stage.id;
   const done = jobs.find((j) => j.status === 'completed' && j.video_uri), failed = jobs[0]?.status === 'failed' ? jobs[0] : null;
   const run = (k, fn) => async () => { setBusy(k); await fn(); setBusy(null); reload(); };
   const actions = [
-    ['play', Play, 'Play in world', !interrupted && st.status === 'idle', () => S.playTake(take)],
-    ['watch', Download, 'Download video', !!done, async () => window.open(await videoUrl(done), '_blank')],
+    ['play', Play, here ? 'Play in world' : `Play in ${stageInfo(takeStage(take)).name}`, !interrupted && st.status === 'idle', () => here ? S.playTake(take) : nav(`${stageInfo(takeStage(take)).path}?studioTake=${take.id}&do=play`)],
+    ['watch', Download, 'Download Master', !!done, async () => window.open(await videoUrl(done), '_blank')],
     ['rename', Pencil, 'Rename', true, () => setRenaming(true)],
     ['dup', Copy, 'Duplicate', !interrupted, async () => {
       const { id, created_date, updated_date, created_by_id, ...rest } = take;
       await T().create({ ...rest, name: `${take.name} (copy)`, source_take_id: take.source_take_id || take.id });
     }],
-    ['rerender', RefreshCw, `Re-render ${cloudLabel(st.cloud)}`, !interrupted, () => queueRender(take, st.cloud)],
+    ['rerender', RefreshCw, `Re-render Master ${cloudLabel(st.cloud)}`, !interrupted, () => queueRender(take, st.cloud)],
     ['retry', RefreshCw, 'Retry render', !!failed, () => retryRender(failed)],
     ['recover', LifeBuoy, 'Recover performance', interrupted, () => recoverTake(take)],
     ['delete', Trash2, confirmDel ? 'Confirm delete' : 'Delete', st.take?.id !== take.id, async () => {
@@ -36,7 +39,7 @@ export default function TakeActions({ engine, st, take, jobs, interrupted, reloa
           {busy === k ? <Loader2 className="w-3 h-3 animate-spin" /> : <Icon className="w-3 h-3" />}{label}
         </button>
       ))}
-      <button onClick={onDetails} className="rounded-full px-2.5 py-1 text-[11px] flex items-center gap-1 bg-white/10 hover:bg-white/20"><Info className="w-3 h-3" />Details</button>
+      <button onClick={onDetails} className="rounded-full px-2.5 py-1 text-[11px] flex items-center gap-1 bg-white/10 hover:bg-white/20"><Info className="w-3 h-3" />Video Details</button>
     </div>
   );
 }

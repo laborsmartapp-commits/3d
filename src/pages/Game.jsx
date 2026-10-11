@@ -6,7 +6,7 @@ import HUD from '@/components/game/HUD';
 import Toasts from '@/components/game/Toasts';
 import PhotoPanel from '@/components/game/PhotoPanel';
 import DiagOverlay from '@/components/diag/DiagOverlay';
-import { base44 } from '@/api/base44Client';
+import useStageStudio from '@/hooks/useStageStudio';
 
 export default function Game() {
   const [mount, setMount] = useState(null);
@@ -25,18 +25,7 @@ export default function Game() {
     return () => e.dispose();
   }, [mount]);
 
-  // Admin check via the server-issued session; ?sceneDiag=1 only takes effect for admins.
-  useEffect(() => {
-    if (!engine) return;
-    base44.auth.me().then((u) => {
-      engine.isAdmin = u?.role === 'admin'; engine.adminEmail = engine.isAdmin ? u.email : null;
-      engine.wantDiag = engine.isAdmin && new URLSearchParams(window.location.search).get('sceneDiag') === '1';
-    }).catch(() => { engine.isAdmin = false; });
-  }, [engine]);
-  useEffect(() => {
-    if (s.phase !== 'game' || !engine?.wantDiag) return;
-    engine.wantDiag = false; engine.diag.setEnabled(true);
-  }, [s.phase, engine, engine?.wantDiag]);
+  useStageStudio(engine, s.phase, () => setPanel('studio'));
 
   useEffect(() => { if (engine) engine.devOpen = panel === 'dev'; }, [panel, engine]);
   useEffect(() => { engine?.studio?.open(panel === 'studio'); }, [panel, engine, s.phase]);

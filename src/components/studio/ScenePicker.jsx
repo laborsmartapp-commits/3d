@@ -15,7 +15,7 @@ export default function ScenePicker({ engine, st }) {
         <div className="rounded-xl bg-white/5 p-3 space-y-2">
           <p className="text-[11px] text-muted-foreground">Scene name</p>
           <input value={st.scene.name} onChange={(e) => S.renameScene(e.target.value)} className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm" />
-          <p className="text-xs text-muted-foreground">World: Celestia Grotto · Location: {st.scene.location}</p>
+          <p className="text-xs text-muted-foreground">Stage: {st.stage?.name} · Location: {st.scene.location}</p>
         </div>
       )}
       <div className="flex gap-2">

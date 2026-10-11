@@ -93,6 +93,45 @@
     "timing": {
       "type": "object",
       "description": "Clock source and real sample statistics"
+    },
+    "stage_name": {
+      "type": "string"
+    },
+    "stage_version": {
+      "type": "string"
+    },
+    "preview_status": {
+      "type": "string",
+      "description": "none | ready | failed"
+    },
+    "preview_uri": {
+      "type": "string",
+      "description": "Private browser-encoded preview video (never a cloud master)"
+    },
+    "preview_mime": {
+      "type": "string"
+    },
+    "preview_ext": {
+      "type": "string"
+    },
+    "preview_width": {
+      "type": "number"
+    },
+    "preview_height": {
+      "type": "number"
+    },
+    "preview_fps": {
+      "type": "number"
+    },
+    "preview_size": {
+      "type": "number"
+    },
+    "preview_info": {
+      "type": "object",
+      "description": "Source pixels, local quality, encoder, created_at"
+    },
+    "preview_error": {
+      "type": "string"
     }
   },
   "required": [

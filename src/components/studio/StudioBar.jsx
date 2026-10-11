@@ -2,7 +2,7 @@ import React from 'react';
 import { Circle, Square, Eye, EyeOff, PictureInPicture2, Save, Trash2, Loader2, Video, RefreshCw } from 'lucide-react';
 
 const fmt = (t) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', pending: 'Pending upload — not saved yet', playing: 'Playback', loading: 'Loading take' };
+const LABEL = { capturing: 'Capturing Performance', uploading: 'Uploading Performance', review: 'Performance Captured', pending: 'Pending upload — not saved yet', playing: 'Playback', loading: 'Loading take', saving: 'Saving preview video' };
 
 export default function StudioBar({ engine, st }) {
   const S = engine.studio, cam = st.cameras.find((c) => c.id === (st.recCamId || st.selId));
@@ -27,9 +27,9 @@ export default function StudioBar({ engine, st }) {
       {st.status === 'playing' && <button onClick={() => S.stopPlayback()} className={`${btn} bg-white/10 hover:bg-white/20`}><Square className="w-3.5 h-3.5" />Stop Playback</button>}
       <div className="px-2 text-xs tabular-nums flex items-center gap-2">
         {st.status === 'capturing' && <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />}
-        {(st.status === 'uploading' || st.status === 'loading') && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+        {(st.status === 'uploading' || st.status === 'loading' || st.status === 'saving') && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
         <span className="font-mono">{fmt(st.status === 'playing' ? st.playT : st.recT)}</span>
-        <span className="text-muted-foreground hidden md:inline">{LABEL[st.status] || 'Ready'}</span>
+        <span className="text-muted-foreground hidden md:inline">{st.encoding && st.status === 'playing' ? `Encoding ${st.encoding} preview · ${st.playDur ? Math.round((st.playT / st.playDur) * 100) : 0}%` : LABEL[st.status] || 'Ready'}</span>
       </div>
       <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground px-2 border-l border-white/10"><Video className="w-3.5 h-3.5" />{st.status === 'playing' ? st.playing : cam?.name || 'No camera'}</span>
       <button onClick={() => toggle('viewThrough')} disabled={!cam && st.status !== 'playing'} className={`${btn} ${st.viewThrough ? 'bg-accent text-accent-foreground' : 'bg-white/10 hover:bg-white/20'}`}>

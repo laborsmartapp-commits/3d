@@ -22,7 +22,9 @@ import { Particles, FX } from './fx/Particles';
 import { Plots } from './build/Plots';
 import { BuildManager } from './build/BuildManager';
 import { SceneManager } from './studio/SceneManager';
-import { DiagManager, MAX_STEPS } from './diag/DiagManager';
+import { DiagManager } from './diag/DiagManager';
+import { stepPlayer } from './core/step';
+import { celestiaStage } from './stages/adapters';
 import { R, WATER, SPAWN, DISCOVERIES, RIVER_S, OUTLET_S, GROTTO } from './world/layout';
 
 const V = THREE.Vector3;
@@ -143,6 +145,7 @@ export class Engine {
     if (await step(95, 'Loading your island')) return;
     await this.loadMyIsland();
     this.applyQuality(this.qName);
+    this.stage = celestiaStage(this);
     this.studio = new SceneManager(this);
     this.diag = new DiagManager(this);
     this.onResize = () => {
@@ -448,13 +451,8 @@ export class Engine {
     }
   }
 
-  // Fixed sub-steps (≤50 ms) over the real frame time, so movement distance doesn't depend on FPS.
-  // Hard cap of MAX_STEPS per frame; time beyond the 1 s frame cap is dropped and reported by diagnostics.
-  stepPlayer(raw, inp, fp, frozen) {
-    const n = Math.min(MAX_STEPS, Math.max(1, Math.ceil(raw / 0.05 - 1e-6))), h = raw / n;
-    for (let i = 0; i < n; i++) this.player.update(h, i ? { ...inp, jump: false, interact: false } : inp, this.rig.yaw, fp, frozen);
-    return n;
-  }
+  // Time beyond the 1 s frame cap is dropped and reported by diagnostics.
+  stepPlayer(raw, inp, fp, frozen) { return stepPlayer(this, raw, inp, fp, frozen); }
 
   frame = () => {
     if (this.disposed) return;

@@ -30,7 +30,7 @@ export function buildManifest(take, settings) {
   const r = RESOLUTIONS[settings.resolution];
   return {
     schema: MANIFEST_SCHEMA,
-    world: take.world, island_id: take.island_id, location: take.location,
+    world: take.world, stage: { id: take.world || 'celestia-grotto', name: take.stage_name, version: take.stage_version }, island_id: take.island_id, location: take.location,
     world_snapshot: take.world_snapshot, actor_assets: take.actor_assets || { krush: ACTOR_ASSETS.krush }, recording_timing: take.timing,
     access: {
       route: '/render?job=<render_job_id>', performance: 'backend function getRenderPerformance({job_id}) authorised by the RENDER_WORKER_TOKEN secret',

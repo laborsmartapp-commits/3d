@@ -8,6 +8,12 @@ import { FX } from '../fx/Particles';
 import { makeMaterials } from './materials';
 import { Batch } from './geo';
 import { DISTRICTS } from './districts';
+import { SceneManager } from '../studio/SceneManager';
+import { DiagManager } from '../diag/DiagManager';
+import { stepPlayer } from '../core/step';
+import { convergenceStage } from '../stages/adapters';
+
+const PIXEL = { low: 0.8, medium: 1, high: 1.5 };
 
 function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
 
@@ -24,7 +30,14 @@ export class ConvergenceEngine {
   constructor(container, onState, district = DISTRICTS.boulevard) {
     this.container = container; this.onState = onState; this.D = district;
     this.hud = { phase: 'loading', progress: 0, step: 'Preparing', mode: 'play' };
-    this.mode = 'play'; this.time = 0;
+    this.mode = 'play'; this.time = 0; this.qName = 'high'; this.fps = 60; this.frames = 0; this.statT = 0;
+  }
+
+  setMode() {} // single play mode; first-person toggle stays on V
+  applyQuality(name) {
+    if (!PIXEL[name]) return;
+    this.qName = name; this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.isTouch ? 1 : PIXEL[name]));
+    this.emit({ quality: name });
   }
 
   emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
@@ -72,6 +85,9 @@ export class ConvergenceEngine {
     this.rig.target.set(sp.x, this.player.pos.y + 1.55, sp.z);
     this.onResize = () => { const w = this.container.clientWidth, h = this.container.clientHeight; r.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); };
     window.addEventListener('resize', this.onResize);
+    this.stage = convergenceStage(this);
+    this.studio = new SceneManager(this);
+    this.diag = new DiagManager(this);
     this.clock = new THREE.Clock();
     this.emit({ progress: 100, phase: 'game', isTouch: this.isTouch, zone: this.D.zoneAt(sp.x, sp.z) });
     this.frame();
@@ -87,19 +103,24 @@ export class ConvergenceEngine {
   frame = () => {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    if (this.diag.skipFrame()) return;
+    const delta = this.clock.getDelta(), raw = Math.min(delta, 1), dt = Math.min(raw, 0.05);
     this.time += dt;
-    const inp = this.input.consume();
+    const inp = this.diag.input(this.input.consume());
     if (inp.pressed?.has('KeyV')) this.toggleView();
     const first = this.mode === 'first';
-    this.player.update(dt, inp, this.rig.yaw, first, false);
+    const steps = this.studio.freeze ? 0 : stepPlayer(this, raw, inp, first, false);
+    if (this.diag.enabled) this.diag.frame(delta, raw, steps);
+    this.studio.update(dt);
     if (first) this.rig.first(dt, inp, this.player); else this.rig.third(dt, inp, this.player);
     const p = this.player.pos;
     this.sun.position.set(p.x + 60, p.y + 95, p.z + 35); this.sun.target.position.copy(p);
     this.fx.update(dt);
     this.tick(this.time, p.x, p.z);
     if ((this.zoneTick = (this.zoneTick || 0) + 1) % 30 === 0) { const z = this.D.zoneAt(p.x, p.z); if (z !== this.hud.zone) this.emit({ zone: z }); }
-    this.renderer.render(this.scene, this.camera);
+    this.studio.render();
+    this.frames++; this.statT += dt;
+    if (this.statT > 0.5) { this.fps = Math.round(this.frames / this.statT); this.frames = 0; this.statT = 0; }
   };
 
   dispose() {

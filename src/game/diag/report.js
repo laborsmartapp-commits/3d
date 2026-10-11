@@ -1,5 +1,6 @@
 import { TESTS } from './tests';
 import { CLOUD_CONNECTED } from '../studio/CloudRenderService';
+import { previewFormat } from '../studio/PreviewEncoder';
 
 export const BUILD = 'scene-manager / diagnostics v1 (2026-10-11)';
 
@@ -21,6 +22,8 @@ export function buildReport(e) {
   return {
     generated_at: new Date().toISOString(), build: BUILD, admin: me,
     device: { userAgent: navigator.userAgent, platform: navigator.platform, cores: navigator.hardwareConcurrency, memory_gb: navigator.deviceMemory ?? null, screen: `${screen.width}×${screen.height} @${devicePixelRatio}x`, viewport: `${innerWidth}×${innerHeight}`, gpu: gpu(e.renderer) },
+    stage: { id: e.stage.id, name: e.stage.name, version: e.stage.version },
+    stage_compatibility: { scene: !!e.scene, renderer: !!e.renderer, camera: !!e.camera, player: !!e.player, camera_rig: !!e.rig, actors: e.stage.actors, environment: e.stage.env.kind, world_snapshot: !!e.stage.snapshot(), scripted_input: !!e.diag, preview_encoding: previewFormat()?.mime || 'unsupported' },
     scene: S.scene ? { id: S.scene.id, name: S.scene.name } : null,
     config: { simulate_fps: D.throttle ? D.target : null, live_quality: e.qName, local_quality: S.localQuality, cloud: S.cloud },
     metrics: D.metrics(),
@@ -35,7 +38,7 @@ const flat = (o) => Object.entries(o || {}).map(([k, v]) => `  - ${k}: ${typeof 
 export function reportText(r) {
   const m = r.metrics, sec = (n) => `### ${n}\n${flat(m[n])}`;
   return [
-    `# Krush Studio Diagnostic Report`, `Generated: ${r.generated_at}`, `Build: ${r.build}`, `Admin: ${r.admin || 'n/a'}`, `Scene: ${r.scene ? `${r.scene.name} (${r.scene.id})` : 'none'}`,
+    `# Krush Studio Diagnostic Report`, `Generated: ${r.generated_at}`, `Build: ${r.build}`, `Admin: ${r.admin || 'n/a'}`, `Stage: ${r.stage ? `${r.stage.name} (${r.stage.id}, ${r.stage.version})` : 'n/a'}`, `## Stage compatibility\n${flat(r.stage_compatibility)}`, `Scene: ${r.scene ? `${r.scene.name} (${r.scene.id})` : 'none'}`,
     `## Device\n${flat(r.device)}`, `## Configuration\n${flat(r.config)}`,
     `## Test results`, ...Object.entries(r.tests).map(([id, t]) => `- ${id}. ${t.title}: **${t.status}**${t.at ? ` (${t.at})` : ''}${t.note ? `\n  ${t.note}` : ''}${t.m ? `\n${flat(t.m)}` : ''}`),
     `## Live measurements`, m.warnings.length ? `Warnings:\n${m.warnings.map((w) => `  - ${w}`).join('\n')}` : 'Warnings: none',

@@ -4,16 +4,17 @@ import { PerformanceRecorder } from './PerformanceRecorder';
 import { PerformancePlayback } from './PerformancePlayback';
 import { defaultCloud } from './quality';
 import { queueRender } from './RecordingJobManager';
-import { worldSnapshot, ACTOR_ASSETS } from './versions';
+import { ACTOR_ASSETS } from './versions';
+import { PreviewEncoder, previewFormat, FPS } from './PreviewEncoder';
+import { takeStage } from '../stages/registry';
 
-const WORLD = 'celestia-grotto';
 const LEVELS = ['low', 'medium', 'high'];
 const Scenes = () => base44.entities.StudioScene, Takes = () => base44.entities.SceneTake;
 
 // Orchestrates scenes, cameras, capture, playback and render queuing inside the live Realm engine.
 export class SceneManager {
   constructor(e) {
-    this.e = e;
+    this.e = e; this.stage = e.stage;
     e.camera.layers.enable(1); // editor camera sees gizmos; production cameras don't
     this.cams = new CameraManager(e); this.rec = new PerformanceRecorder(e); this.play = new PerformancePlayback(e);
     this.active = false; this.scene = null; this.viewThrough = false; this.preview = true;
@@ -28,10 +29,9 @@ export class SceneManager {
   open(on) { this.active = on; this.emit(); }
 
   // ---- scenes
-  listScenes() { return Scenes().filter({ world: WORLD }, { sort: '-updated_date', limit: 50 }).then((p) => p.items); }
+  listScenes() { return Scenes().filter({ world: this.stage.id }, { sort: '-updated_date', limit: 50 }).then((p) => p.items); }
   async newScene(name) {
-    const isl = this.e.island;
-    const s = await Scenes().create({ name: name || 'Untitled Scene', world: WORLD, location: isl?.name || 'Celestia Grotto', island_id: isl?.id, cameras: [], cloud_settings: this.cloud, local_quality: this.localQuality, take_count: 0 });
+    const s = await Scenes().create({ name: name || 'Untitled Scene', world: this.stage.id, location: this.stage.location(), island_id: this.e.island?.id, cameras: [], cloud_settings: this.cloud, local_quality: this.localQuality, take_count: 0 });
     this.openScene(s);
     this.cams.add(); this.dirty();
   }
@@ -73,7 +73,7 @@ export class SceneManager {
     else if (fps > 57 && i >= 0 && i < 2) this.e.applyQuality(LEVELS[i + 1]);
   }
 
-  envState() { const v = this.e.env; return { h: +v.hour.toFixed(3), w: v.weather }; }
+  envState() { return this.stage.env.get(); }
 
   // ---- recording
   async record() {
@@ -81,17 +81,17 @@ export class SceneManager {
     if (!this.scene || !c || this.busy) return;
     this.error = ''; this.recCamId = c.id; this.status = 'capturing';
     this.rec.start(); // clock starts now; chunks upload once the take id exists
-    const world = worldSnapshot(this.e);
+    const world = this.stage.snapshot();
     this.emit();
     await this.saveScene();
     const n = (this.scene.take_count || 0) + 1;
     this.scene.take_count = n;
     Scenes().update(this.scene.id, { take_count: n });
-    const v = this.e.env;
+    const st = this.stage;
     this.take = await Takes().create({
       scene_id: this.scene.id, scene_name: this.scene.name, take_number: n, name: `Take ${String(n).padStart(2, '0')} — ${c.mode === 'follow' ? 'Follow Camera' : 'Stationary Camera'}`,
-      world: WORLD, location: this.scene.location, island_id: this.scene.island_id, camera_id: c.id, camera_name: c.name, camera_mode: c.mode, camera_snapshot: { ...c, follow: { ...c.follow } },
-      env_start: { hour: v.hour, weather: v.weather, timeScale: v.timeScale, rate: v.rate }, actors: ['krush'], status: 'capturing', render_settings: this.cloud, local_quality: this.e.qName,
+      world: st.id, stage_name: st.name, stage_version: st.version, location: this.scene.location, island_id: this.scene.island_id, camera_id: c.id, camera_name: c.name, camera_mode: c.mode, camera_snapshot: { ...c, follow: { ...c.follow } },
+      env_start: st.env.start(), actors: st.actors, status: 'capturing', render_settings: this.cloud, local_quality: this.e.qName,
       world_snapshot: world, actor_assets: { krush: ACTOR_ASSETS.krush },
     });
     this.rec.takeId = this.take.id;
@@ -144,26 +144,55 @@ export class SceneManager {
   // ---- playback
   async playTake(take) {
     if (this.busy) return;
+    if (takeStage(take) !== this.stage.id) { this.error = `This take was recorded in ${take.stage_name || takeStage(take)}. Open that stage to play it.`; this.emit(); return; }
     this.status = 'loading'; this.emit();
     const n = await this.play.load(take);
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
-    this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, hour: this.e.env.hour, weather: this.e.env.weather };
+    this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, env: this.stage.env.save() };
+    this.previewJob?.enc.start();
     this.play.begin();
     this.playing = take; this.viewThrough = true; this.status = 'playing'; this.emit();
   }
-  stopPlayback() {
+  stopPlayback(completed = false) {
     const s = this.saved, p = this.e.player;
     p.pos.set(s.x, s.y, s.z); p.yaw = s.yaw; p.vel.set(0, 0, 0);
-    this.e.env.hour = s.hour; this.e.env.setWeather(s.weather);
-    this.viewThrough = s.view; this.playing = null; this.status = 'idle'; this.emit();
+    this.stage.env.apply(s.env);
+    this.viewThrough = s.view; this.playing = null; this.status = 'idle';
+    const job = this.previewJob; this.previewJob = null;
+    if (job) { this.status = 'saving'; this.finishPreview(job, completed); }
+    this.emit();
+  }
+
+  // ---- browser preview video (separate from the cloud master; never labeled as one)
+  async generatePreview(take, res = '720p') {
+    if (this.busy) return;
+    if (!previewFormat()) { this.error = 'This browser cannot encode video. Try a current Chrome, Edge or Safari.'; this.emit(); return; }
+    this.error = ''; this.previewJob = { take, enc: new PreviewEncoder(res) };
+    await this.playTake(take);
+    if (this.status !== 'playing') this.previewJob = null;
+  }
+  async finishPreview({ take, enc }, completed) {
+    const blob = await enc.stop();
+    try {
+      if (!completed) throw new Error('cancelled before the end of the take');
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], `preview.${enc.fmt.ext}`, { type: enc.fmt.type }) });
+      await Takes().update(take.id, {
+        preview_status: 'ready', preview_uri: file_uri, preview_mime: enc.fmt.type, preview_ext: enc.fmt.ext, preview_width: enc.w, preview_height: enc.h, preview_fps: FPS, preview_size: blob.size, preview_error: '',
+        preview_info: { kind: 'browser-preview', encoder: `MediaRecorder ${enc.fmt.mime}`, resolution: enc.res, source_px: enc.src, local_quality: this.e.qName, created_at: new Date().toISOString() },
+      });
+    } catch (err) {
+      this.error = `Preview not saved: ${err.message}. The recorded performance is unaffected.`;
+      if (completed) await Takes().update(take.id, { preview_status: 'failed', preview_error: err.message });
+    }
+    this.status = 'idle'; this.libVersion++; this.emit();
   }
 
   // ---- frame
   update(dt) {
     this.autoQuality(dt);
     this.cams.helpers = this.active && this.status !== 'playing';
-    if (this.status === 'playing') { if (!this.play.step(dt)) this.stopPlayback(); }
+    if (this.status === 'playing') { if (!this.play.step(dt)) this.stopPlayback(true); }
     else this.cams.update(dt, this.recCamId);
     if (this.status === 'capturing') this.rec.sample(this.cams.pose(this.recCamId), this.envState());
     if (this.saveT > 0 && (this.saveT -= dt) <= 0) this.saveScene();
@@ -185,6 +214,7 @@ export class SceneManager {
     if (this.viewThrough) { r.setViewport(0, 0, W, H); r.setScissor(0, 0, W, H); r.setClearColor(0x000000, 1); r.clear(); }
     r.setViewport(...box); r.setScissor(...box);
     r.render(e.scene, cam);
+    if (this.previewJob && this.status === 'playing') this.previewJob.enc.draw(r.domElement, box, r.getPixelRatio());
     if (this.thumbReq) { this.thumbReq(box); this.thumbReq = null; }
     r.setScissorTest(false); r.setViewport(0, 0, W, H);
   }
@@ -205,6 +235,7 @@ export class SceneManager {
     const sel = this.cams.selected;
     this.e.emit({
       studio: {
+        stage: { id: this.stage.id, name: this.stage.name }, encoding: this.previewJob ? this.previewJob.enc.res : null,
         active: this.active, status: this.status, error: this.error, viewThrough: this.viewThrough, preview: this.preview,
         scene: this.scene ? { id: this.scene.id, name: this.scene.name, location: this.scene.location } : null,
         cameras: this.cams.list.map((c) => ({ ...c, follow: { ...c.follow } })), selId: sel?.id || null, recCamId: this.recCamId,

@@ -46,7 +46,7 @@ export class PerformancePlayback {
     p.finish(dt, false);
     this.cam.position.fromArray(s.c.p); this.cam.quaternion.copy(s.c.q);
     if (this.cam.fov !== s.c.fov) { this.cam.fov = s.c.fov; this.cam.updateProjectionMatrix(); }
-    if (s.e) { this.e.env.hour = s.e.h; if (this.e.env.weather !== s.e.w) this.e.env.setWeather(s.e.w); }
+    this.e.stage.env.apply(s.e);
     return true;
   }
 }
