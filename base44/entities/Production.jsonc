@@ -1,0 +1,127 @@
+{
+  "name": "Production",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "thumbnail_url": {
+      "type": "string"
+    },
+    "production_type": {
+      "type": "string",
+      "enum": [
+        "music_video",
+        "tv_episode",
+        "short_film",
+        "animation_test"
+      ],
+      "default": "music_video"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "in_production",
+        "review",
+        "completed",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "stage_id": {
+      "type": "string",
+      "default": "celestia-grotto"
+    },
+    "fps": {
+      "type": "number",
+      "default": 30
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "1080p",
+        "1440p",
+        "4k"
+      ],
+      "default": "1080p"
+    },
+    "scene_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "StudioScene ids in this production, in order"
+    },
+    "collaborators": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Collaborator emails"
+    },
+    "asset_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Library assets used (references only)"
+    },
+    "last_scene_id": {
+      "type": "string"
+    },
+    "last_shot_id": {
+      "type": "string"
+    },
+    "last_opened_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "rls": {
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

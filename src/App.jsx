@@ -13,6 +13,16 @@ import SceneView from '@/pages/SceneView';
 import Game from '@/pages/Game';
 import Convergence from '@/pages/Convergence';
 import Render from '@/pages/Render';
+import StudioLayout from '@/components/shell/StudioLayout';
+import Dashboard from '@/pages/Dashboard';
+import Productions from '@/pages/Productions';
+import Stages from '@/pages/Stages';
+import Recordings from '@/pages/Recordings';
+import RenderQueue from '@/pages/RenderQueue';
+import ProductionDetail from '@/pages/ProductionDetail';
+import AssetLibrary from '@/pages/AssetLibrary';
+import Settings from '@/pages/Settings';
+import AdminPortal from '@/pages/AdminPortal';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -43,7 +53,19 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route element={<StudioLayout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/productions" element={<Productions />} />
+        <Route path="/stages" element={<Stages />} />
+        <Route path="/recordings" element={<Recordings />} />
+        <Route path="/renders" element={<RenderQueue />} />
+        <Route path="/productions/:id" element={<ProductionDetail />} />
+        <Route path="/assets" element={<AssetLibrary />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
+      <Route path="/admin" element={<AdminPortal />} />
+      <Route path="/admin/:section" element={<AdminPortal />} />
+      <Route path="/destinations" element={<Home />} />
       <Route path="/realm" element={<Game />} />
       <Route path="/world" element={<Game />} />
       <Route path="/scenes" element={<Scenes />} />
