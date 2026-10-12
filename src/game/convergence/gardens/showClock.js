@@ -26,7 +26,7 @@ export function cueAt(u, dur) {
 // Returns { phase, u, cue, nextAt, levels } for the given ms timestamp.
 export function showState(cfg, now) {
   const c = { ...DEFAULTS, ...cfg, groups: { ...DEFAULTS.groups, ...(cfg?.groups || {}) } };
-  const dur = Math.max(40, c.duration_s), iv = Math.max(dur + 30, c.interval_s) * 1000;
+  const dur = Math.max(40, c.duration_s), iv = (c.gap_s != null ? dur + c.gap_s : Math.max(dur + 30, c.interval_s)) * 1000;
   let start = null;
   if (c.manual_start_at && now - c.manual_start_at < dur * 1000) start = c.manual_start_at;
   else if (c.schedule) start = Math.floor(now / iv) * iv;

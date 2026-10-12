@@ -78,10 +78,11 @@ export class Player {
     e.colliders.resolve(this.pos, 0.35, this.pos.y + 0.5);
 
     const g = e.groundAt(this.pos.x, this.pos.z);
-    const depth = WATER - g;
-    this.swimming = depth > 1.35 && this.pos.y <= WATER - 0.4;
+    const W = e.water ?? WATER; // stages without water (e.g. Star Square) set e.water far below ground
+    const depth = W - g;
+    this.swimming = depth > 1.35 && this.pos.y <= W - 0.4;
     if (this.swimming) {
-      this.pos.y += (WATER - 1.25 - this.pos.y) * Math.min(1, dt * 6);
+      this.pos.y += (W - 1.25 - this.pos.y) * Math.min(1, dt * 6);
       this.vel.y = 0;
       this.onGround = false;
     } else {

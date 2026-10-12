@@ -16,6 +16,13 @@ export const celestiaStage = (e) => ({
   },
 });
 
+export const starSquareStage = (e) => ({
+  id: 'star-square', name: 'Star Square', version: 'star-square@1.0.0', actors: ['krush'],
+  location: () => e.hud.zone || 'Star Square',
+  snapshot: () => ({ world: 'star-square', engine_version: 'star-square@1.0.0', district: 'star-square', district_name: 'Star Square', fog: e.D.fog, spawn: e.D.spawn }),
+  env: { kind: 'static', get: () => ({ h: null, w: 'clear' }), start: () => ({ static: true }), apply: () => {}, save: () => null },
+});
+
 export const convergenceStage = (e) => ({
   id: 'convergence', name: 'The Convergence', version: 'convergence@1.0.0', actors: ['krush'],
   location: () => e.D.name,

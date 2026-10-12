@@ -24,7 +24,7 @@ export function buildFountain(K) {
   K.spill.pool(0, base + 0.93, 0, F.rx + 10, '#9adfff', 0.22);
   for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2 + 0.13, x = Math.cos(a) * (F.rx + 1.6), z = Math.sin(a) * (F.rz + 1.6); K.seats.push({ x, z, yaw: Math.atan2(x, z), y: base + 0.95 }); }
   sculpture(K, W);
-  return new FountainShow(K, null, { place: (add) => nozzles(add, W + 0.25), center: { x: 0, z: 0 }, reach: 30 });
+  return new FountainShow(K, null, { place: (add) => nozzles(add, W + 0.25), center: { x: 0, z: 0 }, reach: 30, cfg: { gap_s: 1 } }); // continuous loop: restarts 1 s after each show ends
 }
 
 function sculpture(K, W) {

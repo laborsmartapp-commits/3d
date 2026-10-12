@@ -212,7 +212,8 @@ for (const s of STREETS) for (const side of [1, -1]) {
 }
 
 // Walkable height: roads and service gaps at 0, raised paving at the curb height.
-const HG = new Uint8Array(600 * 480);
+// Each cell stores the exact top height of the surface built there (see ground.js) so feet sit on it.
+const HG = new Float32Array(600 * 480);
 const hset = (x, z, v) => { const i = Math.floor(x + 300), j = Math.floor(z + 240); if (i >= 0 && j >= 0 && i < 600 && j < 480) HG[j * 600 + i] = v; };
 function rasterRect(cx, cz, t, n, hw, hd, v) {
   const r = Math.hypot(hw, hd);
@@ -223,13 +224,17 @@ function rasterRect(cx, cz, t, n, hw, hd, v) {
 }
 for (const w of SIDEWALKS) {
   const { s, side } = w, m = (w.inner + w.outer) / 2, cu = (w.u0 + w.u1) / 2;
-  rasterRect(s.a[0] + s.t[0] * cu + s.n[0] * side * m, s.a[1] + s.t[1] * cu + s.n[1] * side * m, s.t, s.n, (w.u1 - w.u0) / 2, (w.outer - w.inner) / 2, 1);
+  rasterRect(s.a[0] + s.t[0] * cu + s.n[0] * side * m, s.a[1] + s.t[1] * cu + s.n[1] * side * m, s.t, s.n, (w.u1 - w.u0) / 2, (w.outer - w.inner) / 2, CURB + STREETS.indexOf(s) * 0.003);
 }
-for (let x = -80; x <= 80; x++) for (let z = -100; z <= 100; z++) if (inPlaza(x + 0.5, z + 0.5, 9) && !onRoad(x + 0.5, z + 0.5)) hset(x, z, 1);
-for (const c of COURTS) rasterRect(c.x, c.z, [1, 0], [0, 1], c.hw + 1.5, c.hd + 1.5, 1);
-for (const l of LOTS) rasterRect(l.x, l.z, l.t, l.n, l.w / 2, l.d / 2, 1);
-for (let x = 242; x < 300; x++) for (let z = -240; z < 240; z++) hset(x, z, x < 262 ? 1 : 2);
-export const groundAt = (x, z) => { const i = Math.floor(x + 300), j = Math.floor(z + 240); const v = i >= 0 && j >= 0 && i < 600 && j < 480 ? HG[j * 600 + i] : 0; return v === 1 ? CURB : v === 2 ? 0.08 : 0; };
+for (let x = -80; x <= 80; x++) for (let z = -100; z <= 100; z++) {
+  const cx = x + 0.5, cz = z + 0.5;
+  if (inPlaza(cx, cz, 9) && !onRoad(cx, cz)) hset(x, z, inEllipse(cx, cz, 38, 28) ? CURB + 0.084 : CURB + 0.06);
+}
+for (const c of COURTS) rasterRect(c.x, c.z, [1, 0], [0, 1], c.hw + 1.5, c.hd + 1.5, CURB + 0.04);
+for (const l of LOTS) rasterRect(l.x, l.z, l.t, l.n, l.w / 2, l.d / 2, CURB);
+for (let x = 242; x < 300; x++) for (let z = -240; z < 240; z++) hset(x, z, x < 248 ? CURB : x < 262 ? CURB + 0.01 : 0.1);
+// Roads carry painted markings ~2 cm proud of the asphalt.
+export const groundAt = (x, z) => { const i = Math.floor(x + 300), j = Math.floor(z + 240); return i >= 0 && j >= 0 && i < 600 && j < 480 ? HG[j * 600 + i] || 0.02 : 0.02; };
 
 // Geometry checks shown in the admin overhead view and logged on load.
 export function validate() {

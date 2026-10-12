@@ -7,6 +7,7 @@ import PageHeader from '@/components/shell/PageHeader';
 
 const ABOUT = {
   'celestia-grotto': { text: 'Floating island realm with grottos, village and living weather.', img: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=900' },
+  'star-square': { text: 'Dusk-lit plaza with its fountain show, screens and neon streets.', img: 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=900' },
   convergence: { text: 'Astral Boulevard, clock tower and the city districts.', img: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=900' },
 };
 

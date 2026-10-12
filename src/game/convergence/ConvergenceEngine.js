@@ -68,7 +68,7 @@ export class ConvergenceEngine {
     Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 300 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     scene.add(hemi, sun, sun.target);
-    this.sun = sun;
+    this.sun = sun; this.lights = { hemi, sun }; this.water = this.D.water;
     this.colliders = new Colliders(); this.occluders = [];
     this.mats = makeMaterials(); this.batch = new Batch();
     if (await step(50, this.D.steps[1])) return;
@@ -85,7 +85,7 @@ export class ConvergenceEngine {
     this.rig.target.set(sp.x, this.player.pos.y + 1.55, sp.z);
     this.onResize = () => { const w = this.container.clientWidth, h = this.container.clientHeight; r.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); };
     window.addEventListener('resize', this.onResize);
-    this.stage = convergenceStage(this);
+    this.stage = (this.D.stage || convergenceStage)(this);
     this.studio = new SceneManager(this);
     this.diag = new DiagManager(this);
     this.clock = new THREE.Clock();
