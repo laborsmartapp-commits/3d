@@ -35,6 +35,25 @@ export default async function (req) {
         chunks: page.items.map((c) => ({ index: c.index, samples: c.samples })),
       });
     }
+    if (action === 'audio') {
+      // The take's frozen audio arrangement, with each clip's file signed for this job only.
+      const take = (await svc.SceneTake.filter({ id: job.take_id }))[0];
+      if (!take || take.created_by_id !== job.created_by_id) return bad('Take not found', 404);
+      const tl = take.timeline || {}, all = (tl.clips || []).filter((c) => c.kind === 'audio' && typeof c.uri === 'string');
+      const solo = all.some((c) => c.solo), live = all.filter((c) => !c.muted && (!solo || c.solo)).slice(0, 64);
+      const ids = [...new Set(live.map((c) => c.asset_id).filter(Boolean))];
+      const assets = ids.length ? await svc.Asset.filter({ id: { $in: ids } }) : [];
+      const ok = new Map(assets.filter((a) => a.category === 'audio').map((a) => [a.id, a.file_uri]));
+      const clips = live.filter((c) => ok.get(c.asset_id) === c.uri); // only real library audio, exact stored version
+      const urls = {};
+      await Promise.all([...new Set(clips.map((c) => c.uri))].map(async (u) => {
+        urls[u] = (await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: u, expires_in: 3600 })).signed_url;
+      }));
+      return Response.json({
+        version: 1, master_gain: Number(tl.master_gain ?? 1), duration: take.duration, skipped: live.length - clips.length,
+        clips: clips.map((c) => ({ id: c.id, asset_id: c.asset_id, url: urls[c.uri], track: c.track, start: +c.start || 0, end: +c.end || 0, in: +c.in || 0, len: +c.len || 0, speed: +c.speed || 1, loop: !!c.loop, gain: Number(c.gain ?? 1), pan: +c.pan || 0, fade_in: +c.fadeIn || 0, fade_out: +c.fadeOut || 0 })),
+      });
+    }
     if (typeof runpod_id !== 'string' || runpod_id !== job.runpod_job_id) return bad('Run does not match this job', 403);
     if (action === 'claim') {
       if (job.worker_run_id && job.worker_run_id !== runpod_id) return bad('Job already claimed by another run', 409);
