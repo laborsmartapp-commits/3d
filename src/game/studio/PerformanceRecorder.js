@@ -47,7 +47,7 @@ export class PerformanceRecorder {
     const p = this.e.player, t = r4(this.t), id = this.actorId || 'krush';
     if (env.w !== this.lastW) { this.events.push({ t, type: 'weather', value: env.w }); this.lastW = env.w; this.nEnv++; }
     if (p.anim.mode !== this.lastM) { this.events.push({ t, type: 'anim', actor: id, from: this.lastM, to: p.anim.mode }); this.lastM = p.anim.mode; this.nAnim++; }
-    this.buf.push({ t, a: { [id]: { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase), sp: r3(p.anim.speed), at: r4(p.anim.t), sit: !!p.sitting, sw: !!p.swimming } }, c: cam, e: env });
+    this.buf.push({ t, a: { [id]: { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase), sp: r3(p.anim.speed), at: r4(p.anim.t), sit: !!p.sitting, sw: !!p.swimming, ly: JSON.parse(JSON.stringify(p.anim.layers || [])) } }, c: cam, e: env });
     this.count++;
     if (this.t - this.lastFlush >= studioSettings().recording_chunk_seconds) this.flush();
   }

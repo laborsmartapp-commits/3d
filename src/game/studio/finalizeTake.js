@@ -17,7 +17,12 @@ export async function finalizeTake(sm) {
   await sm.saveScene();
   await D.preload();
   const missing = tl.clips.filter((c) => c.kind === 'perf' && !D.pbs.get(c.take_id)?.samples.length);
-  if (missing.length) throw new Error(`${missing.length} performance clip(s) have no recorded data.`);
+  // Empty movement clips (e.g. from a deleted or failed take) are dropped instead of blocking the finalize.
+  if (missing.length) {
+    const bad = new Set(missing.map((c) => c.id));
+    tl.clips = tl.clips.filter((c) => !bad.has(c.id)); D.tl.clips = D.tl.clips.filter((c) => !bad.has(c.id)); sm.dirty();
+    if (!tl.clips.some((c) => !c.muted)) throw new Error('Schedule an animation or record a performance first.');
+  }
 
   const cast = tl.actors.filter((a) => !a.muted), env = sm.envState(), keepT = D.t, samples = [];
   for (let i = 0, n = Math.ceil(dur * FPS); i <= n; i++) {

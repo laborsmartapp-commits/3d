@@ -163,6 +163,8 @@ export class DirectorManager {
       sm.rec.tick(); this.t = sm.pass.t0 + sm.rec.t;
       if (this.audio.playing) this.drift = this.t - this.audio.time(); // reported, never corrected by changing audio speed
       if (this.stopAt && this.t >= this.stopAt) sm.stop();
+      // The recorded actor still performs its scheduled dances/animations, and they are captured into the take.
+      const rp = this.e.actors[sm.pass.actor]; if (rp) rp.anim.layers = animLayers(this.tl.clips, sm.pass.actor, this.t);
       return this.drive(dt, sm.pass.actor);
     }
     if (this.state === 'playing') {
