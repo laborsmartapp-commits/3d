@@ -15,6 +15,9 @@ export class DirectorManager {
 
   load(tl) {
     this.tl = tl?.actors ? JSON.parse(JSON.stringify(tl)) : newTimeline();
+    // The default Krush walker is never a cast member: only actors the user picks.
+    this.tl.actors = this.tl.actors.filter((a) => a.id !== 'krush');
+    this.tl.clips = this.tl.clips.filter((c) => c.actor !== 'krush');
     this.actors.sync(this.tl.actors); this.hist = []; this.fut = []; this.t = 0;
     this.preload().then(() => this.drive(0));
   }
