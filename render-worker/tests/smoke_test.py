@@ -50,3 +50,7 @@ asyncio.run(direct())
 print("SMOKE TEST PASSED")
 asyncio.run(via_handler())
 print("ASYNC LOOP REGRESSION TEST PASSED")
+# Timeline audio mixing + AAC mux (runs in the CI image build, before the image is pushed).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import test_audio_mix  # noqa: E402
+test_audio_mix.run()

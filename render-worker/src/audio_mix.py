@@ -4,15 +4,37 @@ Each clip mirrors the browser's Web Audio playback: trim-in, loop region [in, en
 (speed + pitch, like AudioBufferSourceNode), gain, pan, linear fades, placed at its timeline start.
 """
 import json
+import math
 import os
+import shutil
 import subprocess
+import time
 
 import requests
 
 SR = 48000
 
 
-def _download(url, path):
+def _download(clip, path, refresh):
+    """3 attempts with backoff; an expired/denied link (401/403) is re-signed via `refresh`."""
+    url, err = clip["url"], None
+    for attempt in range(3):
+        try:
+            return _fetch(url, path)
+        except requests.HTTPError as e:
+            err = e
+            if e.response is not None and e.response.status_code in (401, 403) and refresh:
+                url = next((c["url"] for c in refresh().get("clips", []) if c["id"] == clip["id"]), url)
+        except requests.RequestException as e:
+            err = e
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"Audio clip {clip['id']} could not be downloaded: {err}")
+
+
+def _fetch(url, path):
+    if os.path.exists(url):  # local file (worker tests)
+        shutil.copyfile(url, path)
+        return
     with requests.get(url, stream=True, timeout=120) as r:
         r.raise_for_status()
         with open(path, "wb") as f:
@@ -38,14 +60,18 @@ def _chain(i, c, duration):
         d = min(c["fade_out"], span)
         f.append(f"afade=t=out:st={span - d:.4f}:d={d:.4f}:curve=tri")
     p = max(-1.0, min(1.0, c["pan"]))
-    if p:
-        f.append(f"pan=stereo|c0={min(1, 1 - p):.4f}*c0|c1={min(1, 1 + p):.4f}*c1")
+    if p < 0:  # Web Audio StereoPannerNode on stereo input (equal-power), so cloud matches the studio
+        x = (p + 1) * math.pi / 2
+        f.append(f"pan=stereo|c0=c0+{math.cos(x):.5f}*c1|c1={math.sin(x):.5f}*c1")
+    elif p > 0:
+        x = p * math.pi / 2
+        f.append(f"pan=stereo|c0={math.cos(x):.5f}*c0|c1=c1+{math.sin(x):.5f}*c0")
     ms = int(round(start * 1000))
     f.append(f"adelay={ms}|{ms}")
     return ",".join(f) + f"[a{i}]"
 
 
-def build_mix(arr, duration, tmp):
+def build_mix(arr, duration, tmp, refresh=None):
     """Returns a 48 kHz stereo WAV exactly `duration` seconds long, or None when the take has no audio."""
     clips = [c for c in arr.get("clips", []) if c.get("url")]
     if not clips:
@@ -54,7 +80,7 @@ def build_mix(arr, duration, tmp):
     for c in clips:
         if c["url"] not in files:
             files[c["url"]] = os.path.join(tmp, f"src{len(files)}")
-            _download(c["url"], files[c["url"]])
+            _download(c, files[c["url"]], refresh)
     chains = []
     for c in clips:
         ch = _chain(len(inputs), c, duration)

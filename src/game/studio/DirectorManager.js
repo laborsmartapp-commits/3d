@@ -104,7 +104,8 @@ export class DirectorManager {
     if (this.t >= this.tl.duration - 0.05) this.t = 0;
     this.t0 = this.t; this.w0 = now(); this.startAudio(); this.state = 'playing'; this.sm.status = 'directing'; this.sm.emit();
   }
-  startAudio() { this.audio.start(this.tl.clips, this.tl.master_gain ?? 1, this.t); }
+  startAudio() { this.audio.start(this.tl.clips, this.tl.master_gain ?? 1, this.t, this.tl.tracks); }
+  setTrack(track, patch) { this.edit((tl) => { tl.tracks = { ...(tl.tracks || {}), [track]: { ...(tl.tracks?.[track] || {}), ...patch } }; }); }
   pause() { if (this.state !== 'playing') return; this.audio.stop(); this.state = 'stopped'; this.sm.status = 'idle'; this.sm.emit(); }
   seek(t) {
     if (this.sm.status === 'capturing') return;
@@ -157,7 +158,7 @@ export class DirectorManager {
     return {
       t: this.t, state: this.state, duration: this.tl.duration, fps: this.tl.fps, controlled: this.e.player.actorId, stopAt: this.stopAt,
       actors: this.tl.actors.map((a) => ({ ...a })), clips: this.tl.clips.map((c) => ({ ...c })), canUndo: this.hist.length > 0, canRedo: this.fut.length > 0, recording: this.sm.pass?.actor || null,
-      bpm: this.tl.bpm || 0, beat_offset: this.tl.beat_offset || 0, markers: [...(this.tl.markers || [])], snap: !!this.tl.snap, master_gain: this.tl.master_gain ?? 1, drift: this.drift,
+      bpm: this.tl.bpm || 0, beat_offset: this.tl.beat_offset || 0, markers: [...(this.tl.markers || [])], snap: !!this.tl.snap, master_gain: this.tl.master_gain ?? 1, drift: this.drift, tracks: { ...(this.tl.tracks || {}) },
     };
   }
 }

@@ -6,6 +6,14 @@ const buffers = new Map(); // uri -> Promise<AudioBuffer> (decoded once, reused 
 export const AUDIO_TRACKS = [['music', 'Music'], ['dialogue', 'Dialogue'], ['sfx', 'Sound Effects'], ['ambient', 'Ambience']];
 export const AUDIO_DEFAULTS = { in: 0, gain: 1, pan: 0, fadeIn: 0, fadeOut: 0, speed: 1, loop: false, solo: false, muted: false };
 
+// Clips that are audible after clip + track mute/solo, with track gain folded into clip gain.
+// Same rule as the cloud renderer (renderWorker `audio` action), so studio and MP4 always agree.
+export function liveAudio(clips, tracks = {}) {
+  const list = clips.filter((c) => c.kind === 'audio' && c.uri), tr = (c) => tracks[c.track] || {};
+  const solo = list.some((c) => c.solo || tr(c).solo);
+  return list.filter((c) => !c.muted && !tr(c).muted && (!solo || c.solo || tr(c).solo)).map((c) => ({ ...c, gain: (c.gain ?? 1) * (tr(c).gain ?? 1) }));
+}
+
 let ctx;
 export const audioCtx = () => (ctx ||= new (window.AudioContext || window.webkitAudioContext)());
 
@@ -41,14 +49,14 @@ export class AudioEngine {
     this.ready = m;
   }
 
-  start(clips, master = 1, t) {
+  start(clips, master = 1, t, tracks = {}) {
     this.stop();
-    const ctx = this.ctx, list = clips.filter((c) => c.kind === 'audio' && c.uri), solo = list.some((c) => c.solo);
+    const ctx = this.ctx, list = liveAudio(clips, tracks);
     this.out = ctx.createGain(); this.out.gain.value = master; this.out.connect(ctx.destination);
     this.t0 = t; this.c0 = ctx.currentTime + 0.05; this.playing = true;
     for (const c0 of list) {
       const c = { ...AUDIO_DEFAULTS, ...c0 };
-      if (c.muted || (solo && !c.solo) || t >= c.end) continue;
+      if (t >= c.end) continue;
       const buf = this.ready?.get(c.uri); if (!buf) continue;
       const from = Math.max(t, c.start), when = this.c0 + (from - t), span = c.end - from;
       let off = c.in + (from - c.start) * c.speed;

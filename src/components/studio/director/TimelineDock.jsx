@@ -7,6 +7,8 @@ import AudioClip from './AudioClip';
 import AudioInspector from './AudioInspector';
 import AddAudio from './AddAudio';
 import BeatBar from './BeatBar';
+import TrackControls from './TrackControls';
+import MicRecord from './MicRecord';
 import { AUDIO_TRACKS } from '@/game/studio/AudioEngine';
 
 const ROWS = [['perf', 'Movement'], ['anim', 'Body Anim']];
@@ -25,7 +27,7 @@ export default function TimelineDock({ engine, st, open, setOpen }) {
       {open && <BeatBar engine={engine} d={d} wz={wz} setWz={setWz} free={free} />}
       {open && (
         <div className="flex max-h-64 overflow-y-auto">
-          <div className="w-28 shrink-0 text-[11px]">
+          <div className="w-44 shrink-0 text-[11px]">
             <div className="h-5" />
             {d.actors.map((a) => ROWS.map(([k, l]) => (
               <div key={a.id + k} className={`h-7 px-2 flex items-center truncate border-t border-white/5 ${a.id === d.controlled ? 'text-primary' : ''}`}>{k === 'perf' ? <button onClick={() => { D.control(a.id); if (!a.armed) D.setActor(a.id, { armed: true }); }} disabled={st.status === 'capturing'} title="Control this character" className="truncate font-bold hover:text-primary text-left">{a.name}</button> : <span className="text-muted-foreground">{l}</span>}</div>
@@ -33,7 +35,7 @@ export default function TimelineDock({ engine, st, open, setOpen }) {
             <AddLibraryActor engine={engine} disabled={!free || !st.scene} />
             <div className="h-5 px-2 flex items-center text-[9px] tracking-widest text-sky-300 border-t border-white/10">AUDIO</div>
             {AUDIO_TRACKS.map(([k, l]) => (
-              <div key={k} className="h-7 px-2 flex items-center gap-1 border-t border-white/5 text-muted-foreground"><span className="truncate">{l}</span><AddAudio engine={engine} track={k} disabled={!free || !st.scene} /></div>
+              <div key={k} className="h-7 px-2 flex items-center gap-1 border-t border-white/5 text-muted-foreground"><span className="truncate">{l}</span><TrackControls engine={engine} track={k} t={d.tracks?.[k]} disabled={!free} />{k === 'dialogue' && <MicRecord engine={engine} disabled={!st.scene || st.status === 'capturing'} />}<AddAudio engine={engine} track={k} disabled={!free || !st.scene} /></div>
             ))}
           </div>
           <div className="flex-1 overflow-x-auto">

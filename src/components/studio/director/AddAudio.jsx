@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Music } from 'lucide-react';
+import { Loader2, Music, Upload } from 'lucide-react';
+import { uploadAudioAsset } from '@/lib/audioUpload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { base44 } from '@/api/base44Client';
 
@@ -11,6 +12,13 @@ export default function AddAudio({ engine, track, disabled }) {
   const add = async (a) => {
     setBusy(a.id); setErr('');
     try { await engine.studio.dir.addAudio(a, track); } catch { setErr(`Couldn't decode "${a.name}". Try MP3 or WAV.`); }
+    setBusy(null);
+  };
+  const upload = async (e) => {
+    const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+    setBusy('upload'); setErr('');
+    try { const a = await uploadAudioAsset(f, { subcategory: track }); setItems((l) => [a, ...(l || [])]); await engine.studio.dir.addAudio(a, track); }
+    catch (x) { setErr(x.message || 'Upload failed'); }
     setBusy(null);
   };
   return (
@@ -25,7 +33,11 @@ export default function AddAudio({ engine, track, disabled }) {
           </button>
         ))}
         {err && <p className="text-[11px] text-destructive px-2 py-1">{err}</p>}
-        <Link to="/assets" className="block text-[11px] text-primary px-2 py-1.5 border-t border-white/10">Upload in the Asset Library →</Link>
+        <label className="flex items-center gap-1.5 text-[11px] text-primary px-2 py-1.5 border-t border-white/10 cursor-pointer hover:bg-white/5">
+          {busy === 'upload' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}Upload audio to this track
+          <input type="file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" className="hidden" disabled={!!busy} onChange={upload} />
+        </label>
+        <Link to="/assets" className="block text-[11px] text-muted-foreground px-2 py-1.5">Open the Asset Library →</Link>
       </PopoverContent>
     </Popover>
   );

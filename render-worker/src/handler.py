@@ -87,7 +87,7 @@ async def handler(job):
                     arr = {}
                 if arr.get("clips"):
                     await asyncio.to_thread(report, "rendering", 1, f"Mixing {len(arr['clips'])} audio clips")
-                    mix = await asyncio.to_thread(build_mix, arr, float(arr.get("duration") or 0) + 1.0, tmp)
+                    mix = await asyncio.to_thread(build_mix, arr, float(arr.get("duration") or 0) + 1.0, tmp, lambda: api.call("audio"))
             out = os.path.join(tmp, "master.mp4")
             video = os.path.join(tmp, "video.mp4") if mix else out
             r = await render_page(f"{app_url}/render", {"job_id": inp["job_id"], "token": inp["token"]}, w, h, fps, inp["preset"], video,

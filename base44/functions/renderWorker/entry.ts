@@ -40,7 +40,11 @@ export default async function (req) {
       const take = (await svc.SceneTake.filter({ id: job.take_id }))[0];
       if (!take || take.created_by_id !== job.created_by_id) return bad('Take not found', 404);
       const tl = take.timeline || {}, all = (tl.clips || []).filter((c) => c.kind === 'audio' && typeof c.uri === 'string');
-      const solo = all.some((c) => c.solo), live = all.filter((c) => !c.muted && (!solo || c.solo)).slice(0, 64);
+      // Same mute/solo/track-gain rule as the studio (AudioEngine.liveAudio).
+      const tracks = tl.tracks || {}, tr = (c) => tracks[c.track] || {};
+      const solo = all.some((c) => c.solo || tr(c).solo);
+      const live = all.filter((c) => !c.muted && !tr(c).muted && (!solo || c.solo || tr(c).solo)).slice(0, 64)
+        .map((c) => ({ ...c, gain: Number(c.gain ?? 1) * Number(tr(c).gain ?? 1) }));
       const ids = [...new Set(live.map((c) => c.asset_id).filter(Boolean))];
       const assets = ids.length ? await svc.Asset.filter({ id: { $in: ids } }) : [];
       const ok = new Map(assets.filter((a) => a.category === 'audio').map((a) => [a.id, a.file_uri]));
