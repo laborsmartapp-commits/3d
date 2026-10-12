@@ -8,6 +8,8 @@ export class ActorManager {
     this.e = e; this.base = e.player;
     Object.assign(e.player, { actorId: 'krush', charId: 'krush' });
     e.actors = { krush: e.player };
+    // Krush never appears: until a scene's cast loads there is no visible character.
+    e.player.hidden = true; e.scene.remove(e.player.h.root);
   }
 
   get list() { return Object.values(this.e.actors); }

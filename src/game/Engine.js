@@ -541,6 +541,7 @@ export class Engine {
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    this.studio?.dir?.audio.stop(); this.studio?.previewJob?.au?.stop();
     this.input?.dispose();
     if (this.onResize) window.removeEventListener('resize', this.onResize);
     if (this.renderer) { this.renderer.dispose(); this.renderer.domElement.remove(); }
