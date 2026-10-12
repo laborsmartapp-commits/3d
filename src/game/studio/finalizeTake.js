@@ -10,9 +10,10 @@ export async function finalizeTake(sm) {
   const D = sm.dir, cam = sm.cams.selected;
   const tl = JSON.parse(JSON.stringify(D.tl)), dur = Math.max(0, ...tl.clips.map(clipEnd));
   if (!cam) throw new Error('Add a camera before finalizing.');
-  if (!tl.clips.some((c) => c.kind === 'perf')) throw new Error('Record at least one character performance first.');
+  if (!tl.actors.length || !tl.clips.length) throw new Error('Add a character and at least one clip first.');
   await sm.saveScene();
   await D.preload();
+  await Promise.all(Object.values(sm.e.actors).map((p) => p.ready));
   const missing = tl.clips.filter((c) => c.kind === 'perf' && !D.pbs.get(c.take_id)?.samples.length);
   if (missing.length) throw new Error(`${missing.length} performance clip(s) have no recorded data.`);
 
