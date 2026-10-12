@@ -99,11 +99,23 @@ export class DirectorManager {
     p.anim.layers = animLayers(clips, id, t);
     p.finish(dt, false);
   }
+  // Actors without a movement track keep wherever they were walked to as their start placement.
+  keepPlacements() {
+    let moved = false;
+    for (const a of this.tl.actors) {
+      const p = this.e.actors[a.id];
+      if (!p || this.tl.clips.some((c) => c.actor === a.id && c.kind === 'perf' && !c.muted)) continue;
+      if (a.x != null && Math.hypot(p.pos.x - a.x, p.pos.z - a.z) < 0.01 && Math.abs(p.yaw - (a.yaw ?? p.yaw)) < 0.001) continue;
+      Object.assign(a, { x: +p.pos.x.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); moved = true;
+    }
+    if (moved) this.sm.dirty();
+  }
   drive(dt, except) { for (const a of this.tl.actors) if (a.id !== except && !a.muted) this.apply(a.id, this.t, dt); }
 
   // ---- transport
   async play() {
     if (this.sm.busy) return;
+    this.keepPlacements();
     this.audio.unlock();
     await Promise.all([this.preload(), this.audio.preload(this.tl.clips)]);
     if (this.t >= this.tl.duration - 0.05) this.t = 0;
@@ -115,7 +127,7 @@ export class DirectorManager {
   seek(t) {
     if (this.sm.status === 'capturing') return;
     this.t = Math.max(0, Math.min(this.tl.duration, t));
-    if (this.state === 'playing') { this.t0 = this.t; this.w0 = now(); this.startAudio(); } else this.drive(0);
+    if (this.state === 'playing') { this.t0 = this.t; this.w0 = now(); this.startAudio(); } else { this.keepPlacements(); this.drive(0); }
     this.sm.emit();
   }
 
@@ -126,6 +138,7 @@ export class DirectorManager {
     if (!sm.scene) return fail('Open or create a scene first.');
     if (!a) return fail('Arm one actor track to record.');
     if (a.locked) return fail(`${a.name}'s track is locked.`);
+    this.keepPlacements();
     this.actors.control(a.id);
     this.audio.unlock();
     await Promise.all([this.preload(), this.audio.preload(this.tl.clips)]); this.drive(0); // everyone, including the armed actor, starts from their pose at the playhead

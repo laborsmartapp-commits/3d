@@ -8,6 +8,7 @@ const r3 = (v) => +v.toFixed(3), r4 = (v) => +v.toFixed(4);
 // self-contained take. The take stores its own samples, so later scene edits never change it.
 export async function finalizeTake(sm) {
   const D = sm.dir, cam = sm.cams.selected;
+  D.keepPlacements();
   const tl = JSON.parse(JSON.stringify(D.tl)), dur = Math.max(0, ...tl.clips.map(clipEnd));
   if (!cam) throw new Error('Add a camera before finalizing.');
   // Scheduled body animations are real performances: a scene needs actors and clips, not a manual pass.
