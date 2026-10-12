@@ -35,14 +35,12 @@ export class DirectorManager {
   actor(id) { return this.tl.actors.find((a) => a.id === id); }
   addActor(char) {
     const c = CHARACTERS[char], n = this.tl.actors.filter((a) => a.char === char).length;
-    const id = n ? uid(char) : char, s = this.spot();
-    this.edit((tl) => tl.actors.push({ id, char, name: n ? `${c.name} ${n + 1}` : c.name, x: s.x, z: s.z, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
+    const id = n ? uid(char) : char, p = this.e.player.pos;
+    this.edit((tl) => tl.actors.push({ id, char, name: n ? `${c.name} ${n + 1}` : c.name, x: p.x + 2, z: p.z + 1, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
   }
-  // New cast members are spread out so they never stand inside each other.
-  spot() { const p = this.e.player.pos, k = this.tl.actors.length; return { x: p.x + 2 + (k % 4) * 1.6, z: p.z + 1 + Math.floor(k / 4) * 1.6 }; }
   addLibraryActor(asset) {
-    const n = this.tl.actors.filter((a) => a.asset_id === asset.id).length, s = this.spot();
-    this.edit((tl) => tl.actors.push({ id: uid('lib'), char: 'lib', asset_id: asset.id, asset_uri: asset.file_uri, name: n ? `${asset.name} ${n + 1}` : asset.name, x: s.x, z: s.z, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
+    const n = this.tl.actors.filter((a) => a.asset_id === asset.id).length, p = this.e.player.pos;
+    this.edit((tl) => tl.actors.push({ id: uid('lib'), char: 'lib', asset_id: asset.id, asset_uri: asset.file_uri, name: n ? `${asset.name} ${n + 1}` : asset.name, x: p.x + 2, z: p.z + 1, yaw: this.e.player.yaw, armed: false, locked: false, muted: false }));
   }
   removeActor(id) { this.edit((tl) => { tl.actors = tl.actors.filter((a) => a.id !== id); tl.clips = tl.clips.filter((c) => c.actor !== id); }); }
   setActor(id, patch) { this.edit((tl) => { if (patch.armed) tl.actors.forEach((a) => { a.armed = false; }); Object.assign(tl.actors.find((a) => a.id === id), patch); }); }
@@ -80,7 +78,6 @@ export class DirectorManager {
   async play() {
     if (this.sm.busy) return;
     await this.preload();
-    await Promise.all(this.actors.list.map((p) => p.ready)); // library characters must be loaded before their dances can show
     if (this.t >= this.tl.duration - 0.05) this.t = 0;
     this.t0 = this.t; this.w0 = now(); this.state = 'playing'; this.sm.status = 'directing'; this.sm.emit();
   }
@@ -117,8 +114,6 @@ export class DirectorManager {
     if (sm.status === 'capturing' && sm.pass) {
       sm.rec.tick(); this.t = sm.pass.t0 + sm.rec.t;
       if (this.stopAt && this.t >= this.stopAt) sm.stop();
-      // The live actor keeps playing its own dance/body clips even while standing still.
-      const live = this.e.actors[sm.pass.actor]; if (live) live.anim.layers = animLayers(this.tl.clips, sm.pass.actor, this.t);
       return this.drive(dt, sm.pass.actor);
     }
     if (this.state === 'playing') {

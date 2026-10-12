@@ -43,7 +43,6 @@ export class ConvergenceEngine {
   emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
   notify(text) { this.emit({ notice: { id: Math.random(), text } }); }
   groundAt(x, z) { return this.D.groundAt(x, z); }
-  get waterLevel() { return -Infinity; } // street districts have no swimmable water
   onFootstep(pos) { this.fx.emit(pos, { count: 2, color: '#b8ab94', up: 0.4, spread: 0.2, life: 0.5 }); }
 
   async init() {
@@ -69,7 +68,7 @@ export class ConvergenceEngine {
     Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 300 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     scene.add(hemi, sun, sun.target);
-    this.sun = sun; this.lights = { hemi, sun };
+    this.sun = sun;
     this.colliders = new Colliders(); this.occluders = [];
     this.mats = makeMaterials(); this.batch = new Batch();
     if (await step(50, this.D.steps[1])) return;
@@ -80,7 +79,6 @@ export class ConvergenceEngine {
     const sp = this.D.spawn;
     this.player = new Player(this);
     this.player.respawn(sp);
-    if (this.D.stage === 'star-square') this.player.hidden = true; // empty stage: the director casts every actor
     this.input = new Input(r.domElement);
     this.rig = new CameraRig(this);
     this.rig.yaw = sp.yaw + Math.PI; this.rig.pitch = 0.22; this.rig.dist = 6;

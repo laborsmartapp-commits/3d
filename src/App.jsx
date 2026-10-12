@@ -13,7 +13,6 @@ import SceneView from '@/pages/SceneView';
 import Game from '@/pages/Game';
 import Convergence from '@/pages/Convergence';
 import Render from '@/pages/Render';
-import StarSquare from '@/pages/StarSquare';
 import StudioLayout from '@/components/shell/StudioLayout';
 import Dashboard from '@/pages/Dashboard';
 import Productions from '@/pages/Productions';
@@ -72,7 +71,6 @@ const AuthenticatedApp = () => {
       <Route path="/scenes" element={<Scenes />} />
       <Route path="/scenes/:id" element={<SceneView />} />
       <Route path="/convergence" element={<Convergence />} />
-      <Route path="/star-square" element={<StarSquare />} />
       <Route path="/render" element={<Render />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
