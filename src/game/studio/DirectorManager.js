@@ -114,6 +114,8 @@ export class DirectorManager {
     if (sm.status === 'capturing' && sm.pass) {
       sm.rec.tick(); this.t = sm.pass.t0 + sm.rec.t;
       if (this.stopAt && this.t >= this.stopAt) sm.stop();
+      // The live actor keeps playing its own dance/body clips even while standing still.
+      const live = this.e.actors[sm.pass.actor]; if (live) live.anim.layers = animLayers(this.tl.clips, sm.pass.actor, this.t);
       return this.drive(dt, sm.pass.actor);
     }
     if (this.state === 'playing') {
