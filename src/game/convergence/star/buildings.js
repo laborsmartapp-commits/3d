@@ -153,7 +153,7 @@ const ARCH = {
   },
   white(K, l, c, R) {
     const M = K.M, floors = 5 + Math.floor(R() * 3), H = G + U * (floors - 1), name = shopName(K, l), seed = l.id + 13;
-    body(K, l, c, M.stoneWhite, H, 3);
+    if (!l.venue?.enter) body(K, l, c, M.stoneWhite, H, 3); else body(K, l, c, M.stoneWhite, H, 3);
     if (!l.venue?.enter) {
       groundFloor(K, c, l.w, M.stoneWhite, [{ t: 'pier', w: 1 }, { t: 'shop', w: l.w - 5, kind: 'boutique', light: '#fffaf0' }, { t: 'door', w: 2, kind: 'boutique' }, { t: 'pier', w: 1 }], { frame: M.chrome, light: '#fffaf0' });
       for (let i = 0; i < 9; i++) { const p = c.at(-l.w / 4 + Math.cos(i * 0.7) * 1.2, -0.5 + Math.sin(i * 0.7) * 0.15); K.mg.add(M.stoneWhite, new THREE.BoxGeometry(1.2, 0.12, 0.4), p.x, CURB + 0.3 + i * 0.36, p.z, 0, l.yaw + i * 0.35); }

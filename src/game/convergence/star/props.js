@@ -39,7 +39,7 @@ export function buildProps(K) {
   const { M, mg, e } = K, R = rng(31);
   // Lamps and furniture along every sidewalk run.
   for (const w of SIDEWALKS) {
-    const s = w.s, curb = w.inner + 0.9;
+    const s = w.s, curb = w.inner + 0.9, hood = s.hood || (s.a[0] + s.b[0] < -220 ? 'south' : s.a[0] + s.b[0] > 220 ? 'palm' : 'core');
     const step = s.kind === 'narrow' ? 14 : s.kind === 'alley' ? 10 : 17;
     for (let u = w.u0 + 4; u < w.u1 - 3; u += step) {
       const x = s.a[0] + s.t[0] * u + s.n[0] * w.side * curb, z = s.a[1] + s.t[1] * u + s.n[1] * w.side * curb;
