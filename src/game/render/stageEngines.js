@@ -6,6 +6,7 @@ import { DISTRICTS } from '@/game/convergence/districts';
 export const RENDER_ENGINES = {
   'celestia-grotto': (el, bundle, onState) => { const e = new Engine(el, onState, () => {}); e.renderBundle = bundle; return e; },
   convergence: (el, bundle, onState) => new ConvergenceEngine(el, onState, DISTRICTS[bundle.take.world_snapshot?.district] || DISTRICTS.boulevard),
+  'star-square': (el, bundle, onState) => new ConvergenceEngine(el, onState, DISTRICTS.star),
 };
 
 export async function createStageEngine(bundle, el) {

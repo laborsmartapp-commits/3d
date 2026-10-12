@@ -68,7 +68,7 @@ export class ConvergenceEngine {
     Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 300 });
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     scene.add(hemi, sun, sun.target);
-    this.sun = sun;
+    this.sun = sun; this.lights = { hemi, sun };
     this.colliders = new Colliders(); this.occluders = [];
     this.mats = makeMaterials(); this.batch = new Batch();
     if (await step(50, this.D.steps[1])) return;

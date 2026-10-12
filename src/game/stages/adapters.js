@@ -16,9 +16,9 @@ export const celestiaStage = (e) => ({
   },
 });
 
-export const convergenceStage = (e) => ({
-  id: 'convergence', name: 'The Convergence', version: 'convergence@1.0.0', actors: ['krush'],
+export const convergenceStage = (e, id = e.D.stage || 'convergence') => ({
+  id, name: id === 'convergence' ? 'The Convergence' : e.D.name, version: `${id}@1.0.0`, actors: ['krush'],
   location: () => e.D.name,
-  snapshot: () => ({ world: 'convergence', engine_version: 'convergence@1.0.0', district: e.D.id, district_name: e.D.name, fog: e.D.fog, spawn: e.D.spawn }),
+  snapshot: () => ({ world: id, engine_version: `${id}@1.0.0`, district: e.D.id, district_name: e.D.name, fog: e.D.fog, spawn: e.D.spawn }),
   env: { kind: 'static', get: () => ({ h: null, w: 'clear' }), start: () => ({ static: true }), apply: () => {}, save: () => null },
 });
