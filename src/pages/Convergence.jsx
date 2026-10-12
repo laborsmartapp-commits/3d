@@ -6,7 +6,7 @@ import Toasts from '@/components/game/Toasts';
 import StageStudio from '@/components/studio/StageStudio';
 import useStageStudio from '@/hooks/useStageStudio';
 
-export default function Convergence() {
+export default function Convergence({ district, title = 'The Convergence' }) {
   const [mount, setMount] = useState(null);
   const [engine, setEngine] = useState(null);
   const [studioOpen, setStudioOpen] = useState(false);
@@ -14,7 +14,7 @@ export default function Convergence() {
 
   useEffect(() => {
     if (!mount) return;
-    const e = new ConvergenceEngine(mount, setS);
+    const e = new ConvergenceEngine(mount, setS, district);
     setEngine(e);
     window.__stage = e;
     e.init();
@@ -29,7 +29,7 @@ export default function Convergence() {
       <div ref={setMount} className="absolute inset-0" />
       {s.phase !== 'game' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background">
-          <h1 className="font-heading text-3xl tracking-wide">The Convergence</h1>
+          <h1 className="font-heading text-3xl tracking-wide">{title}</h1>
           <div className="w-64 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-primary transition-all" style={{ width: `${s.progress}%` }} /></div>
           <p className="text-sm text-muted-foreground">{s.step}</p>
         </div>
