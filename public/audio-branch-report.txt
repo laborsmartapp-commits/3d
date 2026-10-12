@@ -1,0 +1,181 @@
+KRUSH STUDIO - AUDIO TIMELINE INTEGRATION
+Full change report from branch "audio-timeline-integration" (unmerged)
+Use this file to re-prompt the same work on a new branch.
+==========================================================================
+
+SOURCE OF TRUTH
+The exact code lives in these 5 commits on the branch / GitHub repo:
+  6ce1ff9  Add multi-track audio support to timeline
+  a842312  Refactor audio rendering logic
+  a166ed7  Refactor and update audio mixing and recording workflow
+  d9c0fb9  File changes
+  21170b5  Implement audio rendering support with FFmpeg integration
+32 files changed, ~765 lines added. If the repo is synced, you can tell the new branch:
+"Re-apply the changes from commits 6ce1ff9..21170b5 exactly."
+
+--------------------------------------------------------------------------
+PROMPT TO PASTE INTO THE NEW BRANCH
+--------------------------------------------------------------------------
+Add a full audio production system to Krush Studio's Director timeline, the
+browser preview recorder and the RunPod cloud renderer. Follow every section
+below exactly. Do not change any unrelated feature.
+
+==========================================================================
+1. DATA (entity changes - additions only)
+==========================================================================
+- Asset: category enum already includes "audio" (subcategory: song, sfx,
+  dialogue, ambient). Audio assets use file_uri (private), duration, format, size.
+- RenderJob: ADD field
+    audio_info (object) - "Measured soundtrack of the master:
+    {audio: true|false|null(not reported), codec, sample_rate, channels,
+    duration, av_offset_ms}"
+- StudioScene.timeline / SceneTake.timeline (existing objects) now also hold:
+    tracks: {music|dialogue|sfx|ambient: {gain, muted, solo}}
+    master_gain, bpm, beat_offset, markers[], snap (bool)
+    clips[] entries with kind "audio" (see section 3).
+
+==========================================================================
+2. BACKEND
+==========================================================================
+a) base44/shared/audioCheck.ts  (NEW)
+   checkAudioFile(signedUrl, maxBytes): fetches the first bytes / size of the
+   file and throws if it is not a real audio file (checks magic bytes for
+   MP3/ID3, WAV/RIFF, OGG, FLAC, M4A/MP4 ftyp, WebM) or exceeds maxBytes.
+
+b) base44/functions/registerAudioAsset/entry.ts  (NEW)
+   - Requires a logged-in user with a role allowed to create Assets
+     (admin, director, animator, editor).
+   - Input: {file_uri, name, subcategory, folder, file_name, size, duration, format}.
+   - Only accepts a private file_uri (rejects http URLs / other apps' files).
+   - Signs the URI, runs checkAudioFile (max 500 MB), then creates the Asset
+     with category "audio" as service role, created for that user.
+   - Returns the asset.
+
+c) base44/functions/renderWorker/entry.ts  - ADD action "audio"
+   - Same per-job token auth as the other actions.
+   - Loads the take's frozen timeline, keeps clips with kind "audio".
+   - Applies the SAME mute/solo/track-gain rule as the studio (liveAudio):
+     solo on any clip or track => only soloed clips play; muted clip or track
+     is dropped; clip gain *= track gain. Max 64 clips.
+   - Only keeps clips whose asset_id is a real audio Asset AND whose uri equals
+     that asset's current file_uri.
+   - Signs each file (3600 s), re-verifies with checkAudioFile (500 MB).
+   - Returns {version:1, master_gain, duration, skipped, invalid[],
+     clips:[{id, asset_id, url, track, start, end, in, len, speed, loop,
+     gain, pan, fade_in, fade_out}]}.
+
+d) base44/shared/render.ts
+   When applying worker results, also store audio_info on the RenderJob.
+
+==========================================================================
+3. STUDIO AUDIO ENGINE (src/game/studio/AudioEngine.js - NEW)
+==========================================================================
+- Web Audio API, one shared AudioContext; decoded buffers cached by uri
+  (private uris signed with CreateFileSignedUrl, 3600 s).
+- AUDIO_TRACKS = music "Music", dialogue "Dialogue", sfx "Sound Effects",
+  ambient "Ambience".
+- AUDIO_DEFAULTS = {in:0, gain:1, pan:0, fadeIn:0, fadeOut:0, speed:1,
+  loop:false, solo:false, muted:false}.
+- Audio clip shape: {id, kind:'audio', track, actor:null, asset_id, uri,
+  label, len, peaks[800], start, end, ...AUDIO_DEFAULTS}.
+- liveAudio(clips, tracks): mute/solo/track-gain rule (shared with renderer).
+- peaksOf(buffer, 800): compact waveform peaks stored on the clip.
+- AudioEngine class:
+    unlock() (resume on user gesture), preload(clips), start(clips, master, t,
+    tracks), stop(), time().
+    start() schedules every clip from one clock reading: trim (in), speed via
+    playbackRate, loop from `in` to buffer end, linear fade in/out, gain,
+    StereoPanner pan, master gain node. Optional `tap` node so the mix can
+    also feed a MediaStream for recording.
+- The AudioContext clock is the MASTER clock while playing.
+
+==========================================================================
+4. DIRECTOR (src/game/studio/DirectorManager.js)
+==========================================================================
+- Owns an AudioEngine. play()/record(): unlock audio, preload perf + audio,
+  start audio at the playhead together with the clock.
+- While playing, timeline time = audio.time() (falls back to wall clock).
+- While recording, measures drift = timeline t - audio time (display only,
+  never corrected).
+- seek() restarts audio at the new position; pause() stops it.
+- New undoable edits: addAudio(asset, track, at) (decodes, stores len+peaks),
+  splitClip(id, t) (works for audio + anim clips; right half gets
+  in += offset*speed, fadeIn 0; left half fadeOut 0), setTl(patch),
+  setTrack(track, patch).
+- snap(t, skipId): if tl.snap, snaps to markers, BPM grid (60/bpm with
+  beat_offset) and other audio clip edges within 0.15 s, else to frames.
+- state_() also exposes bpm, beat_offset, markers, snap, master_gain, drift,
+  tracks.
+
+==========================================================================
+5. UI (src/components/studio/director/)
+==========================================================================
+- TimelineDock.jsx: adds 4 audio lanes (one per track) under the actor lanes,
+  each with TrackControls and its AudioClip items; shows AudioInspector when
+  an audio clip is selected; BeatBar above the lanes.
+- AddAudio.jsx (NEW): popover per track - pick an audio Asset from the library
+  or upload a new file (uses src/lib/audioUpload.js), adds at the playhead;
+  link to Asset Library (Audio category). Shows loading + errors.
+- AudioClip.jsx (NEW): draggable clip block with waveform from peaks,
+  trim handles, uses director.snap().
+- AudioInspector.jsx (NEW): gain, pan, fade in, fade out, speed, loop,
+  mute, solo, split at playhead, duplicate, delete.
+- TrackControls.jsx (NEW): per-track gain slider, mute, solo.
+- BeatBar.jsx (NEW): BPM, beat offset, add marker at playhead, snap toggle,
+  master gain, live drift readout while recording.
+- MicRecord.jsx (NEW): microphone record button for the Dialogue track
+  (MediaRecorder -> upload -> register -> addAudio). Marked as not fully
+  verified.
+
+==========================================================================
+6. UPLOADS / LIBRARY
+==========================================================================
+- src/lib/audioUpload.js (NEW): uploadAudio(file, meta) -> UploadPrivateFile,
+  read duration in the browser, then call registerAudioAsset. Files are
+  stored privately.
+- AssetUploadDialog.jsx: when category is "audio", use uploadAudio instead of
+  creating the Asset directly.
+- AssetLibrary.jsx: category is synced with the URL (?category=audio) so links
+  open the Audio Library directly.
+- StudioLayout.jsx: add sidebar link "Audio Library" -> /assets?category=audio
+  (Music icon).
+
+==========================================================================
+7. BROWSER PREVIEW WITH SOUND
+==========================================================================
+- PreviewEncoder.js: previewFormat(withAudio) picks MP4 (avc1+mp4a) or WebM
+  (vp9/vp8+opus) when audio is wanted; constructor takes an optional audio
+  MediaStream and adds its tracks; audioBitsPerSecond 160000. Falls back
+  safely to silent video when unsupported.
+- SceneManager.js: when generating a preview, creates a
+  MediaStreamDestination, sets director.audio.tap to it, plays the timeline
+  audio in sync and passes the stream to PreviewEncoder; removes the tap after.
+- PreviewActions.jsx: shows "Preview includes sound" or a warning that this
+  browser can only record a silent preview.
+
+==========================================================================
+8. CLOUD RENDER (render-worker/)
+==========================================================================
+- src/audio_mix.py (NEW): fetches the "audio" action payload and builds one
+  FFmpeg filter graph: per clip atrim(in) -> atempo(speed) -> aloop if loop
+  -> afade in/out -> volume(gain) -> equal-power stereo pan -> adelay(start);
+  amix all, master volume, pad/trim to take duration; mux as AAC 48 kHz
+  stereo into the MP4. Silent track if no clips. Measures with ffprobe and
+  returns audio_info (codec, sample_rate, channels, duration, av_offset_ms).
+- src/handler.py: after video encode, call audio action, mix + mux, upload,
+  report audio_info. Re-signs audio URLs if a long job nears expiry.
+- tests/test_audio_mix.py (NEW): generated tones verify placement, overlap,
+  loop, fades, gain, pan, speed, duration, AAC output, silent input.
+- tests/smoke_test.py: also runs test_audio_mix.
+- README.md: documents audio mixing and how to verify it.
+- RenderJobRow.jsx: shows soundtrack status from audio_info
+  ("Sound: AAC 48 kHz" / "No soundtrack" / "Not reported").
+
+==========================================================================
+9. STILL TO DO AFTER RE-APPLYING
+==========================================================================
+- Rebuild/redeploy the RunPod Docker image so cloud renders include audio.
+- Run audio mixing tests in GitHub Actions.
+- Live test: mute/solo/gain, multi-actor recording, Finalize Take, Save Scene,
+  upload -> play -> record preview with real audio files.
+- Microphone dialogue recording not fully verified.
