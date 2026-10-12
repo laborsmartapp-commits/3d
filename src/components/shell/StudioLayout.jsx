@@ -5,7 +5,7 @@ import { base44 } from '@/api/base44Client';
 
 const NAV = [
   ['/', 'Dashboard', LayoutDashboard], ['/productions', 'My Productions', Clapperboard], ['/stages', '3D Stages', Mountain],
-  ['/world', 'Director Mode', Video], ['/assets', 'Asset Library', Package], ['/assets?cat=animation', 'Animation Library', Activity],
+  ['/assets', 'Asset Library', Package], ['/assets?cat=animation', 'Animation Library', Activity],
   ['/recordings', 'Recorded Scenes', Film], ['/renders', 'Render Queue', Server], ['/settings', 'Settings', Settings],
 ];
 const cls = (on) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${on ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`;
