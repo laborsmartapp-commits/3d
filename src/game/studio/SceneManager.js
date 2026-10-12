@@ -167,6 +167,7 @@ export class SceneManager {
     this.status = 'loading'; this.emit();
     if (take.cast?.length) this.dir.actors.sync(take.cast); // finalized multi-actor take brings its own cast
     const n = await this.play.load(take, chunks);
+    await Promise.all(this.dir.actors.list.map((p) => p.ready)); // library characters must be loaded or they show as placeholders
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
     this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, env: this.stage.env.save() };
