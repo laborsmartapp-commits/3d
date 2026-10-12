@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { base44 } from '@/api/base44Client';
 import { CATEGORIES, extOf } from '@/lib/assets';
 import { extractCharacterClips } from '@/lib/glbClips';
+import { uploadAudioAsset } from '@/lib/audioUpload';
 
 const field = 'w-full bg-background border border-border rounded-xl px-3 py-2 text-sm';
 
@@ -17,6 +18,10 @@ export default function AssetUploadDialog({ open, onOpenChange, category, base, 
     e.preventDefault(); if (!file) return;
     setBusy(true); setErr('');
     try {
+      if (cat === 'audio' && !base) { // server-validated path
+        await uploadAudioAsset(file, { name: f.name, subcategory: f.subcategory, folder: f.folder });
+        onDone(); setFile(null); setF({ name: '', subcategory: '', folder: '', rig: '' }); setBusy(false); return;
+      }
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       const meta = base
         ? { name: base.name, category: base.category, subcategory: base.subcategory, folder: base.folder, rig: base.rig, tags: base.tags, root_id: base.root_id || base.id, version: (base.version || 1) + 1 }

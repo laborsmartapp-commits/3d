@@ -37,6 +37,8 @@ export async function applyRunpodStatus(svc, job, rp) {
     Object.assign(patch, {
       status: 'completed', progress: 100, status_message: 'Master video ready', error: '',
       video_uri: out.video_uri, video_width: out.width, video_height: out.height, video_fps: out.fps, video_duration: out.duration, file_size: out.bytes, gpu: out.gpu || '',
+      // Older worker images never report audio: recorded as "not reported", never assumed present.
+      audio_info: typeof out.audio === 'boolean' ? { audio: out.audio, codec: out.audio_codec, sample_rate: out.audio_sample_rate, channels: out.audio_channels, duration: out.audio_duration, av_offset_ms: out.av_offset_ms } : { audio: null },
     });
   } else if (st === 'COMPLETED' || st === 'FAILED' || st === 'CANCELLED' || st === 'TIMED_OUT') {
     const err = out.error || rp.error || (st === 'COMPLETED' ? 'Worker finished without a video' : st);

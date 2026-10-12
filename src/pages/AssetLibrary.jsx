@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Loader2, Search, Upload, LayoutGrid, List, Box, Music, Image as ImgIcon, Activity } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -13,6 +14,8 @@ const chip = (on) => `rounded-full px-3 py-1 text-xs font-semibold ${on ? 'bg-pr
 export default function AssetLibrary() {
   const q0 = new URLSearchParams(window.location.search);
   const [cat, setCat] = useState(q0.get('cat') || 'character'), [q, setQ] = useState(''), [folder, setFolder] = useState(''), [sort, setSort] = useState('-created_date');
+  const loc = useLocation();
+  useEffect(() => { const c = new URLSearchParams(loc.search).get('cat'); if (c) setCat(c); }, [loc.search]);
   const [archived, setArchived] = useState(false), [grid, setGrid] = useState(true), [items, setItems] = useState(null), [folders, setFolders] = useState([]);
   const [upload, setUpload] = useState(q0.has('upload') ? {} : null), [open, setOpen] = useState(null);
   const load = useCallback(async () => {

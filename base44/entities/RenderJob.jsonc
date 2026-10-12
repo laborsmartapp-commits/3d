@@ -106,6 +106,10 @@
     },
     "error": {
       "type": "string"
+    },
+    "audio_info": {
+      "type": "object",
+      "description": "Measured soundtrack of the master: {audio: true|false|null(not reported), codec, sample_rate, channels, duration, av_offset_ms}"
     }
   },
   "required": [

@@ -2,6 +2,7 @@ import { ActorManager } from './ActorManager';
 import { PerformancePlayback } from './PerformancePlayback';
 import { now } from './PerformanceRecorder';
 import { CHARACTERS } from './characters';
+import { AudioEngine, loadBuffer, peaksOf, AUDIO_DEFAULTS } from './AudioEngine';
 import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, ANIM_DEFAULTS } from './Timeline';
 
 // Director Mode: one master clock driving every actor's tracks. While one armed actor is recorded live,
@@ -9,7 +10,7 @@ import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, ANIM_DEFAULTS }
 export class DirectorManager {
   constructor(sm) {
     this.sm = sm; this.e = sm.e; this.actors = new ActorManager(sm.e);
-    this.tl = newTimeline(); this.t = 0; this.state = 'stopped'; this.pbs = new Map(); this.hist = []; this.fut = []; this.stopAt = null;
+    this.tl = newTimeline(); this.t = 0; this.state = 'stopped'; this.pbs = new Map(); this.hist = []; this.fut = []; this.stopAt = null; this.audio = new AudioEngine(); this.drift = 0;
   }
 
   load(tl) {
@@ -49,9 +50,30 @@ export class DirectorManager {
 
   // anim: built-in key, or a patch {anim, anim_uri, clip_name, label, len} for a library clip.
   addAnim(actor, anim, len = 4, at = this.t) { const start = +at.toFixed(2), a = typeof anim === 'string' ? { anim } : anim; this.edit((tl) => tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, ...a, start, end: start + len })); }
-  duplicateClip(id) { this.edit((tl) => { const c = tl.clips.find((x) => x.id === id), d = clipEnd(c) - c.start; tl.clips.push({ ...c, id: uid(c.kind), start: +(clipEnd(c)).toFixed(2), ...(c.kind === 'anim' ? { end: +(clipEnd(c) + d).toFixed(2) } : {}) }); }); }
+  duplicateClip(id) { this.edit((tl) => { const c = tl.clips.find((x) => x.id === id), d = clipEnd(c) - c.start; tl.clips.push({ ...c, id: uid(c.kind), start: +(clipEnd(c)).toFixed(2), ...(c.kind !== 'perf' ? { end: +(clipEnd(c) + d).toFixed(2) } : {}) }); }); }
   setClip(id, patch) { this.edit((tl) => Object.assign(tl.clips.find((c) => c.id === id), patch)); }
   deleteClip(id) { this.edit((tl) => { tl.clips = tl.clips.filter((c) => c.id !== id); }); }
+  // ---- audio: clips on the same master timeline (kind 'audio'); overlapping clips mix
+  async addAudio(asset, track, at = this.t) {
+    const buf = await loadBuffer(asset.file_uri), start = +at.toFixed(2);
+    this.edit((tl) => tl.clips.push({ ...AUDIO_DEFAULTS, id: uid('aud'), kind: 'audio', track, actor: null, asset_id: asset.id, uri: asset.file_uri, label: asset.name, len: buf.duration, peaks: peaksOf(buf), start, end: +(start + buf.duration).toFixed(3) }));
+  }
+  splitClip(id, t = this.t) {
+    this.edit((tl) => {
+      const c = tl.clips.find((x) => x.id === id); if (!c || c.kind === 'perf' || t <= c.start + 0.05 || t >= c.end - 0.05) return;
+      tl.clips.push({ ...c, id: uid(c.kind), start: +t.toFixed(3), in: (c.in || 0) + (t - c.start) * (c.speed || 1), fadeIn: 0 });
+      c.end = +t.toFixed(3); c.fadeOut = 0;
+    });
+  }
+  setTl(patch) { this.edit((tl) => Object.assign(tl, patch)); }
+  // Snap a time to beat markers, the BPM grid and audio clip boundaries (within 0.15s), else to frames.
+  snap(t, skip) {
+    const tl = this.tl; if (!tl.snap) return t;
+    const pts = [...(tl.markers || []), ...tl.clips.filter((c) => c.kind === 'audio' && c.id !== skip).flatMap((c) => [c.start, c.end])];
+    if (tl.bpm > 0) { const b = 60 / tl.bpm, o = tl.beat_offset || 0; pts.push(o + Math.round((t - o) / b) * b); }
+    const near = pts.reduce((a, p) => (Math.abs(p - t) < Math.abs(a - t) ? p : a), Infinity);
+    return Math.abs(near - t) < 0.15 ? +near.toFixed(3) : Math.round(t * tl.fps) / tl.fps;
+  }
   setDuration(d) { this.edit((tl) => { tl.duration = Math.max(1, d); }); }
 
   // ---- evaluation
@@ -77,15 +99,18 @@ export class DirectorManager {
   // ---- transport
   async play() {
     if (this.sm.busy) return;
-    await this.preload();
+    this.audio.unlock();
+    await Promise.all([this.preload(), this.audio.preload(this.tl.clips)]);
     if (this.t >= this.tl.duration - 0.05) this.t = 0;
-    this.t0 = this.t; this.w0 = now(); this.state = 'playing'; this.sm.status = 'directing'; this.sm.emit();
+    this.t0 = this.t; this.w0 = now(); this.startAudio(); this.state = 'playing'; this.sm.status = 'directing'; this.sm.emit();
   }
-  pause() { if (this.state !== 'playing') return; this.state = 'stopped'; this.sm.status = 'idle'; this.sm.emit(); }
+  startAudio() { this.audio.start(this.tl.clips, this.tl.master_gain ?? 1, this.t, this.tl.tracks); }
+  setTrack(track, patch) { this.edit((tl) => { tl.tracks = { ...(tl.tracks || {}), [track]: { ...(tl.tracks?.[track] || {}), ...patch } }; }); }
+  pause() { if (this.state !== 'playing') return; this.audio.stop(); this.state = 'stopped'; this.sm.status = 'idle'; this.sm.emit(); }
   seek(t) {
     if (this.sm.status === 'capturing') return;
     this.t = Math.max(0, Math.min(this.tl.duration, t));
-    if (this.state === 'playing') { this.t0 = this.t; this.w0 = now(); } else this.drive(0);
+    if (this.state === 'playing') { this.t0 = this.t; this.w0 = now(); this.startAudio(); } else this.drive(0);
     this.sm.emit();
   }
 
@@ -97,8 +122,10 @@ export class DirectorManager {
     if (!a) return fail('Arm one actor track to record.');
     if (a.locked) return fail(`${a.name}'s track is locked.`);
     this.actors.control(a.id);
-    await this.preload(); this.drive(0); // everyone, including the armed actor, starts from their pose at the playhead
+    this.audio.unlock();
+    await Promise.all([this.preload(), this.audio.preload(this.tl.clips)]); this.drive(0); // everyone, including the armed actor, starts from their pose at the playhead
     sm.pass = { actor: a.id, name: a.name, t0: this.t };
+    this.startAudio(); // music plays from the playhead, started together with the recorder clock
     await sm.record();
   }
 
@@ -113,14 +140,16 @@ export class DirectorManager {
     const sm = this.sm;
     if (sm.status === 'capturing' && sm.pass) {
       sm.rec.tick(); this.t = sm.pass.t0 + sm.rec.t;
+      if (this.audio.playing) this.drift = this.t - this.audio.time(); // reported, never corrected by changing audio speed
       if (this.stopAt && this.t >= this.stopAt) sm.stop();
       return this.drive(dt, sm.pass.actor);
     }
     if (this.state === 'playing') {
-      this.t = this.t0 + now() - this.w0;
+      this.t = this.audio.playing ? this.audio.time() : this.t0 + now() - this.w0; // audio clock is the master
       if (this.t >= this.tl.duration) { this.t = this.tl.duration; this.drive(dt); return this.pause(); }
       return this.drive(dt);
     }
+    if (this.audio.playing) this.audio.stop();
     if (sm.status === 'playing') return;
     for (const p of this.actors.list) if (p !== this.e.player) { p.anim.t += dt; p.finish(dt, false); }
   }
@@ -129,6 +158,7 @@ export class DirectorManager {
     return {
       t: this.t, state: this.state, duration: this.tl.duration, fps: this.tl.fps, controlled: this.e.player.actorId, stopAt: this.stopAt,
       actors: this.tl.actors.map((a) => ({ ...a })), clips: this.tl.clips.map((c) => ({ ...c })), canUndo: this.hist.length > 0, canRedo: this.fut.length > 0, recording: this.sm.pass?.actor || null,
+      bpm: this.tl.bpm || 0, beat_offset: this.tl.beat_offset || 0, markers: [...(this.tl.markers || [])], snap: !!this.tl.snap, master_gain: this.tl.master_gain ?? 1, drift: this.drift, tracks: { ...(this.tl.tracks || {}) },
     };
   }
 }
