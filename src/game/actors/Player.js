@@ -104,7 +104,7 @@ export class Player {
     const cycle = hs > 6.5 ? 2.6 : hs > 3 ? 1.9 : 1.3;
     const prev = this.anim.phase;
     this.anim.phase += ((hs * dt) / cycle) * Math.PI * 2 * (this.swimming ? 0.5 : 1);
-    if (this.onGround && hs > 0.4 && Math.floor(prev / Math.PI) !== Math.floor(this.anim.phase / Math.PI)) e.onFootstep(this.pos, depth > 0.05);
+    if (!this.hidden && this.onGround && hs > 0.4 && Math.floor(prev / Math.PI) !== Math.floor(this.anim.phase / Math.PI)) e.onFootstep(this.pos, depth > 0.05);
     this.anim.mode = mode;
     this.anim.speed = hs;
     this.finish(dt, fp);

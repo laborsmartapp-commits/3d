@@ -34,6 +34,8 @@ export class ActorManager {
     for (const a of actors) if (!this.e.actors[a.id]) this.create(a);
     // The default walker only appears when the scene's cast includes it; otherwise it stays as an invisible free-roam body.
     this.base.hidden = !want.has('krush');
+    // Not in the cast: take the default walker out of the scene entirely (no body, no shadow, no dust).
+    if (this.base.hidden) this.e.scene.remove(this.base.h.root); else if (!this.base.h.root.parent) this.e.scene.add(this.base.h.root);
     if (this.e.player === this.base && !want.has('krush') && actors[0]) this.control(actors[0].id);
   }
 
