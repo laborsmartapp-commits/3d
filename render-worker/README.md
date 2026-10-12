@@ -75,4 +75,4 @@ The app only uses them to create one-hour download links.
 - Only actors the stage can spawn are posed. Today that is `krush` (the player). Extra actor tracks need the stage to expose `engine.actors[id]` objects.
 - Takes recorded before this version have no camera-cut ids, so camera switches inside them are interpolated over one sample interval.
 - Ambient particles use a seeded random generator, so re-renders match each other. They are not identical to the live session.
-- Audio is muxed only when the job input includes `audio_url`. Takes do not record audio today.
+- Timeline audio: the worker asks the app for the take's audio arrangement (`audio` action), mixes it offline with FFmpeg (`src/audio_mix.py`) and muxes AAC 48 kHz stereo into the master, then verifies the stream and A/V offset (≤25 ms) or fails the job. Silent takes render exactly as before. Older images ignore audio; the app shows their masters as "Not reported (older render worker, no audio)".

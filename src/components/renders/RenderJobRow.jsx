@@ -18,7 +18,7 @@ export default function RenderJobRow({ job, reload, onWatch, defaultOpen }) {
   const rerender = run('rr', async () => queueRender(await base44.entities.SceneTake.get(job.take_id), { resolution: job.resolution, fps: job.fps, preset: job.preset }));
   const ex = secs(job), cancelled = job.error === 'Cancelled';
   const details = [['Job', job.id], ['RunPod job', job.runpod_job_id || '—'], ['RunPod status', job.runpod_status || '—'], ['Frames', job.frame_count || '—'], ['Execution', ex ? `${(ex / 60).toFixed(1)} min` : '—'],
-    ['Output', done ? `${job.video_width}×${job.video_height} @ ${job.video_fps} fps` : '—'], ['GPU', job.gpu || '—'], ['Attempts', job.attempts || 1]];
+    ['Output', done ? `${job.video_width}×${job.video_height} @ ${job.video_fps} fps` : '—'], ['Soundtrack', !done ? '—' : job.audio_info?.audio ? `${job.audio_info.codec?.toUpperCase()} ${job.audio_info.sample_rate / 1000} kHz, A/V offset ${job.audio_info.av_offset_ms} ms` : job.audio_info?.audio === false ? 'None (silent master)' : 'Not reported (older render worker, no audio)'], ['GPU', job.gpu || '—'], ['Attempts', job.attempts || 1]];
   return (
     <div className="glass rounded-2xl p-4">
       <div className="flex flex-wrap items-center gap-4">
