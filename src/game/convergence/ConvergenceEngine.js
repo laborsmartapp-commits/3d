@@ -43,6 +43,7 @@ export class ConvergenceEngine {
   emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
   notify(text) { this.emit({ notice: { id: Math.random(), text } }); }
   groundAt(x, z) { return this.D.groundAt(x, z); }
+  get waterLevel() { return -Infinity; } // street districts have no swimmable water
   onFootstep(pos) { this.fx.emit(pos, { count: 2, color: '#b8ab94', up: 0.4, spread: 0.2, life: 0.5 }); }
 
   async init() {
