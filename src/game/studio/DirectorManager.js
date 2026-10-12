@@ -89,6 +89,11 @@ export class DirectorManager {
     if (k) {
       p.pos.set(k.p[0], k.p[1], k.p[2]); p.yaw = k.y; p.vel.set(0, 0, 0);
       Object.assign(p.anim, c ? { mode: k.m, phase: k.ph, speed: k.sp, t: k.at } : { mode: 'idle', speed: 0, t });
+    } else {
+      // No movement track: the actor stays at its scene placement (so seek/rewind restores it).
+      const a = this.actor(id);
+      if (a && a.x != null) { p.pos.x = a.x; p.pos.z = a.z; if (a.yaw != null) p.yaw = a.yaw; }
+      p.vel.set(0, 0, 0); Object.assign(p.anim, { mode: 'idle', speed: 0, t });
     }
     // Body animation layers blend over the locomotion pose; they never move the root (movement track owns it).
     p.anim.layers = animLayers(clips, id, t);

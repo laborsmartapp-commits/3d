@@ -27,6 +27,9 @@ export async function prepareRender(e, clock, bundle) {
       await Promise.all(all().map((p) => p.clipsReady));
     })();
     await Promise.race([loaded, new Promise((r) => setTimeout(r, 120000))]);
+    // Never render a dancer standing still and report success.
+    const bad = take.cast.filter((a) => e.actors[a.id]?.missingClips?.length);
+    if (bad.length) throw new Error(`Missing animation: ${bad.map((a) => `${a.name} (${e.actors[a.id].missingClips.join(', ')})`).join('; ')}`);
   }
   await new Promise((r) => setTimeout(r, 300)); // let the last real-time frame land before taking over
   clock.takeover();
