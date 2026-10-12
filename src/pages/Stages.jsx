@@ -19,7 +19,7 @@ export default function Stages() {
   return (
     <div className="max-w-6xl">
       <PageHeader eyebrow="Stage Library" title="3D Stages" />
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {Object.values(STAGES).map((s) => (
           <Link key={s.id} to={s.path} className="group glass rounded-3xl overflow-hidden">
             <div className="h-52 overflow-hidden"><img src={ABOUT[s.id]?.img} alt={s.name} className="w-full h-full object-cover opacity-70 group-hover:scale-105 group-hover:opacity-90 transition duration-700" /></div>
