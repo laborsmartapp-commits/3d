@@ -79,6 +79,7 @@ export class ConvergenceEngine {
     const sp = this.D.spawn;
     this.player = new Player(this);
     this.player.respawn(sp);
+    if (this.D.stage === 'star-square') this.player.hidden = true; // empty stage: the director casts every actor
     this.input = new Input(r.domElement);
     this.rig = new CameraRig(this);
     this.rig.yaw = sp.yaw + Math.PI; this.rig.pitch = 0.22; this.rig.dist = 6;
