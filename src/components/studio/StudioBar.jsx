@@ -14,11 +14,8 @@ export default function StudioBar({ engine, st, timeline = true }) {
   return (<>
     {dock && <TimelineDock engine={engine} st={st} open={open} setOpen={setOpen} />}
     <div className={`absolute ${dock ? (open ? 'bottom-[19rem]' : 'bottom-16') : 'bottom-6'} left-1/2 md:left-[calc(50%-260px)] -translate-x-1/2 z-20 max-w-[calc(100vw-1rem)] flex-wrap justify-center glass rounded-full px-2 py-1.5 flex items-center gap-1.5`}>
-      {st.status === 'capturing' ? (
-        <button onClick={() => S.stop()} className={`${btn} bg-white text-background`}><Square className="w-3.5 h-3.5 fill-current" />Stop</button>
-      ) : (
-        <button onClick={() => S.record()} disabled={!idle || !cam || !st.scene} className={`${btn} bg-destructive text-destructive-foreground disabled:opacity-40`}><Circle className="w-3.5 h-3.5 fill-current" />Record</button>
-      )}
+      {/* Recording lives on the timeline (Record armed actor); this bar only offers Stop while capturing. */}
+      {st.status === 'capturing' && <button onClick={() => S.stop()} className={`${btn} bg-white text-background`}><Square className="w-3.5 h-3.5 fill-current" />Stop</button>}
       {st.status === 'pending' && (<>
         <button onClick={() => S.retryUpload()} className={`${btn} bg-ember text-background`}><RefreshCw className="w-3.5 h-3.5" />Retry upload</button>
         <button onClick={() => S.discardTake()} className={`${btn} bg-white/10 hover:bg-white/20`}><Trash2 className="w-3.5 h-3.5" />Discard</button>

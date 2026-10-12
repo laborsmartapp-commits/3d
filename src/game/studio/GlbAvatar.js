@@ -40,7 +40,8 @@ export async function attachGlb(p, uri) {
     const key = `${uri}|${clip}`;
     if (libActs.has(key)) return Promise.resolve();
     libActs.set(key, null);
-    return load(uri).then((lg) => { const c = lg.animations.find((x) => x.name === clip) || lg.animations[0]; if (c) libActs.set(key, mixer.clipAction(c)); }).catch(() => {});
+    const miss = () => { (p.missingClips ||= []).push(clip || uri); };
+    return load(uri).then((lg) => { const c = lg.animations.find((x) => x.name === clip) || lg.animations[0]; if (c) libActs.set(key, mixer.clipAction(c)); else miss(); }).catch(miss);
   };
   const libAction = (l) => { fetchClip(l.uri, l.clip); return libActs.get(`${l.uri}|${l.clip}`); };
   // Cloud render: load every library clip this actor uses before frame 0.

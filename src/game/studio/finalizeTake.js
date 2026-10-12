@@ -10,7 +10,9 @@ export async function finalizeTake(sm) {
   const D = sm.dir, cam = sm.cams.selected;
   const tl = JSON.parse(JSON.stringify(D.tl)), dur = Math.max(0, ...tl.clips.map(clipEnd));
   if (!cam) throw new Error('Add a camera before finalizing.');
-  if (!tl.clips.some((c) => c.kind === 'perf')) throw new Error('Record at least one character performance first.');
+  // Scheduled body animations are real performances: a scene needs actors and clips, not a manual pass.
+  if (!tl.actors.some((a) => !a.muted)) throw new Error('Add at least one character first.');
+  if (!tl.clips.some((c) => !c.muted)) throw new Error('Schedule an animation or record a performance first.');
   await sm.saveScene();
   await D.preload();
   const missing = tl.clips.filter((c) => c.kind === 'perf' && !D.pbs.get(c.take_id)?.samples.length);
