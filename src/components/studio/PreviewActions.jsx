@@ -13,6 +13,7 @@ const btn = 'rounded-full px-2.5 py-1 text-[11px] flex items-center gap-1 bg-whi
 export default function PreviewActions({ engine, st, take, interrupted, onWatch }) {
   const nav = useNavigate(), [res, setRes] = useState('720p'), [busy, setBusy] = useState(null);
   const ready = take.preview_status === 'ready' && take.preview_uri, here = takeStage(take) === engine.stage.id, fmt = previewFormat();
+  const hasAudio = (take.timeline?.clips || []).some((c) => c.kind === 'audio');
   const blob = async () => new File([await (await fetch(await signed(take.preview_uri))).blob()], fileName(take), { type: take.preview_mime });
   const download = async () => { setBusy('dl'); const f = await blob(), a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); URL.revokeObjectURL(a.href); setBusy(null); };
   const share = async () => {
@@ -31,6 +32,8 @@ export default function PreviewActions({ engine, st, take, interrupted, onWatch 
         <select value={res} onChange={(e) => setRes(e.target.value)} className="rounded-full bg-white/10 px-2 py-1 text-[11px]"><option value="720p">720p</option><option value="1080p">1080p</option></select>
         <button onClick={generate} disabled={st.status !== 'idle'} className={`${btn} bg-primary/20 text-primary`}><Clapperboard className="w-3 h-3" />{ready ? 'Regenerate Preview' : 'Generate Preview'}{!here && ` in ${stageInfo(takeStage(take)).name}`}</button>
       </>)}
+      {hasAudio && fmt && !previewFormat(true) && <p className="w-full text-[10px] text-ember">This browser can't record audio into video, so previews here are silent. Use Chrome or Edge for a preview with sound.</p>}
+      {ready && take.preview_info?.audio && <span className="text-[10px] text-muted-foreground">Audio: {take.preview_info.audio}</span>}
     </div>
   );
 }

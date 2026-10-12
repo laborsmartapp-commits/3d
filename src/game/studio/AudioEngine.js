@@ -53,6 +53,7 @@ export class AudioEngine {
     this.stop();
     const ctx = this.ctx, list = liveAudio(clips, tracks);
     this.out = ctx.createGain(); this.out.gain.value = master; this.out.connect(ctx.destination);
+    if (this.tap) this.out.connect(this.tap); // e.g. a MediaStream destination recorded into the preview video
     this.t0 = t; this.c0 = ctx.currentTime + 0.05; this.playing = true;
     for (const c0 of list) {
       const c = { ...AUDIO_DEFAULTS, ...c0 };

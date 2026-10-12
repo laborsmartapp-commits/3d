@@ -6,6 +6,7 @@ import { defaultCloud } from './quality';
 import { queueRender } from './RecordingJobManager';
 import { ACTOR_ASSETS } from './versions';
 import { PreviewEncoder, previewFormat, FPS } from './PreviewEncoder';
+import { AudioEngine } from './AudioEngine';
 import { takeStage } from '../stages/registry';
 import { DirectorManager } from './DirectorManager';
 import { CHARACTERS } from './characters';
@@ -170,7 +171,9 @@ export class SceneManager {
     if (!n) { this.status = 'idle'; this.error = 'This take has no recorded performance.'; this.emit(); return; }
     const p = this.e.player;
     this.saved = { x: p.pos.x, y: p.pos.y, z: p.pos.z, yaw: p.yaw, view: this.viewThrough, env: this.stage.env.save() };
-    this.previewJob?.enc.start();
+    const job = this.previewJob;
+    job?.enc.start();
+    if (job?.au) job.au.start(job.tl.clips, job.tl.master_gain ?? 1, 0, job.tl.tracks);
     this.play.begin();
     this.playing = take; this.viewThrough = true; this.status = 'playing'; this.emit();
   }
@@ -181,6 +184,7 @@ export class SceneManager {
     this.viewThrough = s.view; this.playing = null; this.status = 'idle';
     this.dir.actors.sync(this.dir.tl.actors); this.dir.drive(0);
     const job = this.previewJob; this.previewJob = null;
+    job?.au?.stop();
     if (job) { this.status = 'saving'; this.finishPreview(job, completed); }
     this.emit();
   }
@@ -189,7 +193,12 @@ export class SceneManager {
   async generatePreview(take, res = '720p') {
     if (this.busy) return;
     if (!previewFormat()) { this.error = 'This browser cannot encode video. Try a current Chrome, Edge or Safari.'; this.emit(); return; }
-    this.error = ''; this.previewJob = { take, enc: new PreviewEncoder(res) };
+    this.error = '';
+    // The take's frozen audio arrangement, mixed live through Web Audio and recorded with the frames.
+    const tl = take.timeline || {}, hasAudio = (tl.clips || []).some((c) => c.kind === 'audio' && c.uri);
+    let au = null;
+    if (hasAudio) { au = new AudioEngine(); au.unlock(); await au.preload(tl.clips); au.tap = au.ctx.createMediaStreamDestination(); }
+    this.previewJob = { take, tl, au, enc: new PreviewEncoder(res, au?.tap.stream) };
     await this.playTake(take);
     if (this.status !== 'playing') this.previewJob = null;
   }
@@ -199,8 +208,9 @@ export class SceneManager {
       if (!completed) throw new Error('cancelled before the end of the take');
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: new File([blob], `preview.${enc.fmt.ext}`, { type: enc.fmt.type }) });
       await Takes().update(take.id, {
-        preview_status: 'ready', preview_uri: file_uri, preview_mime: enc.fmt.type, preview_ext: enc.fmt.ext, preview_width: enc.w, preview_height: enc.h, preview_fps: FPS, preview_size: blob.size, preview_error: '',
-        preview_info: { kind: 'browser-preview', encoder: `MediaRecorder ${enc.fmt.mime}`, resolution: enc.res, source_px: enc.src, local_quality: this.e.qName, created_at: new Date().toISOString() },
+        preview_error: enc.audioWanted && !enc.fmt.audio ? 'This browser cannot record audio into video, so this preview is silent. Use Chrome or Edge for a preview with sound, or a cloud render once cloud audio is enabled.' : '',
+        preview_status: 'ready', preview_uri: file_uri, preview_mime: enc.fmt.type, preview_ext: enc.fmt.ext, preview_width: enc.w, preview_height: enc.h, preview_fps: FPS, preview_size: blob.size,
+        preview_info: { kind: 'browser-preview', encoder: `MediaRecorder ${enc.fmt.mime}`, resolution: enc.res, source_px: enc.src, audio: enc.fmt.audio ? 'timeline mix' : enc.audioWanted ? 'unsupported by this browser' : 'none', local_quality: this.e.qName, created_at: new Date().toISOString() },
       });
     } catch (err) {
       this.error = `Preview not saved: ${err.message}. The recorded performance is unaffected.`;
