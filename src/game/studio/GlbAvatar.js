@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -9,9 +10,14 @@ const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath(
 const cache = new Map();
 let presigned = {}; // uri -> signed url, supplied by the cloud render bundle (no user session there)
 export const setPresignedUrls = (m) => { presigned = m || {}; };
-const signed = (uri) => (presigned[uri] ? Promise.resolve(presigned[uri]) : base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 }).then((r) => r.signed_url));
+const signed = (uri) => (/^https?:/.test(uri) ? Promise.resolve(uri) : presigned[uri] ? Promise.resolve(presigned[uri]) : base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 }).then((r) => r.signed_url));
+// Mixamo .fbx clips: "mixamorig:Hips" bones become "mixamorigHips" in .glb rigs.
+const loadFbx = (u) => new FBXLoader().loadAsync(u).then((g) => {
+  g.animations.forEach((c) => c.tracks.forEach((t) => { t.name = t.name.replace(/:/g, ''); }));
+  return { scene: g, animations: g.animations };
+});
 const load = (uri) => {
-  if (!cache.has(uri)) cache.set(uri, signed(uri).then((u) => loader.loadAsync(u)));
+  if (!cache.has(uri)) cache.set(uri, signed(uri).then((u) => (/\.fbx(\?|$)/i.test(uri) ? loadFbx(u) : loader.loadAsync(u))));
   return cache.get(uri);
 };
 const isWalk = (c) => /walk/i.test(c.name);
