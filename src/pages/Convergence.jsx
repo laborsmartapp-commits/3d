@@ -6,7 +6,7 @@ import Toasts from '@/components/game/Toasts';
 import StageStudio from '@/components/studio/StageStudio';
 import useStageStudio from '@/hooks/useStageStudio';
 
-export default function Convergence({ district, title = 'The Convergence' }) {
+export default function Convergence({ district, title = 'The Convergence', overlay }) {
   const [mount, setMount] = useState(null);
   const [engine, setEngine] = useState(null);
   const [studioOpen, setStudioOpen] = useState(false);
@@ -41,6 +41,7 @@ export default function Convergence({ district, title = 'The Convergence' }) {
         </div>
       )}
       {s.phase === 'game' && engine?.studio && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
+      {s.phase === 'game' && engine && overlay?.({ engine, s, studioOpen, setStudioOpen })}
       {s.phase === 'game' && <Toasts notice={s.notice} />}
     </div>
   );

@@ -95,7 +95,7 @@ export class DirectorManager {
     } else {
       // No movement track: the actor stays at its scene placement (so seek/rewind restores it).
       const a = this.actor(id);
-      if (a && a.x != null) { p.pos.x = a.x; p.pos.z = a.z; if (a.yaw != null) p.yaw = a.yaw; }
+      if (a && a.x != null) { p.pos.x = a.x; p.pos.z = a.z; if (a.y != null) p.pos.y = a.y; if (a.yaw != null) p.yaw = a.yaw; }
       p.vel.set(0, 0, 0); Object.assign(p.anim, { mode: 'idle', speed: 0, t });
     }
     // Body animation layers blend over the locomotion pose; they never move the root (movement track owns it).
@@ -108,8 +108,8 @@ export class DirectorManager {
     for (const a of this.tl.actors) {
       const p = this.e.actors[a.id];
       if (!p || this.tl.clips.some((c) => c.actor === a.id && c.kind === 'perf' && !c.muted)) continue;
-      if (a.x != null && Math.hypot(p.pos.x - a.x, p.pos.z - a.z) < 0.01 && Math.abs(p.yaw - (a.yaw ?? p.yaw)) < 0.001) continue;
-      Object.assign(a, { x: +p.pos.x.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); moved = true;
+      if (a.x != null && Math.hypot(p.pos.x - a.x, p.pos.z - a.z) < 0.01 && Math.abs(p.pos.y - (a.y ?? p.pos.y)) < 0.01 && Math.abs(p.yaw - (a.yaw ?? p.yaw)) < 0.001) continue;
+      Object.assign(a, { x: +p.pos.x.toFixed(3), y: +p.pos.y.toFixed(3), z: +p.pos.z.toFixed(3), yaw: +p.yaw.toFixed(4) }); moved = true;
     }
     if (moved) this.sm.dirty();
   }

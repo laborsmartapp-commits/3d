@@ -1,0 +1,44 @@
+{
+  "name": "RealmSet",
+  "type": "object",
+  "properties": {
+    "realm": {
+      "type": "string",
+      "default": "living-realm",
+      "description": "Which realm/location this set version dresses"
+    },
+    "name": {
+      "type": "string",
+      "description": "Named set version, e.g. Everyday House, Backyard Party"
+    },
+    "template": {
+      "type": "string",
+      "description": "everyday | party | christmas | custom"
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Scene-instance data: {id, key, type, name, asset_id, asset_uri, x,y,z, rx,ry,rz, sx,sy,sz, color, hidden, locked, group}"
+    },
+    "environment": {
+      "type": "object",
+      "description": "Time of day, sun, weather, exposure, interior/outdoor/accent lights, room switches"
+    },
+    "view": {
+      "type": "object",
+      "description": "Camera visibility: cutaway mode, roof, upper floor"
+    },
+    "object_count": {
+      "type": "number"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

@@ -17,7 +17,7 @@ export class ActorManager {
   create(a) {
     const c = CHARACTERS[a.char] || CHARACTERS.jay, p0 = this.e.player;
     const x = a.x ?? p0.pos.x + 2, z = a.z ?? p0.pos.z + 1;
-    const p = new Player(this.e, c.colors, { x, z, yaw: a.yaw ?? p0.yaw });
+    const p = new Player(this.e, c.colors, { x, y: a.y ?? p0.pos.y, z, yaw: a.yaw ?? p0.yaw });
     Object.assign(p, { actorId: a.id, charId: a.char });
     p.finish(0, false);
     if (a.asset_uri) p.ready = attachGlb(p, a.asset_uri).catch((err) => console.warn('Library character failed to load', err));

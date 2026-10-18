@@ -23,6 +23,20 @@ export const starSquareStage = (e) => ({
   env: { kind: 'static', get: () => ({ h: null, w: 'clear' }), start: () => ({ static: true }), apply: () => {}, save: () => null },
 });
 
+// Krush's Living Realm: the active set version (objects, lights, view) is part of every take's world snapshot.
+export const livingRealmStage = (e) => ({
+  id: 'living-realm', name: "Krush's Living Realm", version: 'living-realm@1.0.0', actors: ['krush'],
+  location: () => e.hud.zone || "Krush's House",
+  snapshot: () => ({ world: 'living-realm', engine_version: 'living-realm@1.0.0', set_version: e.realm?.R.store.current?.id || null, set_name: e.realm?.R.store.current?.name || 'Everyday House', objects: e.realm?.R.set.serialize() || [], environment: e.realm?.R.env.save(), view: e.realm?.R.cutaway.save() }),
+  env: {
+    kind: 'dynamic',
+    get: () => ({ h: +(e.realm?.R.env.s.hour ?? 15).toFixed(3), w: e.realm?.R.env.s.weather || 'clear' }),
+    start: () => e.realm?.R.env.save() || {},
+    apply: (s) => { if (s) e.realm?.R.env.setPlayback(s.h, s.w); },
+    save: () => ({ h: e.realm?.R.env.s.hour, w: e.realm?.R.env.s.weather }),
+  },
+});
+
 export const convergenceStage = (e) => ({
   id: 'convergence', name: 'The Convergence', version: 'convergence@1.0.0', actors: ['krush'],
   location: () => e.D.name,

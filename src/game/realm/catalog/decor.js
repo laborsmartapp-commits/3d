@@ -1,0 +1,42 @@
+import * as THREE from 'three';
+
+let starGeo;
+const star = () => starGeo ||= (() => { const s = new THREE.Shape(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 0.07 : 0.16, a = (i / 10) * Math.PI * 2 + Math.PI / 2; s[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); } return new THREE.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false }).translate(0, 0, -0.02); })();
+
+function leaves(k, mat, n, y0, y1, spread, size, seed) {
+  let r = seed; const rnd = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+  for (let i = 0; i < n; i++) { const a = rnd() * Math.PI * 2, y = y0 + rnd() * (y1 - y0), d = spread * (0.3 + rnd() * 0.7); const o = k.s(mat, Math.cos(a) * d, y, Math.sin(a) * d, size, 1, 0.16, 1.7); o.rotation.set(rnd() - 0.5, a, 0.6 + rnd() * 0.5); }
+}
+
+export default {
+  floor_lamp: { name: 'Floor Lamp', cat: 'Lighting', solid: false, color: '#c9a24f', build(k, c) { k.c(k.m('matte', '#1b1c20'), 0, 0, 0, 0.16, 0.18, 0.03, 24); k.c(k.mm('brass', c), 0, 0.03, 0, 0.012, 0.012, 1.4, 8); k.c(k.m('lamp'), 0, 1.36, 0, 0.19, 0.24, 0.32, 32); k.s(k.m('lamp'), 0, 1.45, 0, 0.05); k.light(0, 1.45, 0, 'lamp'); } },
+  table_lamp: { name: 'Table Lamp', cat: 'Lighting', place: 'surface', solid: false, color: '#5f8f8a', build(k, c) { k.lathe(k.mm('ceramic', c), 'lampbase', [[0, 0], [0.08, 0], [0.11, 0.08], [0.12, 0.18], [0.08, 0.28], [0.03, 0.31], [0, 0.31]]); k.c(k.m('brass'), 0, 0.31, 0, 0.01, 0.01, 0.1, 8); k.c(k.m('lamp'), 0, 0.37, 0, 0.12, 0.16, 0.22, 28); k.light(0, 0.45, 0, 'lamp'); } },
+  plant_floor: { name: 'Fiddle Leaf Fig', cat: 'Plants', solid: false, color: '#f2ede4', build(k, c) { k.lathe(k.mm('ceramic', c), 'pot', [[0, 0], [0.15, 0], [0.19, 0.36], [0.2, 0.38], [0, 0.38]]); k.c(k.m('mulch'), 0, 0.34, 0, 0.18, 0.18, 0.03, 20); k.c(k.m('wood', '#6b5040'), 0, 0.36, 0, 0.015, 0.02, 1.05, 6); leaves(k, k.m('leaf', '#3f6b35'), 16, 0.75, 1.55, 0.3, 0.11, 11); } },
+  plant_tall: { name: 'Snake Plant', cat: 'Plants', solid: false, color: '#2b2e34', build(k, c) { k.c(k.mm('ceramic', c), 0, 0, 0, 0.16, 0.13, 0.32, 20); for (let i = 0; i < 9; i++) { const a = i * 0.7, d = 0.04 + (i % 3) * 0.03; k.b(k.m('leaf', i % 2 ? '#3f6b35' : '#5a8a3e'), Math.cos(a) * d, 0.3, Math.sin(a) * d, 0.06, 0.55 + (i % 4) * 0.12, 0.01, 0.005, (Math.random() - 0.5) * 0.2, a, (i % 3 - 1) * 0.15); } } },
+  plant_small: { name: 'Potted Plant', cat: 'Plants', place: 'surface', solid: false, color: '#c46a4a', build(k, c) { k.c(k.mm('ceramic', c), 0, 0, 0, 0.1, 0.08, 0.16, 20); for (let i = 0; i < 6; i++) k.s(k.m('leaf', '#4f7d33'), Math.cos(i) * 0.05, 0.22 + (i % 2) * 0.05, Math.sin(i) * 0.05, 0.08, 1, 0.8, 1); } },
+  christmas_tree: {
+    name: 'Christmas Tree', cat: 'Seasonal Decorations', color: '#2f5a34',
+    build(k, c) {
+      k.c(k.m('gloss', '#8b1e1e'), 0, 0, 0, 0.3, 0.34, 0.24, 24); k.c(k.m('wood', '#5a3b28'), 0, 0.24, 0, 0.05, 0.06, 0.3, 10);
+      const L = k.mm('leaf', c); [[0.95, 0.3, 0.75], [0.8, 0.75, 0.7], [0.62, 1.15, 0.6], [0.45, 1.5, 0.5], [0.28, 1.8, 0.42]].forEach(([r, y, h]) => k.c(L, 0, y, 0, 0, r, h, 22));
+      let s = 7; const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+      for (let i = 0; i < 46; i++) { const y = 0.4 + rnd() * 1.75, r = (1 - (y - 0.3) / 1.95) * 0.92, a = rnd() * Math.PI * 2; k.s(k.m('gloss', ['#c0392b', '#d4a24c', '#e8ecef', '#2f6f73'][i % 4]), Math.cos(a) * r, y, Math.sin(a) * r, 0.045); }
+      for (let i = 0; i < 70; i++) { const y = 0.35 + (i / 70) * 1.8, r = (1 - (y - 0.3) / 1.95) * 0.95, a = i * 0.9; k.s(k.m('xmas'), Math.cos(a) * r, y, Math.sin(a) * r, 0.018); }
+      k.add(star(), k.m('xmas'), 0, 2.32, 0); k.light(0, 1.2, 0.4, 'xmas');
+    },
+  },
+  gift_box: { name: 'Gift Box', cat: 'Seasonal Decorations', solid: false, color: '#c0392b', build(k, c) { k.b(k.mm('paint', c), 0, 0, 0, 0.36, 0.28, 0.36, 0.01); const R = k.m('gloss', '#d4a24c'); k.b(R, 0, 0, 0, 0.37, 0.282, 0.05, 0.005); k.b(R, 0, 0, 0, 0.05, 0.282, 0.37, 0.005); k.t(R, -0.04, 0.3, 0, 0.04, 0.012, 0, 0, 0.6); k.t(R, 0.04, 0.3, 0, 0.04, 0.012, 0, 0, -0.6); } },
+  gift_stack: { name: 'Gift Stack', cat: 'Seasonal Decorations', solid: false, color: '#2f6f73', build(k, c) { [[c, 0.5, 0.3, 0], ['#c0392b', 0.36, 0.26, 0.4], ['#e8ecef', 0.24, 0.2, -0.3]].reduce((y, [col, w, h, r]) => { k.b(k.m('paint', col), 0, y, 0, w, h, w, 0.01, 0, r); k.b(k.m('gloss', '#d4a24c'), 0, y, 0, w + 0.004, h + 0.002, 0.04, 0.004, 0, r); return y + h; }, 0); k.main = k.m('paint', c); } },
+  garland: { name: 'Garland', cat: 'Seasonal Decorations', place: 'surface', solid: false, color: '#2f5a34', build(k, c) { const L = k.mm('leaf', c); for (let i = 0; i < 18; i++) { const x = -0.85 + i * 0.1; k.s(L, x, 0.05, 0, 0.07, 1.2, 0.7, 1); if (i % 3 === 0) k.s(k.m('gloss', '#c0392b'), x, 0.1, 0.05, 0.022); if (i % 2) k.s(k.m('xmas'), x + 0.04, 0.06, 0.06, 0.012); } } },
+  wreath: { name: 'Wreath', cat: 'Seasonal Decorations', place: 'wall', solid: false, color: '#2f5a34', build(k, c) { const L = k.mm('leaf', c); for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2; k.s(L, Math.cos(a) * 0.24, 0.3 + Math.sin(a) * 0.24, 0.05, 0.08, 1, 1, 0.6); if (i % 4 === 0) k.s(k.m('gloss', '#c0392b'), Math.cos(a) * 0.24, 0.3 + Math.sin(a) * 0.24, 0.1, 0.025); } const R = k.m('gloss', '#b5302e'); k.t(R, -0.05, 0.06, 0.1, 0.05, 0.015); k.t(R, 0.05, 0.06, 0.1, 0.05, 0.015); } },
+  pumpkin: { name: 'Pumpkin', cat: 'Seasonal Decorations', solid: false, color: '#e8741c', build(k, c) { const P = k.mm('gloss', c); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.s(P, Math.cos(a) * 0.07, 0.13, Math.sin(a) * 0.07, 0.11, 0.7, 1, 0.7); } k.c(k.m('wood', '#4f5a2a'), 0, 0.24, 0, 0.015, 0.02, 0.06, 8); } },
+  apple_box: { name: 'Apple Box', cat: 'Production Props', color: '#c49a6c', anchors: [['sit', 'Sit', 0, 0.3, 0, 0]], build(k, c) { const W = k.mm('wood', c); k.b(W, 0, 0, 0, 0.5, 0.3, 0.3, 0.01); for (const s of [-1, 1]) k.b(k.m('matte', '#3a2a1e'), s * 0.251, 0.18, 0, 0.002, 0.04, 0.12, 0.002); } },
+  basketball: { name: 'Basketball', cat: 'Production Props', solid: false, color: '#d9661f', build(k, c) { k.s(k.mm('rubber', c), 0, 0.12, 0, 0.12); for (const r of [0, Math.PI / 2]) k.t(k.m('matte', '#1b1c20'), 0, 0.12, 0, 0.121, 0.003, 0, r); k.t(k.m('matte', '#1b1c20'), 0, 0.12, 0, 0.121, 0.003, Math.PI / 2); } },
+  coffee_cup: { name: 'Coffee Mug', cat: 'Production Props', place: 'surface', solid: false, color: '#f2ede4', build(k, c) { k.c(k.mm('ceramic', c), 0, 0, 0, 0.042, 0.038, 0.1, 18); k.c(k.m('matte', '#3a2418'), 0, 0.092, 0, 0.037, 0.037, 0.004, 18); k.t(k.m('ceramic', c), 0.05, 0.05, 0, 0.025, 0.007); } },
+  phone: { name: 'Smartphone', cat: 'Production Props', place: 'surface', solid: false, color: '#1b1c20', build(k, c) { k.b(k.mm('plastic', c), 0, 0, 0, 0.075, 0.009, 0.155, 0.006); k.b(k.m('screen', 'code'), 0, 0.009, 0, 0.068, 0.001, 0.146, 0.004); } },
+  backpack: { name: 'Backpack', cat: 'Production Props', solid: false, color: '#2f3e5c', build(k, c) { const F = k.mm('fabric', c); k.b(F, 0, 0, 0, 0.32, 0.45, 0.18, 0.06); k.b(F, 0, 0.05, 0.1, 0.26, 0.2, 0.06, 0.03); k.b(k.m('matte', '#111'), 0, 0.44, -0.02, 0.1, 0.03, 0.04, 0.01); } },
+  pizza_box: { name: 'Pizza Box', cat: 'Production Props', place: 'surface', solid: false, color: '#c9a77a', build(k, c) { k.b(k.mm('matte', c), 0, 0, 0, 0.4, 0.05, 0.4, 0.004); k.b(k.m('paint', '#b5302e'), 0, 0.05, 0, 0.2, 0.001, 0.14, 0.0005); } },
+  soda_can: { name: 'Soda Can', cat: 'Production Props', place: 'surface', solid: false, color: '#b5302e', build(k, c) { k.c(k.mm('gloss', c), 0, 0, 0, 0.033, 0.033, 0.12, 16); k.c(k.m('chrome'), 0, 0.12, 0, 0.03, 0.033, 0.006, 16); } },
+  skateboard: { name: 'Skateboard', cat: 'Production Props', solid: false, color: '#05cc8d', build(k, c) { k.b(k.mm('wood', c), 0, 0.07, 0, 0.2, 0.015, 0.8, 0.06); for (const z of [-0.28, 0.28]) { k.b(k.m('metal', '#9aa0a6'), 0, 0.045, z, 0.16, 0.025, 0.04, 0.006); for (const x of [-0.09, 0.09]) k.c(k.m('rubber', '#f2efe6'), x, 0.03, z, 0.028, 0.028, 0.03, 12, 0, 0, Math.PI / 2); } } },
+  clipboard: { name: 'Clipboard', cat: 'Production Props', place: 'surface', solid: false, color: '#8a6a4a', build(k, c) { k.b(k.mm('wood', c), 0, 0, 0, 0.23, 0.006, 0.32, 0.004); k.b(k.m('sheet'), 0, 0.006, 0.01, 0.21, 0.001, 0.28, 0.0005); k.b(k.m('chrome'), 0, 0.006, -0.14, 0.08, 0.012, 0.03, 0.004); } },
+};

@@ -5,6 +5,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { base44 } from '@/api/base44Client';
+import { makeSitPose } from './rigPose';
 
 const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/')).setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map();
@@ -16,6 +17,7 @@ const loadFbx = (u) => new FBXLoader().loadAsync(u).then((g) => {
   g.animations.forEach((c) => c.tracks.forEach((t) => { t.name = t.name.replace(/:/g, ''); }));
   return { scene: g, animations: g.animations };
 });
+export const loadModel = (uri) => load(uri);
 const load = (uri) => {
   if (!cache.has(uri)) cache.set(uri, signed(uri).then((u) => (/\.fbx(\?|$)/i.test(uri) ? loadFbx(u) : loader.loadAsync(u))));
   return cache.get(uri);
@@ -33,6 +35,7 @@ export async function attachGlb(p, uri) {
   const mb = new THREE.Box3().setFromObject(model), s = H / ((mb.max.y - mb.min.y) || 1);
   model.scale.setScalar(s); model.position.y = -mb.min.y * s;
   p.h.body.visible = false; p.h.root.add(model);
+  const sitPose = makeSitPose(model), baseY = model.position.y;
   const walk = g.animations.find(isWalk) || await libraryWalk() || g.animations[0];
   const mixer = new THREE.AnimationMixer(model), act = walk && mixer.clipAction(walk).play();
   const libActs = new Map(); // `${uri}|${clip}` -> action (null while loading)
@@ -64,5 +67,9 @@ export async function attachGlb(p, uri) {
       if (moving) act.time = (act.time + dt * Math.min(2.2, Math.max(0.6, v / 1.6))) % (walk.duration || 1); else act.time = 0;
     }
     mixer.update(0);
+    // Seated interactions work on imported rigs too: drop the hips and aim the leg chains.
+    const sitting = p.anim.mode === 'sit' && sitPose;
+    model.position.y = baseY - (sitting && sitPose.drop ? sitPose.drop / (p.h.root.scale.y || 1) : 0);
+    if (sitting) { p.h.root.updateMatrixWorld(true); sitPose.apply(p.yaw); }
   };
 }

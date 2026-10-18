@@ -16,7 +16,7 @@ export class Player {
 
   respawn(sp = this.spawnPoint || SPAWN) {
     this.spawnPoint = sp;
-    this.pos.set(sp.x, this.e.groundAt(sp.x, sp.z), sp.z);
+    this.pos.set(sp.x, this.e.groundAt(sp.x, sp.z, sp.y ?? 0), sp.z);
     this.vel.set(0, 0, 0);
     this.yaw = sp.yaw;
     this.onGround = true;
@@ -60,14 +60,15 @@ export class Player {
     else if (mag > 0.05) this.yaw = lerpAngle(this.yaw, Math.atan2(dx, dz), 1 - Math.exp(-dt * 10));
 
     const px = this.pos.x, pz = this.pos.z;
-    const gOld = e.groundAt(px, pz);
+    const py = this.pos.y; // stages with stacked floors resolve the surface reachable from this height
+    const gOld = e.groundAt(px, pz, py);
     const canMove = (x, z) => {
-      const g = e.groundAt(x, z);
+      const g = e.groundAt(x, z, py);
       if (g < -500) return true;
       if (!this.onGround && !this.swimming) return g <= this.pos.y + 0.5;
       const hs = Math.hypot(x - px, z - pz);
       if (hs < 1e-6) return true;
-      const rise = e.groundAt(px + ((x - px) / hs) * 0.5, pz + ((z - pz) / hs) * 0.5) - gOld;
+      const rise = e.groundAt(px + ((x - px) / hs) * 0.5, pz + ((z - pz) / hs) * 0.5, py) - gOld;
       return !(rise > 0.45 && rise / 0.5 > 1.2);
     };
     const nx = px + this.vel.x * dt, nz = pz + this.vel.z * dt;
@@ -77,7 +78,7 @@ export class Player {
     else { this.vel.x *= 0.2; this.vel.z *= 0.2; }
     e.colliders.resolve(this.pos, 0.35, this.pos.y + 0.5);
 
-    const g = e.groundAt(this.pos.x, this.pos.z);
+    const g = e.groundAt(this.pos.x, this.pos.z, this.pos.y);
     const W = e.water ?? WATER; // stages without water (e.g. Star Square) set e.water far below ground
     const depth = W - g;
     this.swimming = depth > 1.35 && this.pos.y <= W - 0.4;
