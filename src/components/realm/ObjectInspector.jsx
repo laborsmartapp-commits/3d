@@ -3,6 +3,7 @@ import { Move, RotateCw, Maximize2, Magnet, Grid3x3, ShieldAlert, DoorOpen, Mous
 import { CATALOG } from '@/game/realm/catalog';
 import TransformFields from './TransformFields';
 import InspectorActions from './InspectorActions';
+import ModelUpgrade from './ModelUpgrade';
 
 const GZ = [['translate', Move, 'Move'], ['rotate', RotateCw, 'Rotate'], ['scale', Maximize2, 'Scale']];
 const T = (on) => `rounded-lg px-2 py-1.5 text-xs flex items-center justify-center gap-1 ${on ? 'bg-primary text-primary-foreground' : 'bg-white/5 hover:bg-white/10'}`;
@@ -42,6 +43,7 @@ export default function ObjectInspector({ R, r }) {
               </select>
             </label>
           )}
+          {sel.length === 1 && o.type !== 'asset' && <ModelUpgrade ed={ed} o={o} />}
           <InspectorActions ed={ed} sel={sel} />
           {o.anchors?.length > 0 && <p className="text-[11px] text-muted-foreground">Interaction points: {o.anchors.join(', ')}</p>}
         </>

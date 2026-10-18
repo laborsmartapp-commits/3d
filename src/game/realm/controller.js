@@ -66,7 +66,7 @@ export class RealmController {
       this.listRev = set.rev;
       this.objs = set.list.map((o) => ({ id: o.id, type: o.type, name: o.name || set.def(o)?.name || o.type, cat: set.def(o)?.cat, room: o.room, area: area(o), hidden: o.hidden, locked: o.locked, group: o.group }));
     }
-    const sel = ed.items.map((o) => ({ ...set.data(o), label: o.name || set.def(o)?.name, cat: set.def(o)?.cat, room: o.room, overlap: !!o.overlap, colorable: !!o.proto?.main, color: o.color || (o.proto?.main ? `#${o.proto.main.color.getHexString()}` : null), anchors: set.anchors(o).map((a) => a.label), error: o.error }));
+    const sel = ed.items.map((o) => ({ ...set.data(o), label: o.name || set.def(o)?.name, cat: set.def(o)?.cat, room: o.room, overlap: !!o.overlap, colorable: !!o.proto?.main && !o.model_uri, color: o.color || (o.proto?.main ? `#${o.proto.main.color.getHexString()}` : null), anchors: set.anchors(o).map((a) => a.label), error: o.error }));
     return {
       mode: this.mode, sel, door: ed.door ? { label: ed.door.label, open: ed.door.open } : null, gizmo: ed.gizmo, snap: ed.snap, grid: ed.grid, collide: ed.collide,
       canUndo: ed.hist.length > 0, canRedo: ed.fut.length > 0, dirty: st.dirty, saving: st.saving, error: st.error, loaded: st.loaded,

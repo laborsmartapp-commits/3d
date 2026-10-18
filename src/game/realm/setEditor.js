@@ -152,7 +152,15 @@ export class SetEditor {
   rotateBy(deg) { this.change(() => this.items.forEach((o) => { if (o.locked) return; o.ry += THREE.MathUtils.degToRad(deg); if ((this.R.set.def(o).place || 'floor') !== 'wall') this.R.set.apply(o); else this.R.set.apply(o); })); }
   drop() { this.change(() => this.items.forEach((o) => { if (o.locked) return; this.place(o); this.R.set.apply(o); })); }
   reset() { this.change(() => this.items.forEach((o) => { if (o.locked || !o.orig) return; Object.assign(o, o.orig); this.R.set.apply(o); })); }
-  replace(type) { this.change(() => this.items.forEach((o) => { o.type = type; o.color = null; this.R.set.build(o); this.place(o); this.R.set.apply(o); })); }
+  replace(type) { this.change(() => this.items.forEach((o) => { o.type = type; o.color = null; o.model_uri = o.model_asset_id = o.model_name = null; this.R.set.build(o); this.place(o); this.R.set.apply(o); })); }
+  // Swap the visual of the selected pieces (or every piece of the same type in this set) for an imported
+  // model, keeping position, rotation, scale, id and anchors. asset = null restores the original piece.
+  setModel(asset, allOfType = false) {
+    const types = new Set(this.items.filter((o) => o.type !== 'asset').map((o) => o.type));
+    const targets = allOfType ? this.R.set.list.filter((o) => types.has(o.type)) : this.items.filter((o) => o.type !== 'asset');
+    this.change(() => targets.forEach((o) => { Object.assign(o, asset ? { model_asset_id: asset.id, model_uri: asset.file_uri, model_name: asset.name, color: null } : { model_asset_id: null, model_uri: null, model_name: null }); this.R.set.build(o); this.R.set.apply(o); }));
+    this.R.emit();
+  }
   group() { if (this.sel.length < 2) return; const g = uid(); this.patch({ group: g }); }
   ungroup() { this.patch({ group: null }); }
   undo() { if (!this.hist.length) return; this.fut.push(this.R.set.serialize()); this.restore(this.hist.pop()); }
