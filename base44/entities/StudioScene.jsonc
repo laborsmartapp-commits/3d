@@ -46,6 +46,14 @@
     "timeline": {
       "type": "object",
       "description": "Director timeline: {version, fps, duration, actors:[{id,char,name,x,z,yaw,armed,locked,muted}], clips:[perf|anim]}"
+    },
+    "weather": {
+      "type": "object",
+      "description": "Shooting environment applied to this scene (manual weather state). Stored apart from stage geometry."
+    },
+    "weather_locked": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
