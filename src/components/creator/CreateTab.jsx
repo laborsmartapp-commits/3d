@@ -15,7 +15,7 @@ export default function CreateTab({ api }) {
   const last = step === STEPS.length - 1;
   const generate = async () => {
     const { quality, prompt, ...settings } = s;
-    const d = await api.run('Generating stage', { action: 'create', mode: 'structured', settings, prompt, quality }, MODEL_LABEL[quality]);
+    const d = await api.generate('Generating stage', { action: 'create', mode: 'structured', settings, prompt, quality }, MODEL_LABEL[quality]);
     if (d?.stage) setMade(d.stage);
   };
   if (made) return (

@@ -17,7 +17,7 @@ const Btn = ({ icon: Icon, children, ...p }) => <button {...p} className="rounde
 export default function StageTab({ engine, st, rec, api, onPick }) {
   const nav = useNavigate(), R = engine.realm?.R, [msg, setMsg] = useState(''), [q, setQ] = useState('standard');
   const objects = () => R.set.serialize().filter((o) => !o.hidden);
-  const act = async (label, payload, model) => { const d = await api.run(label, { parent_id: rec.id, ...payload }, model); if (d?.stage) nav(`/stage/${d.stage.id}`); };
+  const act = async (label, payload, model) => { const d = await (payload.action === 'variation' ? api.generate : api.run)(label, { parent_id: rec.id, ...payload }, model); if (d?.stage) nav(`/stage/${d.stage.id}`); };
   const commit = (pv) => act('Committing refinement', { action: 'commit', spec: pv.spec, report: pv.report, summary: pv.summary, instruction: pv.instruction });
   const cams = () => { if (!st?.scene) { setMsg('Open or create a scene first (Scenes bubble).'); return; } setMsg(`Added ${addStageCameras(engine)} stage cameras to “${st.scene.name}”.`); };
   const thumb = async () => { setMsg('Capturing thumbnail…'); await captureThumb(engine, rec); setMsg('Thumbnail updated (stored privately).'); };

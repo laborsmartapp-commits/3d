@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, AlertTriangle, X } from 'lucide-react';
 
 // Live status of a stage request: real elapsed time (no fake percentage), or the error it returned.
-export default function GenProgress({ job, onDismiss }) {
+export default function GenProgress({ job, onDismiss, onRetry }) {
   const [, tick] = useState(0);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(i); }, []);
   if (job.error) return (
     <div className="mb-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-xs flex gap-2">
       <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-      <div className="flex-1"><p className="font-semibold">{job.label} failed</p><p className="text-muted-foreground mt-0.5">{job.error}</p></div>
+      <div className="flex-1"><p className="font-semibold">{job.label} failed</p><p className="text-muted-foreground mt-0.5">{job.error}</p>
+        {onRetry && <button onClick={onRetry} className="mt-2 rounded-md bg-white/10 px-2 py-1 font-semibold">Retry step 2 (keeps the architecture)</button>}</div>
       <button onClick={onDismiss} aria-label="Dismiss"><X className="w-3.5 h-3.5" /></button>
     </div>
   );
@@ -19,7 +20,7 @@ export default function GenProgress({ job, onDismiss }) {
       <p className="font-semibold flex items-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />{job.label} · {s}s</p>
       <p className="text-muted-foreground mt-1">{phase}.</p>
       <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden"><div className="h-full w-1/3 bg-primary animate-pulse" /></div>
-      {job.model && <p className="text-quiet mt-2">AI generations usually take 1–3 minutes. The result is saved to the Library even if you close this panel.</p>}
+      {job.model && <p className="text-quiet mt-2">Each AI step usually takes 30–100 seconds. The result is saved to the Library even if you close this panel.</p>}
     </div>
   );
 }

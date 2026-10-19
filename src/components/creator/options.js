@@ -6,30 +6,31 @@ export const MODEL_LABEL = { standard: 'Claude Sonnet 5', maximum: 'Claude Opus 
 
 export const STEPS = [
   { title: 'Basics', fields: [
-    ['category', 'Stage type', ['Luxury Interior', 'Residential Interior', 'City Street', 'Plaza / Square', 'Fantasy Garden', 'Park', 'Music Venue', 'Shop / Café', 'Studio Set', 'Nature Clearing']],
+    ['category', 'Stage type', ['Luxury Residential Interior', 'Residential Interior', 'City Street', 'Plaza / Square', 'Fantasy Garden', 'Park', 'Music Venue', 'Shop / Café', 'Studio Set', 'Nature Clearing']],
     ['style', 'Texture / rendering style', STYLES],
+    ['visual', 'Visual quality', ['Game-ready', 'Cinematic Animated Feature', 'Film photoreal']],
   ] },
   { title: 'Space', fields: [
-    ['scale', 'Scale', ['Single room', 'Small (house / yard)', 'Medium (block)', 'Large (district)']],
+    ['scale', 'Scale', ['Single room', 'Small (house / yard)', 'Medium (block / multi-room)', 'Large (grand space / district)']],
     ['environment', 'Environment', [['indoor', 'Indoor'], ['outdoor', 'Outdoor'], ['connected', 'Indoor + outdoor']]],
     ['levels', 'Levels', ['Single level', 'Two levels', 'Multi-level']],
     ['walkability', 'Walkability', ['Fully walkable', 'Main paths walkable', 'Mostly scenic']],
     ['complexity', 'Architectural complexity', ['Simple', 'Moderate', 'Detailed', 'Highly detailed']],
   ] },
   { title: 'Dressing', fields: [
-    ['density', 'Decoration density', ['Sparse', 'Balanced', 'Dense', 'Maximal']],
+    ['density', 'Decoration density', ['Sparse', 'Balanced', 'Richly detailed', 'Maximal']],
     ['materials', 'Materials & surfaces', ['Polished stone', 'Wood', 'Brick', 'Concrete & asphalt', 'Glass & metal', 'Fabric & velvet', 'Natural ground', 'Crystal & glow'], true],
     ['props', 'Furnishings & props', ['Seating', 'Tables', 'Lighting fixtures', 'Decor & art', 'Plants', 'Street furniture', 'Music & DJ gear', 'Fantasy props'], true],
     ['vfx', 'VFX', ['Fire', 'Fireflies', 'Floating lanterns', 'Magic orbs', 'Falling petals', 'Fountain spray', 'Smoke / steam', 'Light beams'], true],
   ] },
   { title: 'Production', fields: [
-    ['purpose', 'Production purpose', ['Music video', 'Dialogue scene', 'Dance number', 'Action / chase', 'Establishing shots']],
+    ['purpose', 'Production purpose', ['Animated film', 'Dialogue scene', 'Music video', 'Dance number', 'Action / chase', 'Establishing shots'], true],
     ['target', 'Performance target', [['mobile', 'Mobile'], ['balanced', 'Balanced'], ['high', 'High-end desktop']]],
     ['quality', 'AI model', QUALITY],
   ] },
 ];
 
-export const DEFAULTS = { name: '', category: 'Luxury Interior', style: 'stylized_hires', scale: 'Small (house / yard)', environment: 'indoor', levels: 'Single level', walkability: 'Fully walkable', complexity: 'Detailed', density: 'Balanced', materials: [], props: [], vfx: [], purpose: 'Music video', target: 'balanced', quality: 'standard', prompt: '' };
+export const DEFAULTS = { name: '', category: 'Luxury Residential Interior', style: 'stylized_hires', visual: 'Cinematic Animated Feature', scale: 'Small (house / yard)', environment: 'indoor', levels: 'Single level', walkability: 'Fully walkable', complexity: 'Detailed', density: 'Balanced', materials: [], props: [], vfx: [], purpose: ['Music video'], target: 'balanced', quality: 'standard', prompt: '' };
 
 // Honest description of what each style really is in this engine.
 export const STYLE_NOTE = {
