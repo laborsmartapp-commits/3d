@@ -24,13 +24,14 @@ export default function AudioClip({ c, zoom, wz, selected, onSelect, onChange, s
     else { const max = c.loop ? Infinity : c.start + (c.len - (c.in || 0)) / sp; setD({ end: snap(Math.min(max, Math.max(c.start + 0.1, c.end + dt)), c.id) }); }
   };
   const up = () => { if (!drag.current) return; drag.current = null; if (d) onChange(Object.fromEntries(Object.entries(d).map(([k, x]) => [k, +x.toFixed(3)]))); setD(null); };
-  return (
-    <div onPointerDown={down('move')} onPointerMove={move} onPointerUp={up} style={{ left: v.start * zoom, width: w }}
+  return (<>
+    {d && drag.current?.mode === 'move' && <div data-clip-ghost className="absolute top-0.5 bottom-0.5 rounded-md border border-dashed border-sky-300/50 pointer-events-none" style={{ left: c.start * zoom, width: w }} />}
+    <div data-clip-id={c.id} onPointerDown={down('move')} onPointerMove={move} onPointerUp={up} style={{ left: v.start * zoom, width: w }}
       className={`absolute top-0.5 bottom-0.5 rounded-md overflow-hidden cursor-grab select-none border bg-sky-500/15 border-sky-400/60 ${c.muted ? 'opacity-35' : ''} ${selected ? 'ring-2 ring-foreground' : ''}`}>
       <canvas ref={cv} className="absolute inset-0 w-full h-full pointer-events-none" />
       <span className="relative px-1.5 text-[9px] leading-4 truncate block">{c.solo ? 'S · ' : ''}{c.label}{c.loop ? ' ⟳' : ''}</span>
       <div onPointerDown={down('l')} className="absolute left-0 inset-y-0 w-1.5 cursor-ew-resize bg-sky-300/40 hover:bg-sky-300" />
       <div onPointerDown={down('r')} className="absolute right-0 inset-y-0 w-1.5 cursor-ew-resize bg-sky-300/40 hover:bg-sky-300" />
     </div>
-  );
+  </>);
 }

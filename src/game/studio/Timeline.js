@@ -50,4 +50,11 @@ export function animLayers(clips, actor, t) {
   return out.sort((a, b) => a.priority - b.priority || a.i - b.i);
 }
 
+// Clips sharing c's lane (same actor + track kind, or same audio track) that [start, start + length) would overlap.
+const lane = (c) => (c.kind === 'audio' ? `audio:${c.track}` : `${c.actor}:${c.kind}`);
+export function overlaps(clips, c, start) {
+  const end = start + clipEnd(c) - c.start;
+  return clips.filter((x) => x.id !== c.id && lane(x) === lane(c) && x.start < end - 1e-3 && clipEnd(x) > start + 1e-3);
+}
+
 export const uid = (p) => `${p}-${Math.random().toString(36).slice(2, 8)}`;

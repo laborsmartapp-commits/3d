@@ -3,7 +3,9 @@ import { PerformancePlayback } from './PerformancePlayback';
 import { now } from './PerformanceRecorder';
 import { CHARACTERS } from './characters';
 import { AudioEngine, loadBuffer, peaksOf, AUDIO_DEFAULTS } from './AudioEngine';
-import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, ANIM_DEFAULTS } from './Timeline';
+import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, overlaps, ANIM_DEFAULTS } from './Timeline';
+
+const OVERLAP = { perf: 'the higher-priority (then newer) pass plays where they overlap', anim: 'they blend where they overlap', audio: 'they mix where they overlap' };
 
 // Director Mode: one master clock driving every actor's tracks. While one armed actor is recorded live,
 // every other actor replays its own clips at the same timeline time (synchronized multi-pass recording).
@@ -33,8 +35,10 @@ export class DirectorManager {
     if (end > this.tl.duration) this.tl.duration = Math.ceil(end);
     this.actors.sync(this.tl.actors); this.preload(); this.sm.dirty();
   }
-  undo() { if (this.hist.length && this.state === 'stopped') { this.fut.push(JSON.stringify(this.tl)); this.tl = JSON.parse(this.hist.pop()); this.after(); } }
-  redo() { if (this.fut.length && this.state === 'stopped') { this.hist.push(JSON.stringify(this.tl)); this.tl = JSON.parse(this.fut.pop()); this.after(); } }
+  undo() { if (this.hist.length && this.state === 'stopped') { this.fut.push(JSON.stringify(this.tl)); this.tl = JSON.parse(this.hist.pop()); this.after(); this.redrive(); } }
+  redo() { if (this.fut.length && this.state === 'stopped') { this.hist.push(JSON.stringify(this.tl)); this.tl = JSON.parse(this.fut.pop()); this.after(); this.redrive(); } }
+  // Re-pose the scene at the playhead after the arrangement changed (no scene rebuild).
+  redrive() { this.preload().then(() => { if (this.state === 'stopped' && this.sm.status !== 'capturing') { this.drive(0); this.sm.emit(); } }); }
 
   actor(id) { return this.tl.actors.find((a) => a.id === id); }
   addActor(char) {
@@ -55,6 +59,18 @@ export class DirectorManager {
   addAnim(actor, anim, len = 4, at = this.t) { const start = +at.toFixed(2), a = typeof anim === 'string' ? { anim } : anim; this.edit((tl) => tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, ...a, start, end: start + len })); }
   duplicateClip(id) { this.edit((tl) => { const c = tl.clips.find((x) => x.id === id), d = clipEnd(c) - c.start; tl.clips.push({ ...c, id: uid(c.kind), start: +(clipEnd(c)).toFixed(2), ...(c.kind !== 'perf' ? { end: +(clipEnd(c) + d).toFixed(2) } : {}) }); }); }
   setClip(id, patch) { this.edit((tl) => Object.assign(tl.clips.find((c) => c.id === id), patch)); }
+  // Reposition a clip on its own track: duration, data and actor are untouched; overlaps are kept and reported.
+  moveClip(id, start) {
+    const c = this.tl.clips.find((x) => x.id === id);
+    if (!c || this.actor(c.actor)?.locked || this.sm.status === 'capturing') return;
+    start = Math.max(0, +start.toFixed(3)); if (Math.abs(start - c.start) < 1e-4) return;
+    this.pause(); this.keepPlacements();
+    const hit = overlaps(this.tl.clips, c, start);
+    this.edit((tl) => { const x = tl.clips.find((k) => k.id === id); if (x.kind !== 'perf') x.end = +(start + x.end - x.start).toFixed(3); x.start = start; });
+    const note = hit.length ? `Moved onto ${hit.map((x) => x.label || x.name || x.anim || 'a clip').join(', ')}: both kept, ${OVERLAP[c.kind]}. Undo to revert.` : '';
+    if (note || this.sm.notice === this.moveNote) { this.sm.notice = note; this.moveNote = note; }
+    this.redrive();
+  }
   deleteClip(id) { this.edit((tl) => { tl.clips = tl.clips.filter((c) => c.id !== id); }); }
   // ---- audio: clips on the same master timeline (kind 'audio'); overlapping clips mix
   async addAudio(asset, track, at = this.t) {
@@ -77,6 +93,9 @@ export class DirectorManager {
     const near = pts.reduce((a, p) => (Math.abs(p - t) < Math.abs(a - t) ? p : a), Infinity);
     return Math.abs(near - t) < 0.15 ? +near.toFixed(3) : Math.round(t * tl.fps) / tl.fps;
   }
+  frame(t) { return Math.round(t * this.tl.fps) / this.tl.fps; }
+  // Where a dragged time lands: the snap targets when snapping is on, otherwise the nearest frame.
+  place(t, skip) { return this.tl.snap ? this.snap(t, skip) : this.frame(t); }
   setDuration(d) { this.edit((tl) => { tl.duration = Math.max(1, d); }); }
 
   // ---- evaluation
@@ -133,6 +152,10 @@ export class DirectorManager {
     if (this.state === 'playing') { this.t0 = this.t; this.w0 = now(); this.startAudio(); } else { this.keepPlacements(); this.drive(0); }
     this.sm.emit();
   }
+  // Manual scrubbing pauses playback for the drag and resumes it only if it was already playing.
+  beginScrub() { const was = this.state === 'playing'; if (was) this.pause(); return was; }
+  scrubTo(t) { this.seek(this.place(Math.max(0, t))); }
+  endScrub(was) { if (was) this.play(); }
 
   async record() {
     const sm = this.sm, a = this.tl.actors.find((x) => x.armed);

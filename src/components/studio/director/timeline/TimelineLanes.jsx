@@ -1,13 +1,14 @@
 import React from 'react';
 import LaneLabel from './LaneLabel';
 import LaneClips from './LaneClips';
+import TimeRuler from './TimeRuler';
 import { ACTOR_ROWS } from './timelineUI';
 import { AUDIO_TRACKS } from '@/game/studio/AudioEngine';
 
 // Ruler + clip lanes for the active view: Characters → actor lanes, Audio → audio lanes, otherwise everything.
 export default function TimelineLanes({ engine, st, d, ui, set }) {
   const D = engine.studio.dir, zoom = ui.zoom, col = ui.collapsed;
-  const seek = (e) => { const r = e.currentTarget.getBoundingClientRect(); D.seek((e.clientX - r.left) / zoom); };
+  const seek = (e) => { const r = e.currentTarget.getBoundingClientRect(); D.scrubTo((e.clientX - r.left) / zoom); };
   const beats = d.bpm > 0 && zoom * (60 / d.bpm) >= 6 ? Array.from({ length: Math.floor((d.duration - d.beat_offset) * d.bpm / 60) + 1 }, (_, i) => d.beat_offset + (i * 60) / d.bpm).filter((b) => b >= 0) : [];
   const rows = [];
   if (ui.view !== 'audio') {
@@ -30,9 +31,7 @@ export default function TimelineLanes({ engine, st, d, ui, set }) {
       </div>
       <div className="flex-1 min-w-0 overflow-x-auto">
         <div className="relative" style={{ width: d.duration * zoom + 40 }}>
-          <div onPointerDown={seek} className="h-5 relative cursor-pointer text-[9px] text-muted-foreground">
-            {Array.from({ length: Math.floor(d.duration) + 1 }, (_, i) => i).filter((i) => zoom >= 20 || i % 5 === 0).map((i) => <span key={i} className="absolute top-0.5 border-l border-white/20 pl-0.5" style={{ left: i * zoom }}>{i}s</span>)}
-          </div>
+          <TimeRuler D={D} d={d} zoom={zoom} />
           {rows.map((r) => <LaneClips key={r.key} row={r} seek={seek} {...p} />)}
           {beats.map((b, i) => <div key={i} className="absolute top-5 bottom-0 w-px bg-white/10 pointer-events-none" style={{ left: b * zoom }} />)}
           {d.markers.map((m, i) => <div key={'m' + i} className="absolute top-0 bottom-0 w-px bg-sky-400/70 pointer-events-none" style={{ left: m * zoom }} />)}
