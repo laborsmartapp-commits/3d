@@ -19,17 +19,24 @@ export function buildRealm(e) {
   R.emit = () => R.ctl?.emit();
   if (e.sky) e.sky.visible = false;
   walkables.length = 0; // set pieces from a previously built (disposed) realm must not stay walkable
-  buildExterior(R);
-  buildHouse(R);
-  R.set = new SetScene(R);
-  R.store = new SetStore(R);
-  R.env = new RealmEnv(R);
-  R.cutaway = new Cutaway(R);
-  R.anchors = new Anchors(R);
-  R.editor = new SetEditor(R);
-  R.ctl = e.realm = new RealmController(R);
+  const P = e.prof, sync = (n, fn) => (P ? P.sync(n, fn) : fn());
+  sync('realm: street + yard', () => buildExterior(R));
+  sync('realm: house shell', () => buildHouse(R));
+  sync('realm: set systems (env, cutaway, editor)', () => {
+    R.set = new SetScene(R);
+    R.store = new SetStore(R);
+    R.env = new RealmEnv(R);
+    R.cutaway = new Cutaway(R);
+    R.anchors = new Anchors(R);
+    R.editor = new SetEditor(R);
+    R.ctl = e.realm = new RealmController(R);
+  });
   const snap = e.renderBundle?.take?.world_snapshot;
-  if (snap?.objects) R.store.applySnapshot(snap); else R.store.init();
+  if (snap?.objects) sync('realm: furnish from take snapshot', () => R.store.applySnapshot(snap));
+  else {
+    let t; const p = sync('realm: furnish default set', () => { t = P?.now(); return R.store.init(); });
+    p.then(() => P?.add('realm: saved set (server fetch + refurnish)', t, 'assets'));
+  }
   if (DEV_TOOLS) { window.__modelLab = installModelLab(R); window.__realmTest = installRealmTest(R); }
   let last = null;
   return (t) => { const dt = last === null ? 0 : Math.min(0.05, Math.max(0, t - last)); last = t; R.ctl.tick(t, dt); };

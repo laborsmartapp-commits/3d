@@ -36,10 +36,13 @@ export class SetScene {
       o.node.add(ph);
       const node = o.node;
       o.loading = true;
+      const t0 = performance.now();
       loadModel(o.asset_uri).then(async (g) => {
         if (o.node !== node) return;
-        const { m } = prepareModel(g);
+        this.e.prof?.asset(`${o.name || 'model'} download+parse`, t0, true);
+        const { m } = prepareModel(g), t1 = performance.now();
         await this.e.renderer.compileAsync(m, this.e.camera, this.e.scene).catch(() => {});
+        this.e.prof?.asset(`${o.name || 'model'} shader compile`, t1, true);
         if (o.node !== node) return;
         o.box = new THREE.Box3().setFromObject(m); node.remove(ph); node.add(m); o.loading = false;
         this.apply(o); this.rev++; this.R.emit();
@@ -58,11 +61,14 @@ export class SetScene {
   buildUpgrade(o) {
     const { node: stand, proto } = instantiate(o.type), node = new THREE.Group();
     o.node = node; o.proto = proto; o.box = proto.box; o.cal = null; o.error = null; o.loading = true; node.add(stand); // original shows until the model arrives
+    const t0 = performance.now();
     withTimeout(loadModel(o.model_uri), 45000).then(async (g) => {
       if (o.node !== node) return; // superseded by a newer swap/restore
-      const { m } = prepareModel(g); // lights/cameras stripped: see modelPrep.js
+      this.e.prof?.asset(`${o.model_name || o.type} download+parse`, t0, true);
+      const { m } = prepareModel(g), t1 = performance.now(); // lights/cameras stripped: see modelPrep.js
       // Shader programs for the model's materials are prepared before it is shown.
       await this.e.renderer.compileAsync(m, this.e.camera, this.e.scene).catch(() => {});
+      this.e.prof?.asset(`${o.model_name || o.type} shader compile`, t1, true);
       if (o.node !== node) return;
       const f = getFit(o) || putFit(o, this.fit(o, proto, m));
       m.scale.multiplyScalar(f.k); m.position.fromArray(f.pos); m.updateMatrixWorld(true);
@@ -144,7 +150,14 @@ export class SetScene {
     this.root.remove(o.node); o.hidden = true; this.physics(o); this.items.delete(id); this.rev++;
   }
   clear() { for (const id of [...this.items.keys()]) this.remove(id); }
-  load(list) { this.clear(); for (const d of list || []) this.add(d); }
+  load(list) {
+    const P = this.e.prof; if (!P) { this.clear(); for (const d of list || []) this.add(d); return; }
+    P.sync('  set: clear previous', () => this.clear());
+    const byType = {}; let t;
+    for (const d of list || []) { t = performance.now(); this.add(d); const k = d.model_uri ? `${d.type}+model` : d.type; byType[k] = (byType[k] || 0) + performance.now() - t; }
+    const top = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    for (const [k, v] of top) P.phases.push({ name: `  set: build ${k}`, kind: 'detail', ms: Math.round(v * 10) / 10, at: Math.round(t - P.t0) });
+  }
   data(o) { const d = {}; for (const f of FIELDS) if (o[f] !== undefined && o[f] !== null) d[f] = r4(o[f]); return d; }
   serialize() { return this.list.map((o) => this.data(o)); }
 

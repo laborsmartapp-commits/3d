@@ -12,6 +12,7 @@ import { SceneManager } from '../studio/SceneManager';
 import { DiagManager } from '../diag/DiagManager';
 import { stepPlayer } from '../core/step';
 import { convergenceStage } from '../stages/adapters';
+import { StageProfile } from '../diag/StageProfile';
 
 const PIXEL = { low: 0.8, medium: 1, high: 1.5 };
 
@@ -31,6 +32,7 @@ export class ConvergenceEngine {
     this.container = container; this.onState = onState; this.D = district;
     this.hud = { phase: 'loading', progress: 0, step: 'Preparing', mode: 'play' };
     this.mode = 'play'; this.time = 0; this.qName = 'high'; this.fps = 60; this.frames = 0; this.statT = 0;
+    this.prof = new StageProfile();
   }
 
   setMode() {} // single play mode; first-person toggle stays on V
@@ -40,7 +42,7 @@ export class ConvergenceEngine {
     this.emit({ quality: name });
   }
 
-  emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
+  emit(p) { this.prof.emits++; Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
   // Location label follows the character's actual position (emits only when the zone changes), not a frame count.
   syncZone() { const p = this.player.pos, z = this.D.zoneAt(p.x, p.z, p.y); if (z !== this.hud.zone) this.emit({ zone: z }); }
   notify(text) { this.emit({ notice: { id: Math.random(), text } }); }
@@ -48,9 +50,11 @@ export class ConvergenceEngine {
   onFootstep(pos) { this.fx.emit(pos, { count: 2, color: '#b8ab94', up: 0.4, spread: 0.2, life: 0.5 }); }
 
   async init() {
-    const step = async (progress, s) => { this.emit({ progress, step: s }); await new Promise((r) => setTimeout(r, 30)); return this.disposed; };
+    const P = this.prof;
+    const step = async (progress, s) => { this.emit({ progress, step: s }); await P.wait(`loading screen paint: ${s}`, new Promise((r) => setTimeout(r, 30)), 'idle'); return this.disposed; };
     this.isTouch = window.matchMedia('(pointer: coarse)').matches;
     if (await step(20, this.D.steps[0])) return;
+    let t = P.now();
     const r = (this.renderer = new THREE.WebGLRenderer({ antialias: !this.isTouch, powerPreference: 'high-performance' }));
     r.setPixelRatio(Math.min(window.devicePixelRatio, this.isTouch ? 1 : 1.5));
     r.setSize(this.container.clientWidth, this.container.clientHeight);
@@ -58,9 +62,10 @@ export class ConvergenceEngine {
     r.toneMapping = THREE.ACESFilmicToneMapping; r.outputColorSpace = THREE.SRGBColorSpace;
     r.domElement.style.touchAction = 'none'; r.domElement.style.display = 'block';
     this.container.appendChild(r.domElement);
+    P.add('renderer + WebGL context', t);
     const scene = (this.scene = new THREE.Scene());
     scene.fog = new THREE.Fog(...this.D.fog);
-    scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
+    scene.environment = P.sync('environment map (PMREM bake)', () => new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture, 'shaders');
     scene.environmentIntensity = 0.45;
     this.sky = skyDome(); scene.add(this.sky);
     this.sunDir = new THREE.Vector3(60, 95, 35);
@@ -75,9 +80,10 @@ export class ConvergenceEngine {
     this.colliders = new Colliders(); this.occluders = [];
     this.mats = makeMaterials(); this.batch = new Batch();
     if (await step(50, this.D.steps[1])) return;
-    this.tick = this.D.build(this, rng(7));
+    this.tick = P.sync(`build world (${this.D.id || 'district'})`, () => this.D.build(this, rng(7)));
     if (await step(80, this.D.steps[2])) return;
-    this.batch.build(scene);
+    P.sync('merge static geometry (batch)', () => this.batch.build(scene));
+    t = P.now();
     this.fx = new FX(scene);
     const sp = this.D.spawn;
     this.player = new Player(this);
@@ -92,6 +98,10 @@ export class ConvergenceEngine {
     this.studio = new SceneManager(this);
     this.diag = new DiagManager(this);
     this.clock = new THREE.Clock();
+    P.add('player, camera, studio, diagnostics', t);
+    // Same programs the first frame would build, compiled here so the cost is measured on its own.
+    P.sync('compile shaders (scene materials)', () => r.compile(scene, this.camera), 'shaders');
+    P.ready();
     this.emit({ progress: 100, phase: 'game', isTouch: this.isTouch, zone: this.D.zoneAt(sp.x, sp.z) });
     this.frame();
   }
@@ -107,6 +117,7 @@ export class ConvergenceEngine {
     if (this.disposed) return;
     this.raf = requestAnimationFrame(this.frame);
     if (this.diag.skipFrame()) return;
+    const f0 = performance.now();
     const delta = this.clock.getDelta(), raw = Math.min(delta, 1), dt = Math.min(raw, 0.05);
     this.time += dt;
     const inp = this.diag.input(this.input.consume());
@@ -122,7 +133,10 @@ export class ConvergenceEngine {
     this.fx.update(dt);
     this.tick(this.time, p.x, p.z);
     this.syncZone();
+    const f1 = performance.now();
     this.studio.render();
+    if (!this.prof.count) this.prof.add('first frame render (texture uploads, shadow programs)', f1, 'render');
+    this.prof.frame(f0, f1, performance.now());
     this.frames++; this.statT += delta; // real elapsed time, so the FPS readout isn't capped by the step clamp
     if (this.statT > 0.5) { this.fps = Math.round(this.frames / this.statT); this.frames = 0; this.statT = 0; }
   };

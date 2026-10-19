@@ -9,7 +9,12 @@ export class SetStore {
   constructor(R) { Object.assign(this, { R, list: [], current: null, dirty: false, saving: false, error: '', loaded: false, sandbox: sandboxOn() }); }
   get api() { return this.sandbox ? sandboxSets : base44.entities.RealmSet; }
   payload() { return { objects: this.R.set.serialize(), environment: this.R.env.save(), view: this.R.cutaway.save(), object_count: this.R.set.items.size }; }
-  applyData(d) { this.R.set.load(d.objects || []); this.R.env.load(d.environment); this.R.cutaway.load(d.view); this.R.editor.reset_history(); this.dirty = false; this.R.emit(); }
+  applyData(d) {
+    const P = this.R.e.prof, n = (d.objects || []).length, sync = (k, fn) => (P ? P.sync(`set apply (${n} objects): ${k}`, fn) : fn());
+    sync('objects', () => this.R.set.load(d.objects || [])); sync('environment', () => this.R.env.load(d.environment));
+    sync('view', () => this.R.cutaway.load(d.view)); sync('history', () => this.R.editor.reset_history());
+    this.dirty = false; this.R.emit();
+  }
   applySnapshot(s) { this.R.set.load(s.objects || []); this.R.env.load(s.environment); this.R.cutaway.load(s.view); this.loaded = true; }
   markDirty() { this.dirty = true; this.R.emit(); }
   async init() {

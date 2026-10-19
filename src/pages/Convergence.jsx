@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Profiler, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { ConvergenceEngine } from '@/game/convergence/ConvergenceEngine';
@@ -40,8 +40,10 @@ export default function Convergence({ district, title = 'The Convergence', overl
           {s.zone && <div className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{s.zone}</div>}
         </div>
       )}
-      {s.phase === 'game' && engine?.studio && !customUI && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
-      {s.phase === 'game' && engine && overlay?.({ engine, s, studioOpen, setStudioOpen })}
+      <Profiler id="stage-ui" onRender={(id, ph, d) => engine?.prof.onReact(d)}>
+        {s.phase === 'game' && engine?.studio && !customUI && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
+        {s.phase === 'game' && engine && overlay?.({ engine, s, studioOpen, setStudioOpen })}
+      </Profiler>
       {s.phase === 'game' && <Toasts notice={s.notice} />}
     </div>
   );

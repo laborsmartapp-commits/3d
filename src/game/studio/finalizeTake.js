@@ -17,24 +17,29 @@ export async function finalizeTake(sm) {
   await sm.saveScene();
   await D.preload();
   const missing = tl.clips.filter((c) => c.kind === 'perf' && !D.pbs.get(c.take_id)?.samples.length);
-  // Empty movement clips (e.g. from a deleted or failed take) are dropped instead of blocking the finalize.
+  // Movement clips whose take has no loadable data (deleted, failed or offline) are left out of this baked take
+  // only. The scene keeps every clip, so recorded performances are never discarded by a finalize.
   if (missing.length) {
     const bad = new Set(missing.map((c) => c.id));
-    tl.clips = tl.clips.filter((c) => !bad.has(c.id)); D.tl.clips = D.tl.clips.filter((c) => !bad.has(c.id)); sm.dirty();
+    tl.clips = tl.clips.filter((c) => !bad.has(c.id));
     if (!tl.clips.some((c) => !c.muted)) throw new Error('Schedule an animation or record a performance first.');
+    sm.notice = `${missing.length} movement clip${missing.length > 1 ? 's' : ''} had no loadable data and ${missing.length > 1 ? 'were' : 'was'} left out of this take. ${missing.length > 1 ? 'They stay' : 'It stays'} on the timeline.`;
   }
 
-  const cast = tl.actors.filter((a) => !a.muted), env = sm.envState(), keepT = D.t, samples = [];
-  for (let i = 0, n = Math.ceil(dur * FPS); i <= n; i++) {
-    const t = Math.min(dur, i / FPS);
-    D.t = t; D.drive(i ? 1 / FPS : 0); sm.cams.update(1 / FPS);
-    const a = {};
-    for (const x of cast) {
-      const p = sm.e.actors[x.id]; if (!p) continue;
-      a[x.id] = { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase || 0), sp: r3(p.anim.speed || 0), at: r4(p.anim.t || 0), ly: JSON.parse(JSON.stringify(p.anim.layers || [])) };
+  const cast = tl.actors.filter((a) => !a.muted), env = sm.envState(), keepT = D.t, liveClips = D.tl.clips, samples = [];
+  D.tl.clips = tl.clips; // bake from the filtered copy so the take falls back to the clip below an empty one
+  try {
+    for (let i = 0, n = Math.ceil(dur * FPS); i <= n; i++) {
+      const t = Math.min(dur, i / FPS);
+      D.t = t; D.drive(i ? 1 / FPS : 0); sm.cams.update(1 / FPS);
+      const a = {};
+      for (const x of cast) {
+        const p = sm.e.actors[x.id]; if (!p) continue;
+        a[x.id] = { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase || 0), sp: r3(p.anim.speed || 0), at: r4(p.anim.t || 0), ly: JSON.parse(JSON.stringify(p.anim.layers || [])) };
+      }
+      samples.push({ t: r4(t), a, c: sm.cams.pose(cam.id), ci: cam.id, e: env });
     }
-    samples.push({ t: r4(t), a, c: sm.cams.pose(cam.id), ci: cam.id, e: env });
-  }
+  } finally { D.tl.clips = liveClips; }
   D.t = keepT; D.drive(0);
 
   const n = (sm.scene.take_count || 0) + 1, st = sm.stage;
