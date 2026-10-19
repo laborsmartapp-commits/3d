@@ -24,6 +24,7 @@ import ProductionDetail from '@/pages/ProductionDetail';
 import AssetLibrary from '@/pages/AssetLibrary';
 import Settings from '@/pages/Settings';
 import AdminPortal from '@/pages/AdminPortal';
+import LivingRealm from '@/pages/LivingRealm';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
       <Route path="/scenes/:id" element={<SceneView />} />
       <Route path="/convergence" element={<Convergence />} />
       <Route path="/star-square" element={<StarSquare />} />
+      <Route path="/living-realm" element={<LivingRealm />} />
       <Route path="/render" element={<Render />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

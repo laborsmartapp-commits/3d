@@ -42,7 +42,7 @@ export class ConvergenceEngine {
 
   emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
   notify(text) { this.emit({ notice: { id: Math.random(), text } }); }
-  groundAt(x, z) { return this.D.groundAt(x, z); }
+  groundAt(x, z, y) { return this.D.groundAt(x, z, y); }
   onFootstep(pos) { this.fx.emit(pos, { count: 2, color: '#b8ab94', up: 0.4, spread: 0.2, life: 0.5 }); }
 
   async init() {
@@ -60,7 +60,8 @@ export class ConvergenceEngine {
     scene.fog = new THREE.Fog(...this.D.fog);
     scene.environment = new THREE.PMREMGenerator(r).fromScene(new RoomEnvironment(), 0.04).texture;
     scene.environmentIntensity = 0.45;
-    scene.add(skyDome());
+    this.sky = skyDome(); scene.add(this.sky);
+    this.sunDir = new THREE.Vector3(60, 95, 35);
     this.camera = new THREE.PerspectiveCamera(60, this.container.clientWidth / this.container.clientHeight, 0.1, 3000);
     const hemi = new THREE.HemisphereLight('#dbeafe', '#8a7a60', 1);
     const sun = new THREE.DirectionalLight('#fff1dc', 2.6);
@@ -109,17 +110,18 @@ export class ConvergenceEngine {
     const inp = this.diag.input(this.input.consume());
     if (inp.pressed?.has('KeyV')) this.toggleView();
     const first = this.mode === 'first';
-    const steps = this.studio.freeze ? 0 : stepPlayer(this, raw, inp, first, false);
+    const ctl = this.realm?.control(dt, raw, inp); // stages with a set editor may take over movement/camera
+    const steps = this.studio.freeze || ctl?.move ? 0 : stepPlayer(this, raw, inp, first, false);
     if (this.diag.enabled) this.diag.frame(delta, raw, steps);
     this.studio.update(dt);
-    if (first) this.rig.first(dt, inp, this.player); else this.rig.third(dt, inp, this.player);
+    if (ctl?.cam) { /* realm drove the camera */ } else if (first) this.rig.first(dt, inp, this.player); else this.rig.third(dt, inp, this.player);
     const p = this.player.pos;
-    this.sun.position.set(p.x + 60, p.y + 95, p.z + 35); this.sun.target.position.copy(p);
+    this.sun.position.copy(p).add(this.sunDir); this.sun.target.position.copy(p);
     this.fx.update(dt);
     this.tick(this.time, p.x, p.z);
-    if ((this.zoneTick = (this.zoneTick || 0) + 1) % 30 === 0) { const z = this.D.zoneAt(p.x, p.z); if (z !== this.hud.zone) this.emit({ zone: z }); }
+    if ((this.zoneTick = (this.zoneTick || 0) + 1) % 30 === 0) { const z = this.D.zoneAt(p.x, p.z, p.y); if (z !== this.hud.zone) this.emit({ zone: z }); }
     this.studio.render();
-    this.frames++; this.statT += dt;
+    this.frames++; this.statT += delta; // real elapsed time, so the FPS readout isn't capped by the step clamp
     if (this.statT > 0.5) { this.fps = Math.round(this.frames / this.statT); this.frames = 0; this.statT = 0; }
   };
 

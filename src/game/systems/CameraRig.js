@@ -52,7 +52,8 @@ export class CameraRig {
     let allowed = want;
     for (let i = 1; i <= 14; i++) {
       const d = (want * i) / 14;
-      if (this.target.y + dir.y * d < this.e.groundAt(this.target.x + dir.x * d, this.target.z + dir.z * d) + 0.35) { allowed = Math.max(0.8, d - 0.6); break; }
+      const py = this.target.y + dir.y * d;
+      if (py < this.e.groundAt(this.target.x + dir.x * d, this.target.z + dir.z * d, py - 0.3) + 0.35) { allowed = Math.max(0.8, d - 0.6); break; }
     }
     allowed = Math.min(allowed, this.e.colliders.rayLimit(this.target, dir, allowed, this.colRadius));
     if (this.frame++ % 2 === 0) {
@@ -64,7 +65,7 @@ export class CameraRig {
     if (this.lastHit) allowed = Math.min(allowed, this.lastHit);
     this.cur = allowed < this.cur ? lerp(this.cur, allowed, 1 - Math.exp(-dt * 25)) : lerp(this.cur, allowed, 1 - Math.exp(-dt * 3));
     this.cam.position.copy(this.target).addScaledVector(dir, this.cur);
-    const g = this.e.groundAt(this.cam.position.x, this.cam.position.z);
+    const g = this.e.groundAt(this.cam.position.x, this.cam.position.z, this.cam.position.y - 0.3);
     if (this.cam.position.y < g + 0.3) this.cam.position.y = g + 0.3;
     this.cam.lookAt(this.target);
   }
