@@ -52,17 +52,43 @@ export class SetScene {
   // original footprint (model_fit !== false) and sits on its base, so swapping never moves the layout.
   buildUpgrade(o) {
     const { node: stand, proto } = instantiate(o.type), node = new THREE.Group();
-    o.node = node; o.proto = proto; o.box = proto.box; o.error = null; node.add(stand); // original shows until the model arrives
-    loadModel(o.model_uri).then((g) => {
+    o.node = node; o.proto = proto; o.box = proto.box; o.cal = null; o.error = null; node.add(stand); // original shows until the model arrives
+    loadModel(o.model_uri).then(async (g) => {
       if (o.node !== node) return;
       const m = g.scene.clone(true); m.updateMatrixWorld(true);
       m.traverse((c) => { if (c.isMesh) c.castShadow = c.receiveShadow = true; });
+      // Compile the model's shaders off-screen first so heavy imported materials never stall a frame.
+      await this.e.renderer.compileAsync(m, this.e.camera, this.e.scene).catch(() => {});
+      if (o.node !== node) return;
       const b = proto.box, mb = new THREE.Box3().setFromObject(m), ms = mb.getSize(new THREE.Vector3());
       const k = o.model_fit === false ? 1 : Math.min((b.max.x - b.min.x) / (ms.x || 1), (b.max.z - b.min.z) / (ms.z || 1), (b.max.y - b.min.y) / (ms.y || 1) * 1.15);
-      m.scale.multiplyScalar(k);
+      m.scale.multiplyScalar(k); // uniform only: proportions are never distorted
       m.position.set((b.max.x + b.min.x) / 2 - ((mb.max.x + mb.min.x) / 2) * k, b.min.y - mb.min.y * k, (b.max.z + b.min.z) / 2 - ((mb.max.z + mb.min.z) / 2) * k);
-      node.remove(stand); node.add(m); node.updateMatrixWorld(true); this.rev++; this.R.emit();
+      m.updateMatrixWorld(true);
+      // Recalibrate against the visible model: collision from its real bounds, anchors onto its real surfaces.
+      o.box = new THREE.Box3().setFromObject(m); o.cal = this.calibrate(o, m);
+      node.remove(stand); node.add(m); this.apply(o); this.rev++; this.R.emit();
     }).catch(() => { o.error = 'Upgrade model failed to load — showing the original piece'; this.R.emit(); });
+  }
+
+  // Seat anchors move onto the model's actual cushion: sample heights front-to-back at the anchor's
+  // side position, take the lowest raised surface in the front 70% as the seat. Other anchors stay put,
+  // clamped inside the model's footprint. Labels/kinds (the anchor identity) never change.
+  calibrate(o, m) {
+    const def = this.def(o); if (!def?.anchors) return null;
+    const bx = o.box, ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0), top = bx.max.y + 1;
+    const h = (x, z) => { ray.set(new THREE.Vector3(x, top, z), down); const hit = ray.intersectObject(m, true)[0]; return hit ? hit.point.y : null; };
+    const cl = (v, a, b) => Math.min(b - 0.08, Math.max(a + 0.08, v));
+    return def.anchors.map(([kind, label, ax, ay, az, ary = 0]) => {
+      const x = cl(ax, bx.min.x, bx.max.x);
+      if (kind !== 'sit') return [kind, label, x, ay, cl(az, bx.min.z, bx.max.z), ary];
+      const n = 14, pts = [];
+      for (let i = 0; i < n; i++) { const z = bx.max.z - ((bx.max.z - bx.min.z) * (i + 0.5)) / n, y = h(x, z); if (y != null && y > bx.min.y + 0.2) pts.push({ z, y }); }
+      const front = pts.filter((p) => p.z > bx.max.z - (bx.max.z - bx.min.z) * 0.7);
+      if (!front.length) return [kind, label, x, ay, cl(az, bx.min.z, bx.max.z), ary];
+      const seat = Math.min(...front.map((p) => p.y)), on = front.filter((p) => p.y < seat + 0.05);
+      return [kind, label, x, seat, on.reduce((s, p) => s + p.z, 0) / on.length, ary];
+    });
   }
 
   recolor(o) {
@@ -120,6 +146,6 @@ export class SetScene {
   anchors(o) {
     const def = this.def(o); if (!def?.anchors) return [];
     const c = Math.cos(o.ry), s = Math.sin(o.ry);
-    return def.anchors.map(([kind, label, ax, ay, az, ary = 0]) => ({ kind, label, x: o.x + ax * o.sx * c + az * o.sz * s, y: o.y + ay * o.sy, z: o.z - ax * o.sx * s + az * o.sz * c, yaw: o.ry + ary, o }));
+    return (o.model_uri && o.cal ? o.cal : def.anchors).map(([kind, label, ax, ay, az, ary = 0]) => ({ kind, label, x: o.x + ax * o.sx * c + az * o.sz * s, y: o.y + ay * o.sy, z: o.z - ax * o.sx * s + az * o.sz * c, yaw: o.ry + ary, o }));
   }
 }
