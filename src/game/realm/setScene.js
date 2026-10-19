@@ -2,11 +2,14 @@ import * as THREE from 'three';
 import { CATALOG, instantiate } from './catalog';
 import { walkables, zoneAt, floorOf, roomAt } from './layout';
 import { loadModel } from '../studio/GlbAvatar';
+import { prepareModel, getFit, putFit } from './modelPrep';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const DEF = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1, hidden: false, locked: false, color: null, group: null };
 const FIELDS = ['id', 'key', 'type', 'name', 'asset_id', 'asset_uri', 'x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz', 'color', 'hidden', 'locked', 'group', 'model_asset_id', 'model_uri', 'model_name', 'model_fit'];
 export const ASSET_DEF = { name: 'Imported Model', cat: 'Imported Models', place: 'floor', solid: true };
+// A model that never finishes loading falls back to the original piece instead of waiting forever.
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
 const r4 = (v) => (typeof v === 'number' ? Math.round(v * 10000) / 10000 : v);
 
 // The editable scene graph: every furnishing is an instance with its own id, transform and state.
@@ -32,13 +35,15 @@ export class SetScene {
       const ph = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6).translate(0, 0.3, 0), new THREE.MeshStandardMaterial({ color: '#05cc8d', wireframe: true }));
       o.node.add(ph);
       const node = o.node;
-      loadModel(o.asset_uri).then((g) => {
+      o.loading = true;
+      loadModel(o.asset_uri).then(async (g) => {
         if (o.node !== node) return;
-        const m = g.scene.clone(true); m.updateMatrixWorld(true);
-        m.traverse((c) => { if (c.isMesh) { c.castShadow = c.receiveShadow = true; } });
-        o.box = new THREE.Box3().setFromObject(m); node.remove(ph); node.add(m);
+        const { m } = prepareModel(g);
+        await this.e.renderer.compileAsync(m, this.e.camera, this.e.scene).catch(() => {});
+        if (o.node !== node) return;
+        o.box = new THREE.Box3().setFromObject(m); node.remove(ph); node.add(m); o.loading = false;
         this.apply(o); this.rev++; this.R.emit();
-      }).catch(() => { o.error = 'Model failed to load'; this.R.emit(); });
+      }).catch(() => { if (o.node !== node) return; o.loading = false; o.error = 'Model failed to load'; this.R.emit(); });
     } else if (o.model_uri) this.buildUpgrade(o);
     else { const { node, proto } = instantiate(o.type); o.node = node; o.proto = proto; o.box = proto.box; }
     o.node.userData.setId = o.id; o.node.rotation.order = 'YXZ';
@@ -52,23 +57,32 @@ export class SetScene {
   // original footprint (model_fit !== false) and sits on its base, so swapping never moves the layout.
   buildUpgrade(o) {
     const { node: stand, proto } = instantiate(o.type), node = new THREE.Group();
-    o.node = node; o.proto = proto; o.box = proto.box; o.cal = null; o.error = null; node.add(stand); // original shows until the model arrives
-    loadModel(o.model_uri).then(async (g) => {
-      if (o.node !== node) return;
-      const m = g.scene.clone(true); m.updateMatrixWorld(true);
-      m.traverse((c) => { if (c.isMesh) c.castShadow = c.receiveShadow = true; });
-      // Compile the model's shaders off-screen first so heavy imported materials never stall a frame.
+    o.node = node; o.proto = proto; o.box = proto.box; o.cal = null; o.error = null; o.loading = true; node.add(stand); // original shows until the model arrives
+    withTimeout(loadModel(o.model_uri), 45000).then(async (g) => {
+      if (o.node !== node) return; // superseded by a newer swap/restore
+      const { m } = prepareModel(g); // lights/cameras stripped: see modelPrep.js
+      // Shader programs for the model's materials are prepared before it is shown.
       await this.e.renderer.compileAsync(m, this.e.camera, this.e.scene).catch(() => {});
       if (o.node !== node) return;
-      const b = proto.box, mb = new THREE.Box3().setFromObject(m), ms = mb.getSize(new THREE.Vector3());
-      const k = o.model_fit === false ? 1 : Math.min((b.max.x - b.min.x) / (ms.x || 1), (b.max.z - b.min.z) / (ms.z || 1), (b.max.y - b.min.y) / (ms.y || 1) * 1.15);
-      m.scale.multiplyScalar(k); // uniform only: proportions are never distorted
-      m.position.set((b.max.x + b.min.x) / 2 - ((mb.max.x + mb.min.x) / 2) * k, b.min.y - mb.min.y * k, (b.max.z + b.min.z) / 2 - ((mb.max.z + mb.min.z) / 2) * k);
-      m.updateMatrixWorld(true);
-      // Recalibrate against the visible model: collision from its real bounds, anchors onto its real surfaces.
-      o.box = new THREE.Box3().setFromObject(m); o.cal = this.calibrate(o, m);
+      const f = getFit(o) || putFit(o, this.fit(o, proto, m));
+      m.scale.multiplyScalar(f.k); m.position.fromArray(f.pos); m.updateMatrixWorld(true);
+      o.box = f.box.clone(); o.cal = f.cal; o.loading = false;
       node.remove(stand); node.add(m); this.apply(o); this.rev++; this.R.emit();
-    }).catch(() => { o.error = 'Upgrade model failed to load — showing the original piece'; this.R.emit(); });
+    }).catch(() => { if (o.node !== node) return; o.loading = false; o.error = 'Model failed to load — showing the original piece'; this.R.emit(); });
+  }
+
+  // Fit the model to the piece's original footprint, uniform scale only (proportions are never distorted),
+  // then recalibrate collision bounds and anchors against the visible model. Cached per (type, model).
+  fit(o, proto, m) {
+    const b = proto.box, mb = new THREE.Box3().setFromObject(m), ms = mb.getSize(new THREE.Vector3());
+    const k = o.model_fit === false ? 1 : Math.min((b.max.x - b.min.x) / (ms.x || 1), (b.max.z - b.min.z) / (ms.z || 1), (b.max.y - b.min.y) / (ms.y || 1) * 1.15);
+    const pos = [(b.max.x + b.min.x) / 2 - ((mb.max.x + mb.min.x) / 2) * k, b.min.y - mb.min.y * k, (b.max.z + b.min.z) / 2 - ((mb.max.z + mb.min.z) / 2) * k];
+    const s0 = m.scale.clone(), p0 = m.position.clone();
+    m.scale.multiplyScalar(k); m.position.fromArray(pos); m.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(m), tmp = { ...o, box };
+    const cal = this.calibrate(tmp, m);
+    m.scale.copy(s0); m.position.copy(p0); m.updateMatrixWorld(true);
+    return { k, pos, box, cal };
   }
 
   // Seat anchors move onto the model's actual cushion: sample heights front-to-back at the anchor's

@@ -19,7 +19,8 @@ const loadFbx = (u) => new FBXLoader().loadAsync(u).then((g) => {
 });
 export const loadModel = (uri) => load(uri);
 const load = (uri) => {
-  if (!cache.has(uri)) cache.set(uri, signed(uri).then((u) => (/\.fbx(\?|$)/i.test(uri) ? loadFbx(u) : loader.loadAsync(u))));
+  // A failed load is dropped from the cache so the next attempt retries instead of reusing the failure.
+  if (!cache.has(uri)) cache.set(uri, signed(uri).then((u) => (/\.fbx(\?|$)/i.test(uri) ? loadFbx(u) : loader.loadAsync(u))).catch((err) => { cache.delete(uri); throw err; }));
   return cache.get(uri);
 };
 const isWalk = (c) => /walk/i.test(c.name);

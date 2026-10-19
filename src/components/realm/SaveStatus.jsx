@@ -7,6 +7,7 @@ export default function SaveStatus({ R, r }) {
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 glass rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-2 text-sm">
       <span className="font-semibold truncate max-w-[160px]">{r.version?.name || 'Everyday House'}</span>
       <span className={`text-xs ${r.dirty ? 'text-ember' : 'text-muted-foreground'}`}>{state}</span>
+      {r.sandbox && <span className="text-[10px] rounded-full bg-ember/20 text-ember px-2 py-0.5" title="Saves stay in this browser only, not the database">Test sandbox</span>}
       {r.mode === 'edit' && <>
         <button disabled={!r.canUndo} onClick={() => R.editor.undo()} title="Undo (Ctrl+Z)" className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-30"><Undo2 className="w-4 h-4" /></button>
         <button disabled={!r.canRedo} onClick={() => R.editor.redo()} title="Redo (Ctrl+Y)" className="p-1.5 rounded-full hover:bg-white/10 disabled:opacity-30"><Redo2 className="w-4 h-4" /></button>

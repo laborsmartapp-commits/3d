@@ -8,6 +8,8 @@ import { RealmEnv } from './env';
 import { Cutaway } from './cutaway';
 import { Anchors } from './anchors';
 import { RealmController } from './controller';
+import { DEV_TOOLS } from './modelPrep';
+import { installModelLab } from './modelLab';
 
 // Builds Krush's Living Realm into a stage engine and returns its per-frame tick.
 export function buildRealm(e) {
@@ -25,6 +27,7 @@ export function buildRealm(e) {
   R.ctl = e.realm = new RealmController(R);
   const snap = e.renderBundle?.take?.world_snapshot;
   if (snap?.objects) R.store.applySnapshot(snap); else R.store.init();
+  if (DEV_TOOLS) window.__modelLab = installModelLab(R);
   let last = null;
   return (t) => { const dt = last === null ? 0 : Math.min(0.05, Math.max(0, t - last)); last = t; R.ctl.tick(t, dt); };
 }

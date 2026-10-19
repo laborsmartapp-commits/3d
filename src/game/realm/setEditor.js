@@ -177,7 +177,11 @@ export class SetEditor {
     const it = this.items, show = this.enabled && it.length > 0;
     this.box.visible = show; this.foot.visible = show && !!it[0]?.foot;
     if (!show) return;
-    this.box.setFromObject(it.length === 1 ? it[0].node : this.R.set.root.children.find((n) => n === it[0].node) || it[0].node);
+    // Selection outline is rebuilt only when the selection, its transform or its model changes.
+    const key = `${this.R.set.rev}|${it.map((o) => `${o.id},${o.x},${o.y},${o.z},${o.rx},${o.ry},${o.rz},${o.sx},${o.sy},${o.sz}`).join(';')}`;
+    if (key === this.boxKey) return;
+    this.boxKey = key;
+    this.box.setFromObject(it[0].node);
     this.box.material.color.set(it.some((o) => o.locked) ? '#f59e0b' : '#05cc8d');
     const f = it[0].foot; if (!f) return;
     const p = this.foot.geometry.attributes.position, cs = corners(f), y = it[0].y + 0.02;

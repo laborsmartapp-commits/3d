@@ -1,7 +1,8 @@
 import { base44 } from '@/api/base44Client';
 import { TEMPLATES, buildTemplate } from './templates';
+import { SANDBOX, sandboxSets } from './sandboxStore';
 
-const E = () => base44.entities.RealmSet, REALM = 'living-realm';
+const E = () => (SANDBOX ? sandboxSets : base44.entities.RealmSet), REALM = 'living-realm';
 
 // Named set versions persisted as RealmSet records: objects + environment + camera view settings.
 export class SetStore {
