@@ -13,7 +13,7 @@ export default function StudioBar({ engine, st, timeline = true }) {
   const [open, setOpen] = useState(true), dock = !!(timeline && st.scene && st.director);
   return (<>
     {dock && <TimelineDock engine={engine} st={st} open={open} setOpen={setOpen} />}
-    <div className={`absolute ${dock ? (open ? 'bottom-[19rem]' : 'bottom-16') : 'bottom-6'} left-1/2 md:left-[calc(50%-260px)] -translate-x-1/2 z-20 max-w-[calc(100vw-1rem)] flex-wrap justify-center glass rounded-full px-2 py-1.5 flex items-center gap-1.5`}>
+    <div style={dock ? { bottom: 'calc(var(--tl-h, 4rem) + 0.75rem)' } : undefined} className={`absolute ${dock ? '' : 'bottom-6'} left-1/2 md:left-[calc(50%-260px)] -translate-x-1/2 z-20 max-w-[calc(100vw-1rem)] flex-wrap justify-center glass rounded-full px-2 py-1.5 flex items-center gap-1.5`}>
       {/* Recording lives on the timeline (Record armed actor); this bar only offers Stop while capturing. */}
       {st.status === 'capturing' && <button onClick={() => S.stop()} className={`${btn} bg-white text-background`}><Square className="w-3.5 h-3.5 fill-current" />Stop</button>}
       {st.status === 'pending' && (<>
