@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { CATALOG } from './catalog';
 import { ROOMS, zoneAt } from './layout';
-import { SANDBOX } from './sandboxStore';
 
 const fwd = new THREE.Vector3();
 const area = (o) => (o.floor === 1 ? 'Ground Floor' : o.floor === 2 ? 'Upper Floor' : ['Front Porch', 'Front Yard', 'Driveway', 'Sidewalk', 'Street'].includes(o.room) ? 'Front of House' : 'Backyard & Patio');
@@ -70,7 +69,7 @@ export class RealmController {
     const sel = ed.items.map((o) => ({ ...set.data(o), label: o.name || set.def(o)?.name, cat: set.def(o)?.cat, room: o.room, overlap: !!o.overlap, colorable: !!o.proto?.main && !o.model_uri, color: o.color || (o.proto?.main ? `#${o.proto.main.color.getHexString()}` : null), anchors: set.anchors(o).map((a) => a.label), error: o.error, loading: !!o.loading }));
     return {
       mode: this.mode, sel, door: ed.door ? { label: ed.door.label, open: ed.door.open } : null, gizmo: ed.gizmo, snap: ed.snap, grid: ed.grid, collide: ed.collide,
-      canUndo: ed.hist.length > 0, canRedo: ed.fut.length > 0, dirty: st.dirty, sandbox: SANDBOX, saving: st.saving, error: st.error, loaded: st.loaded,
+      canUndo: ed.hist.length > 0, canRedo: ed.fut.length > 0, dirty: st.dirty, sandbox: st.sandbox, saving: st.saving, error: st.error, loaded: st.loaded,
       version: st.current ? { id: st.current.id, name: st.current.name } : null,
       versions: st.list.map((v) => ({ id: v.id, name: v.name, template: v.template, active: v.id === st.current?.id, count: v.object_count, updated: v.updated_date })),
       env: { ...R.env.s }, outdoorOn: R.env.outdoorOn, view: R.cutaway.save(),

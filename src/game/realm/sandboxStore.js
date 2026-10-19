@@ -7,7 +7,8 @@ const write = (l) => localStorage.setItem(KEY, JSON.stringify(l));
 const now = () => new Date().toISOString();
 const copy = (r) => (r ? JSON.parse(JSON.stringify(r)) : r);
 
-export const SANDBOX = import.meta.env.DEV && new URLSearchParams(window.location.search).has('sandbox');
+// Read when the realm is built (not at module load), so arriving at ?sandbox=1 via in-app navigation counts.
+export const sandboxOn = () => import.meta.env.DEV && new URLSearchParams(window.location.search).has('sandbox');
 export const sandboxSets = {
   async filter() { return { items: read().sort((a, b) => b.updated_date.localeCompare(a.updated_date)).map(copy) }; },
   async get(id) { return copy(read().find((x) => x.id === id)); },

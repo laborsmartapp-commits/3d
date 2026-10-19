@@ -121,7 +121,7 @@ export class ConvergenceEngine {
     this.tick(this.time, p.x, p.z);
     if ((this.zoneTick = (this.zoneTick || 0) + 1) % 30 === 0) { const z = this.D.zoneAt(p.x, p.z, p.y); if (z !== this.hud.zone) this.emit({ zone: z }); }
     this.studio.render();
-    this.frames++; this.statT += dt;
+    this.frames++; this.statT += delta; // real elapsed time, so the FPS readout isn't capped by the step clamp
     if (this.statT > 0.5) { this.fps = Math.round(this.frames / this.statT); this.frames = 0; this.statT = 0; }
   };
 
