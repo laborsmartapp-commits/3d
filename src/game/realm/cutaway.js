@@ -21,7 +21,8 @@ export class Cutaway {
     const e = this.R.e, out = [], p = cam.position;
     cam.getWorldDirection(fw);
     for (const a of Object.values(e.actors || {})) {
-      if (a.hidden || !a.h?.root.visible) continue;
+      // The controlled body is what the camera follows, so it is always a focus point, even when it has no visible model.
+      if (a !== e.player && (a.hidden || !a.h?.root.visible)) continue;
       tv.set(a.pos.x, a.pos.y + 1.3, a.pos.z);
       if (tv.distanceTo(p) < 45 && tv.clone().sub(p).dot(fw) > 0) out.push(tv.clone());
     }
