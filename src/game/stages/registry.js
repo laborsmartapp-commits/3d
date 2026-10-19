@@ -6,5 +6,6 @@ export const STAGES = {
   'living-realm': { id: 'living-realm', name: "Krush's Living Realm", path: '/living-realm' },
 };
 
-export const stageInfo = (id) => STAGES[id || 'celestia-grotto'] || { id, name: id, path: '/' };
+// Generated stages are "gen-<root id>" and open their latest version.
+export const stageInfo = (id) => STAGES[id || 'celestia-grotto'] || (id?.startsWith('gen-') ? { id, name: 'Generated Stage', path: `/stage/${id.slice(4)}?latest=1` } : { id, name: id, path: '/' });
 export const takeStage = (take) => take.world || 'celestia-grotto';

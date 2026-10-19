@@ -9,10 +9,11 @@ import bath from './bath';
 import studio from './studio';
 import outdoor from './outdoor';
 import decor from './decor';
+import stageProps from './stageProps';
 
 // Reusable base asset definitions (separate from scene-instance data in the set scene).
-export const CATALOG = { ...living, ...kitchen, ...bedroom, ...bath, ...studio, ...outdoor, ...decor };
-export const CATEGORIES = ['Living Room', 'Dining Room', 'Kitchen', 'Bedroom', 'Bathroom', 'Studio', 'DJ & Stage', 'Outdoor Furniture', 'Lighting', 'Electronics', 'Decorations', 'Plants', 'Seasonal Decorations', 'Production Props'];
+export const CATALOG = { ...living, ...kitchen, ...bedroom, ...bath, ...studio, ...outdoor, ...decor, ...stageProps };
+export const CATEGORIES = ['Living Room', 'Dining Room', 'Kitchen', 'Bedroom', 'Bathroom', 'Studio', 'DJ & Stage', 'Outdoor Furniture', 'Lighting', 'Electronics', 'Decorations', 'Plants', 'Seasonal Decorations', 'Production Props', 'Street', 'Fantasy'];
 
 const protos = new Map();
 const KEEP = ['position', 'normal', 'uv'];

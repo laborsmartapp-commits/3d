@@ -85,8 +85,9 @@ export class RealmEnv {
   sources(aOn, out) {
     const s = this.s, list = [];
     for (const l of this.R.lightSources) {
-      if (l.kind === 'room') { if (this.roomOn(l.room) && s.interior > 0) list.push({ ...l, i: l.i * s.interior, c: '#ffd9a8' }); }
-      else if (out) list.push({ ...l, c: l.kind === 'street' ? '#ffe2b0' : '#ffcf8f' });
+      if (l.kind === 'room') { if (this.roomOn(l.room) && s.interior > 0) list.push({ ...l, i: l.i * s.interior, c: l.c || '#ffd9a8' }); }
+      else if (l.kind === 'always' || l.kind === 'fire') list.push({ ...l, c: l.c || '#ff8a3a', fire: l.kind === 'fire' });
+      else if (out) list.push({ ...l, c: l.c || (l.kind === 'street' ? '#ffe2b0' : '#ffcf8f') });
     }
     for (const l of this.R.set.lights()) {
       const k = l.kind;

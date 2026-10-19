@@ -26,6 +26,7 @@ import Settings from '@/pages/Settings';
 import AdminPortal from '@/pages/AdminPortal';
 import LivingRealm from '@/pages/LivingRealm';
 import TimelineLab from '@/pages/TimelineLab';
+import GeneratedStage from '@/pages/GeneratedStage';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -77,6 +78,7 @@ const AuthenticatedApp = () => {
       <Route path="/star-square" element={<StarSquare />} />
       <Route path="/living-realm" element={<LivingRealm />} />
       <Route path="/timeline-lab" element={<TimelineLab />} />
+      <Route path="/stage/:id" element={<GeneratedStage />} />
       <Route path="/render" element={<Render />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

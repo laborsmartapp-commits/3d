@@ -1,4 +1,4 @@
-import { Clapperboard, Megaphone, PanelBottom, Sofa, Camera, CircleDot, CloudSun, Layers, Settings } from 'lucide-react';
+import { Clapperboard, Megaphone, PanelBottom, Sofa, Camera, CircleDot, CloudSun, Layers, Settings, Wand2 } from 'lucide-react';
 
 // Top-to-bottom order of the bubble column. Studio tools open the Scene Manager (production mode).
 // `toggle` tools switch a docked surface on/off instead of opening a side panel.
@@ -11,8 +11,11 @@ export const TOOLS = [
   { id: 'recording', label: 'Recording', icon: CircleDot },
   { id: 'environment', label: 'Weather', icon: CloudSun },
   { id: 'layouts', label: 'Layouts', icon: Layers },
+  { id: 'creator', label: 'Stage Creator', icon: Wand2 },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
+// Generated stages have their own blueprint furnishings, so the Living Realm layout templates don't apply.
+export const GEN_TOOLS = TOOLS.filter((t) => t.id !== 'layouts');
 export const STUDIO_TOOLS = ['scenes', 'director', 'cameras', 'recording'];
 // Stages without a set editor get the same column minus Set Edit and Layouts (same order, same positions).
 export const STAGE_TOOLS = TOOLS.filter((t) => t.id !== 'setedit' && t.id !== 'layouts');

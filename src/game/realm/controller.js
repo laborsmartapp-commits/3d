@@ -74,7 +74,7 @@ export class RealmController {
       version: st.current ? { id: st.current.id, name: st.current.name } : null,
       versions: st.list.map((v) => ({ id: v.id, name: v.name, template: v.template, active: v.id === st.current?.id, count: v.object_count, updated: v.updated_date })),
       env: { ...R.env.s }, outdoorOn: R.env.outdoorOn, view: R.cutaway.save(),
-      rooms: ROOMS.map((r) => ({ id: r.id, name: r.name, floor: r.f, on: R.env.roomOn(r.id) })),
+      rooms: (R.rooms || ROOMS).map((r) => ({ id: r.id, name: r.name, floor: r.f, on: R.env.roomOn(r.id) })),
       objects: this.objs, objRev: set.rev, perf: this.perfOn ? { ...this.perf, samples: undefined } : null,
       zone: zoneAt(this.e.player.pos.x, this.e.player.pos.z, this.e.player.pos.y),
     };

@@ -34,6 +34,14 @@ export const livingRealmStage = (e) => ({
   env: weatherEnv(e),
 });
 
+// AI-generated stage: the blueprint version and the live editable set are part of every take's snapshot.
+export const generatedStage = (e) => ({
+  id: e.D.id, name: e.D.name, version: `${e.D.id}@v${e.D.record.version || 1}`, actors: ['krush'],
+  location: () => e.hud.zone || e.D.name,
+  snapshot: () => ({ world: e.D.id, engine_version: 'generated@1.0.0', stage_record_id: e.D.record.id, stage_version: e.D.record.version || 1, set_version: e.realm?.R.store.current?.id || null, objects: e.realm?.R.set.serialize() || [], environment: e.realm?.R.env.save(), view: e.realm?.R.cutaway.save() }),
+  env: weatherEnv(e),
+});
+
 export const convergenceStage = (e) => ({
   id: 'convergence', name: 'The Convergence', version: 'convergence@1.0.0', actors: ['krush'],
   location: () => e.D.name,

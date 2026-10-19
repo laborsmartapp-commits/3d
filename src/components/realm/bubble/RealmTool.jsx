@@ -7,10 +7,12 @@ import CamerasTool from './CamerasTool';
 import RecordingTool from './RecordingTool';
 import LayoutsTool from './LayoutsTool';
 import SettingsTool from './SettingsTool';
+import StageCreatorTool from '@/components/creator/StageCreatorTool';
 
 // The panel for the selected bubble. R/r (set editor) exist only on stages with an editable set.
-export default function RealmTool({ tool, engine, s, R, r, onClose }) {
+export default function RealmTool({ tool, engine, s, R, r, onClose, onPick }) {
   const st = s.studio;
+  if (tool === 'creator') return <StageCreatorTool engine={engine} st={st} R={R} onClose={onClose} onPick={onPick} />;
   if (tool === 'scenes') return <ScenesTool engine={engine} st={st} onClose={onClose} />;
   if (tool === 'director') return <DirectorTool engine={engine} st={st} onClose={onClose} />;
   if (tool === 'setedit' && R) return <SetEditTool R={R} r={r} onClose={onClose} />;

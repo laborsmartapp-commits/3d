@@ -17,7 +17,7 @@ export default function StageHUD({ engine, s, studioOpen, setStudioOpen, lift = 
   return (
     <>
       <TakeStatusPill engine={engine} st={st} />
-      <AnimatePresence>{b.tool && <RealmTool key={b.tool} tool={b.tool} engine={engine} s={s} onClose={() => b.pick(b.tool)} />}</AnimatePresence>
+      <AnimatePresence>{b.tool && <RealmTool key={b.tool} tool={b.tool} engine={engine} s={s} onClose={() => b.pick(b.tool)} onPick={b.pick} />}</AnimatePresence>
       {b.showDock && <TimelineDock engine={engine} st={st} open={b.dockOpen} setOpen={b.setDockOpen} inset={b.tool ? 'mr-[84px] md:mr-[452px]' : 'mr-[84px]'} />}
       <BubbleMenu tools={STAGE_TOOLS} open={b.menu} toggle={b.toggle} tool={b.tool} pick={(t) => b.pick(t)} rec={st?.status === 'capturing'} docked={{ timeline: b.dock }} lift={lift} />
       {s.diag && <DiagOverlay engine={engine} />}

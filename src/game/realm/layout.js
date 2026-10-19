@@ -15,10 +15,12 @@ export const STREET = { z0: 17.5, z1: 26, y: -0.05 };
 export const FAR_WALK = { z0: 26, z1: 28 };
 export const SPAWN = { x: 0, z: 16.5, yaw: Math.PI };
 export const walkables = []; // set pieces you can stand on (stage risers), kept in sync by the set scene
+// A generated stage plugs its own ground, floors, stairs and zones into the shared set systems here.
+export const layoutHook = { cur: null };
 
 const inR = (r, x, z) => x >= r.x0 && x <= r.x1 && z >= r.z0 && z <= r.z1;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-export const inHouse = (x, z) => inR(HOUSE, x, z);
+export const inHouse = (x, z) => !layoutHook.cur && inR(HOUSE, x, z);
 export const floorOf = (x, z, y) => (!inHouse(x, z) ? 0 : y >= F2 - 0.5 ? 2 : 1);
 
 export function terrain(x, z) {
@@ -35,6 +37,7 @@ export function terrain(x, z) {
 // Highest walkable surface at (x, z) that someone standing at height y can reach (stairs, upper floor, risers).
 // ignore: walkable surfaces that must not support this query (a piece being placed never stands on itself).
 export function groundAt(x, z, y = 0, ignore) {
+  if (layoutHook.cur) return layoutHook.cur.groundAt(x, z, y, ignore);
   const lim = y + 0.65;
   let g = baseGroundAt(x, z, y);
   for (const w of walkables) {
@@ -47,6 +50,7 @@ export function groundAt(x, z, y = 0, ignore) {
 
 // The lot's own surfaces only (no set pieces). Set placement uses this, so a riser never stacks on itself.
 export function baseGroundAt(x, z, y = 0) {
+  if (layoutHook.cur) return layoutHook.cur.baseGroundAt(x, z, y);
   const lim = y + 0.65;
   let g = terrain(x, z);
   if (inR(PORCH, x, z)) g = Math.max(g, PORCH.y);
@@ -86,6 +90,7 @@ export function roomAt(x, z, y = 0) {
 }
 
 export function zoneAt(x, z, y = 0) {
+  if (layoutHook.cur) return layoutHook.cur.zoneAt(x, z, y);
   if (inHouse(x, z)) return roomAt(x, z, y)?.name || 'Inside';
   if (inR(PORCH, x, z) || inR(STEPS_F, x, z)) return 'Front Porch';
   if (inR(PATIO, x, z) || inR(STEPS_B, x, z)) return 'Patio';

@@ -8,7 +8,7 @@ import { RealmEnv } from './env';
 import { Cutaway } from './cutaway';
 import { Anchors } from './anchors';
 import { RealmController } from './controller';
-import { walkables } from './layout';
+import { walkables, layoutHook } from './layout';
 import { DEV_TOOLS } from './modelPrep';
 import { installModelLab } from './modelLab';
 import { installRealmTest } from './devTest';
@@ -18,6 +18,7 @@ export function buildRealm(e) {
   const R = { e, M: getMaterials(), cut: [], floorMeshes: [], houseFloors: [], wallMeshes: [], doors: [], lightSources: [] };
   R.emit = () => R.ctl?.emit();
   if (e.sky) e.sky.visible = false;
+  layoutHook.cur = null; // the house lot owns the ground again after a generated stage
   walkables.length = 0; // set pieces from a previously built (disposed) realm must not stay walkable
   const P = e.prof, sync = (n, fn) => (P ? P.sync(n, fn) : fn());
   sync('realm: street + yard', () => buildExterior(R));
