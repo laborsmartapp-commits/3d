@@ -49,6 +49,13 @@ export class RealmEnv {
 
   key(h) { let i = 0; while (i < KEYS.length - 2 && KEYS[i + 1][0] <= h) i++; const a = KEYS[i], b = KEYS[i + 1], k = (h - a[0]) / (b[0] - a[0] || 1); return { a, b, k }; }
   update(dt, t) {
+    const e = this.e, s = this.s;
+    // The universal weather system owns time, sky, sun, fog and exposure; this keeps only the set's practical lights.
+    if (e.weather) { s.hour = e.weather.s.hour; this.sky.visible = false; }
+    else this.skyUpdate();
+    this.practicals(dt, t);
+  }
+  skyUpdate() {
     const e = this.e, s = this.s, { a, b, k } = this.key(((s.hour % 24) + 24) % 24), W = WEATHER[s.weather] || WEATHER.clear;
     const col = (i) => C(a[i]).lerp(C(b[i]), k), num = (i) => a[i] + (b[i] - a[i]) * k, grey = s.weather === 'clear' ? 0 : 0.55;
     const u = this.sky.material.uniforms, G = C('#8a9098');
@@ -64,8 +71,9 @@ export class RealmEnv {
     e.scene.environmentIntensity = num(9) * (s.weather === 'clear' ? 1 : 0.8);
     e.scene.fog.color.copy(u.mid.value); e.scene.fog.near = 40 * W[2] / s.fog; e.scene.fog.far = 380 * W[2] / s.fog;
     e.renderer.toneMappingExposure = s.exposure;
-    // Practical lights
-    const M = this.R.M, night = THREE.MathUtils.clamp((Math.abs(s.hour - 13) - 5) / 2, 0, 1), out = this.outdoorOn;
+  }
+  practicals(dt, t) {
+    const s = this.s, M = this.R.M, night = THREE.MathUtils.clamp((Math.abs(s.hour - 13) - 5) / 2, 0, 1), out = this.outdoorOn;
     M.glow.lamp.emissiveIntensity = 1.3 * s.interior; M.glow.xmas.emissiveIntensity = 2.4 * s.interior;
     M.glow.bulb.emissiveIntensity = out ? 2.8 : 0.05; M.glow.street.emissiveIntensity = out ? 2.4 : 0; M.glow.window.emissiveIntensity = night * 1.1;
     const ac = this.accentColor(t), aOn = s.accent !== 'off';

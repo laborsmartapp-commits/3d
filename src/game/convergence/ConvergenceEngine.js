@@ -13,6 +13,7 @@ import { DiagManager } from '../diag/DiagManager';
 import { stepPlayer } from '../core/step';
 import { convergenceStage } from '../stages/adapters';
 import { StageProfile } from '../diag/StageProfile';
+import { WeatherSystem } from '../weather/WeatherSystem';
 
 const PIXEL = { low: 0.8, medium: 1, high: 1.5 };
 
@@ -95,6 +96,7 @@ export class ConvergenceEngine {
     this.onResize = () => { const w = this.container.clientWidth, h = this.container.clientHeight; r.setSize(w, h); this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); };
     window.addEventListener('resize', this.onResize);
     this.stage = (this.D.stage || convergenceStage)(this);
+    this.weather = new WeatherSystem(this, { stageId: this.stage.id, initial: this.D.weather, fog: this.D.fog, covered: this.D.covered });
     this.studio = new SceneManager(this);
     this.diag = new DiagManager(this);
     this.clock = new THREE.Clock();
@@ -131,6 +133,7 @@ export class ConvergenceEngine {
     const p = this.player.pos;
     this.sun.position.copy(p).add(this.sunDir); this.sun.target.position.copy(p);
     this.fx.update(dt);
+    this.weather.update(dt);
     this.tick(this.time, p.x, p.z);
     this.syncZone();
     const f1 = performance.now();

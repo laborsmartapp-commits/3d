@@ -43,6 +43,9 @@ export class SceneManager {
     this.scene = s; this.cloud = { ...defaultCloud(), ...s.cloud_settings };
     this.dir.load(s.timeline);
     this.cams.load(s.cameras); if (s.selected_camera_id && this.cams.get(s.selected_camera_id)) this.cams.selId = s.selected_camera_id;
+    // A scene brings back its own shooting environment (stored apart from the stage geometry).
+    const w = this.e.weather;
+    if (w) { w.setLock(false); if (s.weather) w.load(s.weather, true); w.setLock(s.weather_locked); }
     this.emit();
   }
   renameScene(name) { this.scene.name = name; this.dirty(); }
@@ -51,6 +54,7 @@ export class SceneManager {
     if (!this.scene) return;
     this.saveT = 0; this.saving = true; this.emit();
     const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, timeline: JSON.parse(JSON.stringify(this.dir.tl)), cloud_settings: this.cloud, local_quality: this.localQuality };
+    if (this.e.weather) Object.assign(patch, { weather: this.e.weather.save(), weather_locked: this.e.weather.locked });
     Object.assign(this.scene, patch);
     try { await Scenes().update(this.scene.id, patch); this.saveError = ''; }
     catch (err) { this.saveError = err.message; this.saveT = 5; }

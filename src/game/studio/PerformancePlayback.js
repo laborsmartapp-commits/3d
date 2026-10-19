@@ -14,6 +14,7 @@ export class PerformancePlayback {
   constructor(e) { this.e = e; this.cam = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 3000); this.samples = []; }
 
   async load(take, chunks) {
+    this.e.weather?.remember(take.env_start); // lets per-sample weather signatures resolve to the exact state
     const list = chunks || (await base44.entities.PerformanceChunk.filter({ take_id: take.source_take_id || take.id }, { sort: 'index', limit: 1000 })).items;
     const byIndex = new Map(list.map((c) => [c.index, c])); // tolerate legacy duplicate rows
     this.samples = [...byIndex.values()].sort((a, b) => a.index - b.index).flatMap((c) => c.samples || []);

@@ -10,8 +10,8 @@ export const colliderCover = (e) => (x, z) => {
 
 // Rain streaks and snowflakes around the filming camera. Flakes never spawn under a roof.
 export class Precip {
-  constructor(e, covered, { rain = true } = {}) {
-    this.e = e; this.covered = covered || colliderCover(e); this.rainOn = rain;
+  constructor(e, covered) {
+    this.e = e; this.covered = covered || colliderCover(e); this.rainOn = true;
     const touch = e.isTouch, NR = (this.NR = touch ? 1400 : 3200), NS = (this.NS = touch ? 1100 : 2600);
     this.r = { p: new Float32Array(NR * 3), kill: new Float32Array(NR), hide: new Uint8Array(NR) };
     this.rg = new THREE.BufferGeometry(); this.rg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(NR * 6), 3));
