@@ -57,6 +57,7 @@ export class RealmController {
     R.set.tick(t, R.env.s);
     for (const d of R.doors) d.update(dt);
     R.editor.update();
+    e.syncZone?.();
     if (this.pending && t - this.lastEmit > 0.12) { this.lastEmit = t; this.pending = false; e.emit({ realm: this.snapshot() }); }
   }
 

@@ -43,7 +43,7 @@ export default function RealmHUD({ engine, s, studioOpen, setStudioOpen }) {
       {panel === 'perf' && <PerfPanel r={r} onClose={close} />}
       {r.mode === 'edit' && <ObjectInspector R={R.R} r={r} />}
       {r.mode === 'edit' && <EditHints />}
-      {r.mode !== 'edit' && <InteractionPrompt prompt={s.prompt} isTouch={s.isTouch} />}
+      {r.mode !== 'edit' && <InteractionPrompt prompt={s.prompt} isTouch={s.isTouch} onPick={(i) => R.R.anchors.pick(i)} />}
     </>
   );
 }

@@ -1,6 +1,8 @@
 import { groundAt } from './layout';
 import { lerpAngle } from '../core/noise';
 
+const AMBIG = 1.0; // metres: two different objects closer than this to each other's distance count as overlapping
+
 // Interaction anchors: doors, seats, mics and decks. The controlled actor walks to the mark, then sits/stands.
 export class Anchors {
   constructor(R) { this.R = R; this.e = R.e; this.cur = null; this.t = 0; this.go = null; this.last = null; }
@@ -31,14 +33,35 @@ export class Anchors {
       p.finish(dt, false);
       return { move: true };
     }
+    if (this.choice) {
+      // Choice open: 1/2/3 (or a click on the prompt) picks; moving, Esc or E again cancels. Nothing is auto-selected.
+      const n = this.choice.options.findIndex((_, i) => inp.pressed?.has(`Digit${i + 1}`));
+      if (n >= 0) this.pick(n);
+      else if (inp.move.x || inp.move.y || inp.interact || inp.pressed?.has('Escape')) { this.choice = null; this.t = 0; this.last = null; }
+      return { move: false };
+    }
     if ((this.t -= dt) <= 0) {
       this.t = 0.15; let best = null;
       if (p.sitting) best = { verb: 'Stand Up', label: 'Seat', act: () => this.stand() };
-      else for (const c of this.candidates()) { if (Math.abs(c.y - p.pos.y - 0.5) > 1.4) continue; const d = Math.hypot(c.x - p.pos.x, c.z - p.pos.z); if (d < c.r && (!best || d < best.d)) best = { ...c, d }; }
-      this.cur = best; this.emit(best);
+      else {
+        // Nearest anchor per object; a second object almost as close (within AMBIG) makes it a contextual choice.
+        const near = new Map();
+        for (const c of this.candidates()) {
+          if (Math.abs(c.y - p.pos.y - 0.5) > 1.4) continue; const d = Math.hypot(c.x - p.pos.x, c.z - p.pos.z);
+          if (d < c.r && (!near.has(c.label) || d < near.get(c.label).d)) near.set(c.label, { ...c, d });
+        }
+        const opts = [...near.values()].sort((a, b) => a.d - b.d), alts = opts.filter((c) => c.d - (opts[0]?.d ?? 0) < AMBIG).slice(0, 3);
+        best = alts.length > 1 ? { verb: 'Choose', label: alts.map((c) => c.label).join(' or '), options: alts, act: () => { this.choice = { options: alts }; this.emit(this.choice); } } : opts[0] || null;
+      }
+      this.cur = best; if (!this.choice) this.emit(best);
     }
     if (inp.interact && this.cur) { const c = this.cur; this.cur = null; this.t = 0; c.act(); }
     return { move: false };
   }
-  emit(c) { const k = c ? `${c.verb}|${c.label}` : ''; if (k === this.last) return; this.last = k; this.e.emit({ prompt: c ? { verb: c.verb, label: c.label } : null }); }
+  pick(i) { const c = this.choice?.options[i]; this.choice = null; this.cur = null; this.t = 0; this.emit(null); c?.act(); }
+  emit(c) {
+    const open = c && !c.verb, k = open ? `choice|${c.options.map((o) => o.label).join('|')}` : c ? `${c.verb}|${c.label}` : '';
+    if (k === this.last) return; this.last = k;
+    this.e.emit({ prompt: open ? { verb: 'Choose an action', label: `Press 1–${c.options.length} or tap · move to cancel`, choices: c.options.map((o) => ({ verb: o.verb, label: o.label })) } : c ? { verb: c.verb, label: c.label } : null });
+  }
 }

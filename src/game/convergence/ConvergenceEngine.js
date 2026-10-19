@@ -41,6 +41,8 @@ export class ConvergenceEngine {
   }
 
   emit(p) { Object.assign(this.hud, p); if (!this.disposed) this.onState({ ...this.hud }); }
+  // Location label follows the character's actual position (emits only when the zone changes), not a frame count.
+  syncZone() { const p = this.player.pos, z = this.D.zoneAt(p.x, p.z, p.y); if (z !== this.hud.zone) this.emit({ zone: z }); }
   notify(text) { this.emit({ notice: { id: Math.random(), text } }); }
   groundAt(x, z, y) { return this.D.groundAt(x, z, y); }
   onFootstep(pos) { this.fx.emit(pos, { count: 2, color: '#b8ab94', up: 0.4, spread: 0.2, life: 0.5 }); }
@@ -119,7 +121,7 @@ export class ConvergenceEngine {
     this.sun.position.copy(p).add(this.sunDir); this.sun.target.position.copy(p);
     this.fx.update(dt);
     this.tick(this.time, p.x, p.z);
-    if ((this.zoneTick = (this.zoneTick || 0) + 1) % 30 === 0) { const z = this.D.zoneAt(p.x, p.z, p.y); if (z !== this.hud.zone) this.emit({ zone: z }); }
+    this.syncZone();
     this.studio.render();
     this.frames++; this.statT += delta; // real elapsed time, so the FPS readout isn't capped by the step clamp
     if (this.statT > 0.5) { this.fps = Math.round(this.frames / this.statT); this.frames = 0; this.statT = 0; }

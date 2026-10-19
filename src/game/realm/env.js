@@ -23,7 +23,7 @@ function skyMat() {
   return new THREE.ShaderMaterial({
     uniforms: { top: { value: C('#2f6fc0') }, mid: { value: C('#d6e8f6') }, bot: { value: C('#8a8a80') }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: C('#fff6e8') } },
     vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 sunDir; uniform vec3 sunCol; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, pow(h, 0.55)) : mix(mid, bot, pow(-h, 0.4)); float s = max(dot(vP, normalize(sunDir)), 0.0); c += sunCol * (pow(s, 900.0) * 6.0 + pow(s, 14.0) * 0.3); gl_FragColor = vec4(c, 1.0); #include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
+    fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 bot; uniform vec3 sunDir; uniform vec3 sunCol; varying vec3 vP; void main(){ float h = vP.y; vec3 c = h > 0.0 ? mix(mid, top, pow(h, 0.55)) : mix(mid, bot, pow(-h, 0.4)); float s = max(dot(vP, normalize(sunDir)), 0.0); c += sunCol * (pow(s, 900.0) * 6.0 + pow(s, 14.0) * 0.3); gl_FragColor = vec4(c, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',
     side: THREE.BackSide, depthWrite: false, fog: false,
   });
 }
