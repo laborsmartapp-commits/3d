@@ -61,7 +61,7 @@ export class SetStore {
       this.list = this.list.map((x) => (x.id === id ? rec : x)); this.current = rec; this.applyData(rec);
     });
   }
-  rename(id, name) { return this.run(async () => { await this.api.update(id, { name }); const r = this.list.find((x) => x.id === id); if (r) r.name = name; }); }
+  rename(id, name) { return this.run(async () => { await this.api.update(id, { name }); const r = this.list.find((x) => x.id === id); if (r) r.name = name; if (this.current?.id === id) this.current.name = name; }); }
   remove(id) { if (id === this.current?.id) return; return this.run(async () => { await this.api.delete(id); this.list = this.list.filter((x) => x.id !== id); }); }
   revert() { if (this.current) this.applyData(this.current); else this.applyData(buildTemplate('everyday')); }
 }

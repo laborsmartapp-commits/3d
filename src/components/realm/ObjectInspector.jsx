@@ -11,7 +11,7 @@ const T = (on) => `rounded-lg px-2 py-1.5 text-xs flex items-center justify-cent
 export default function ObjectInspector({ R, r }) {
   const ed = R.editor, sel = r.sel, o = sel[0];
   return (
-    <div className="absolute right-4 top-20 bottom-6 z-30 w-80 glass rounded-2xl p-4 overflow-y-auto space-y-3">
+    <div className="space-y-3">
       <div className="grid grid-cols-3 gap-1">{GZ.map(([k, I, l]) => <button key={k} onClick={() => ed.setGizmo(k)} className={T(r.gizmo === k)}><I className="w-3.5 h-3.5" />{l}</button>)}</div>
       <div className="grid grid-cols-3 gap-1">
         <button onClick={() => ed.setOption('snap', !r.snap)} className={T(r.snap)} title="Floor/surface/wall snapping + 15° rotation steps"><Magnet className="w-3.5 h-3.5" />Snap</button>

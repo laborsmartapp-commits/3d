@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import ModeRail from './ModeRail';
-import SaveStatus from './SaveStatus';
-import SetLibrary from './SetLibrary';
-import ObjectInspector from './ObjectInspector';
-import HierarchyPanel from './HierarchyPanel';
-import EnvironmentPanel from './EnvironmentPanel';
-import SetVersions from './SetVersions';
-import PerfPanel from './PerfPanel';
-import EditHints from './EditHints';
+import { AnimatePresence } from 'framer-motion';
+import { MapPin } from 'lucide-react';
+import BubbleMenu from './bubble/BubbleMenu';
+import RealmTool from './bubble/RealmTool';
+import TakeStatusPill from './bubble/TakeStatusPill';
+import { TOOLS, STUDIO_TOOLS } from './bubble/tools';
 import InteractionPrompt from '@/components/game/InteractionPrompt';
+import DiagOverlay from '@/components/diag/DiagOverlay';
 
-// Krush's Living Realm overlay: Explore / Set Edit / Production modes and the set-dressing tools.
+// Krush's Living Realm overlay: the world fills the screen; every tool lives behind one floating bubble menu.
 export default function RealmHUD({ engine, s, studioOpen, setStudioOpen }) {
-  const R = engine.realm, r = s.realm;
-  const [panel, setPanel] = useState(null);
+  const R = engine.realm, r = s.realm, st = s.studio;
+  const [menu, setMenu] = useState(false), [tool, setTool] = useState(null);
 
-  useEffect(() => { if (!R) return; if (studioOpen && R.mode !== 'production') R.setMode('production'); if (!studioOpen && R.mode === 'production') R.setMode('explore'); }, [studioOpen, R]);
-  useEffect(() => { if (R) R.perfOn = panel === 'perf'; }, [panel, R]);
+  useEffect(() => { if (R) R.perfOn = tool === 'settings'; }, [tool, R]);
+  // Deep links (open a scene/take from a production) open the studio from outside: show the Scenes tool.
+  useEffect(() => { if (R && studioOpen && !STUDIO_TOOLS.includes(tool)) { setMenu(true); setTool('scenes'); R.setMode('production'); } }, [studioOpen, R]);
   useEffect(() => {
     const el = engine.container; if (!el || !R) return;
     const over = (ev) => { if (ev.dataTransfer.types.includes('text/realm-item')) ev.preventDefault(); };
@@ -30,20 +29,21 @@ export default function RealmHUD({ engine, s, studioOpen, setStudioOpen }) {
   }, [engine, R]);
 
   if (!R || !r) return null;
-  const setMode = (m) => { R.setMode(m); setStudioOpen(m === 'production'); if (m === 'production') setPanel(null); };
-  const close = () => setPanel(null);
+  // Set Edit = edit mode, studio tools = production mode; other tools keep the current mode; closing returns to explore.
+  const pick = (t) => {
+    const next = t === tool ? null : t, studio = STUDIO_TOOLS.includes(next);
+    setTool(next); setStudioOpen(studio);
+    if (next === 'setedit') R.setMode('edit'); else if (studio) R.setMode('production'); else if (!next || r.mode === 'production') R.setMode('explore');
+  };
+  const toggle = () => { if (menu) pick(null); setMenu(!menu); };
   return (
     <>
-      <ModeRail mode={r.mode} setMode={setMode} panel={panel} setPanel={setPanel} />
-      <SaveStatus R={R.R} r={r} />
-      {panel === 'library' && <SetLibrary R={R} onClose={close} />}
-      {panel === 'hierarchy' && <HierarchyPanel R={R} r={r} onClose={close} />}
-      {panel === 'environment' && <EnvironmentPanel R={R.R} r={r} onClose={close} />}
-      {panel === 'versions' && <SetVersions R={R.R} r={r} onClose={close} />}
-      {panel === 'perf' && <PerfPanel r={r} onClose={close} />}
-      {r.mode === 'edit' && <ObjectInspector R={R.R} r={r} />}
-      {r.mode === 'edit' && <EditHints />}
+      {s.zone && <div className="absolute top-4 left-4 z-20 glass rounded-full px-3 py-1.5 text-xs flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" />{s.zone}</div>}
+      <TakeStatusPill engine={engine} st={st} />
+      <AnimatePresence>{tool && <RealmTool key={tool} tool={tool} engine={engine} s={s} R={R} r={r} onClose={() => pick(tool)} />}</AnimatePresence>
+      <BubbleMenu tools={TOOLS} open={menu} toggle={toggle} tool={tool} pick={pick} dirty={r.dirty} rec={st?.status === 'capturing'} />
       {r.mode !== 'edit' && <InteractionPrompt prompt={s.prompt} isTouch={s.isTouch} onPick={(i) => R.R.anchors.pick(i)} />}
+      {s.diag && <DiagOverlay engine={engine} />}
     </>
   );
 }

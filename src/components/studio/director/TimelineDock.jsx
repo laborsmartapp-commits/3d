@@ -14,14 +14,14 @@ import { AUDIO_TRACKS } from '@/game/studio/AudioEngine';
 const ROWS = [['perf', 'Movement'], ['anim', 'Body Anim']];
 
 // Bottom multilayer timeline: one master clock for every actor lane and every audio track.
-export default function TimelineDock({ engine, st, open, setOpen }) {
+export default function TimelineDock({ engine, st, open, setOpen, inset }) {
   const d = st.director, D = engine.studio.dir;
   const [zoom, setZoom] = useState(40), [sel, setSel] = useState(null), [wz, setWz] = useState(1.5);
   const W = d.duration * zoom, clip = d.clips.find((c) => c.id === sel), free = st.status === 'idle';
   const seek = (e) => { const r = e.currentTarget.getBoundingClientRect(); D.seek((e.clientX - r.left) / zoom); };
   const beats = d.bpm > 0 && zoom * (60 / d.bpm) >= 6 ? Array.from({ length: Math.floor((d.duration - d.beat_offset) * d.bpm / 60) + 1 }, (_, i) => d.beat_offset + (i * 60) / d.bpm).filter((b) => b >= 0) : [];
   return (
-    <div className={`absolute bottom-0 inset-x-0 z-20 glass rounded-t-2xl ${st.active ? 'md:mr-[520px]' : ''}`}>
+    <div className={`absolute bottom-0 inset-x-0 z-20 glass rounded-t-2xl ${inset ?? (st.active ? 'md:mr-[520px]' : '')}`}>
       <DirectorTransport engine={engine} st={st} d={d} zoom={zoom} setZoom={setZoom} open={open} setOpen={setOpen} />
       {(st.error || st.notice) && <p className={`px-3 py-1 text-[11px] ${st.error ? 'text-destructive' : 'text-primary'}`}>{st.error || st.notice}</p>}
       {open && <BeatBar engine={engine} d={d} wz={wz} setWz={setWz} free={free} />}

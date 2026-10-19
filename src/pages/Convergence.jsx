@@ -6,7 +6,7 @@ import Toasts from '@/components/game/Toasts';
 import StageStudio from '@/components/studio/StageStudio';
 import useStageStudio from '@/hooks/useStageStudio';
 
-export default function Convergence({ district, title = 'The Convergence', overlay }) {
+export default function Convergence({ district, title = 'The Convergence', overlay, customUI = false }) {
   const [mount, setMount] = useState(null);
   const [engine, setEngine] = useState(null);
   const [studioOpen, setStudioOpen] = useState(false);
@@ -34,13 +34,13 @@ export default function Convergence({ district, title = 'The Convergence', overl
           <p className="text-sm text-muted-foreground">{s.step}</p>
         </div>
       )}
-      {s.phase === 'game' && (
+      {s.phase === 'game' && !customUI && (
         <div className="absolute top-4 left-4 flex items-center gap-2">
           <Link to="/" className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2 hover:bg-card/80"><ArrowLeft className="w-4 h-4" />Home</Link>
           {s.zone && <div className="glass rounded-full px-4 py-2 text-sm flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{s.zone}</div>}
         </div>
       )}
-      {s.phase === 'game' && engine?.studio && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
+      {s.phase === 'game' && engine?.studio && !customUI && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
       {s.phase === 'game' && engine && overlay?.({ engine, s, studioOpen, setStudioOpen })}
       {s.phase === 'game' && <Toasts notice={s.notice} />}
     </div>

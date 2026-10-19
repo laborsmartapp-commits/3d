@@ -4,5 +4,5 @@ import { LIVING_REALM } from '@/game/realm/stage';
 import RealmHUD from '@/components/realm/RealmHUD';
 
 export default function LivingRealm() {
-  return <Convergence district={LIVING_REALM} title="Krush's Living Realm" overlay={(p) => <RealmHUD {...p} />} />;
+  return <Convergence district={LIVING_REALM} title="Krush's Living Realm" customUI overlay={(p) => <RealmHUD {...p} />} />;
 }

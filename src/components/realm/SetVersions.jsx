@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Trash2, Plus, RotateCcw, Loader2 } from 'lucide-react';
+import { Check, Trash2, Plus, RotateCcw, Loader2, Pencil } from 'lucide-react';
 import { TEMPLATES } from '@/game/realm/templates';
 import RealmPanel from './RealmPanel';
 
@@ -17,6 +17,7 @@ export default function SetVersions({ R, r, onClose }) {
           <div key={v.id} className={`rounded-lg px-2.5 py-2 flex items-center gap-2 text-sm ${v.active ? 'bg-primary/15 border border-primary/40' : 'bg-white/5'}`}>
             <div className="flex-1 min-w-0"><p className="truncate font-semibold">{v.name}</p><p className="text-[11px] text-quiet">{v.count ?? '—'} objects</p></div>
             {v.active ? <Check className="w-4 h-4 text-primary" /> : <button onClick={guard(() => S.activate(v.id))} className="rounded-md bg-white/10 hover:bg-white/20 px-2 py-1 text-xs">Switch</button>}
+            <button onClick={() => { const n = window.prompt('Rename layout', v.name)?.trim(); if (n && n !== v.name) S.rename(v.id, n); }} aria-label={`Rename ${v.name}`} className="p-1 text-quiet hover:text-foreground"><Pencil className="w-3.5 h-3.5" /></button>
             {!v.active && <button onClick={() => window.confirm(`Delete “${v.name}”?`) && S.remove(v.id)} className="p-1 text-quiet hover:text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>}
           </div>
         ))}

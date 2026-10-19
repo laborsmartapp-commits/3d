@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { X } from 'lucide-react';
+import { PanelEmbed } from './bubble/embed';
 
 export default function RealmPanel({ title, onClose, children, side = 'left' }) {
+  if (useContext(PanelEmbed)) return <div>{children}</div>;
   return (
     <div className={`absolute top-20 bottom-6 z-30 w-80 glass rounded-2xl flex flex-col ${side === 'left' ? 'left-[100px]' : 'right-4'}`}>
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
