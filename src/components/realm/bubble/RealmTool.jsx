@@ -2,6 +2,7 @@ import React from 'react';
 import ToolPanel from './ToolPanel';
 import ScenesTool from './ScenesTool';
 import SetEditTool from './SetEditTool';
+import DirectorTool from './DirectorTool';
 import CamerasTool from './CamerasTool';
 import RecordingTool from './RecordingTool';
 import LayoutsTool from './LayoutsTool';
@@ -12,6 +13,7 @@ import EnvironmentPanel from '../EnvironmentPanel';
 export default function RealmTool({ tool, engine, s, R, r, onClose }) {
   const st = s.studio;
   if (tool === 'scenes') return <ScenesTool engine={engine} st={st} onClose={onClose} />;
+  if (tool === 'director') return <DirectorTool engine={engine} st={st} onClose={onClose} />;
   if (tool === 'setedit') return <SetEditTool R={R} r={r} onClose={onClose} />;
   if (tool === 'cameras') return <CamerasTool engine={engine} st={st} onClose={onClose} />;
   if (tool === 'recording') return <RecordingTool engine={engine} st={st} onClose={onClose} />;
