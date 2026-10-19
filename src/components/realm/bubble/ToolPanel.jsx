@@ -7,7 +7,7 @@ import { PanelEmbed } from './embed';
 export default function ToolPanel({ title, subtitle, tabs, tab, setTab, error, onClose, children }) {
   return (
     <motion.div initial={{ opacity: 0, x: 28, scale: 0.97 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: 28, scale: 0.97 }} transition={{ type: 'spring', damping: 28, stiffness: 340 }}
-      className="absolute right-[84px] top-4 bottom-4 z-30 w-[min(360px,calc(100vw-100px))] glass rounded-2xl flex flex-col overflow-hidden">
+      className="absolute right-[84px] top-4 max-h-[calc(100%-2rem)] z-30 w-[min(360px,calc(100vw-100px))] glass rounded-2xl flex flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-2 px-4 pt-3.5 pb-2">
         <div className="min-w-0">
           <h2 className="font-heading text-sm tracking-wide">{title}</h2>
@@ -21,7 +21,7 @@ export default function ToolPanel({ title, subtitle, tabs, tab, setTab, error, o
         </div>
       )}
       {error && <p className="mx-4 mb-2 text-xs text-destructive">{error}</p>}
-      <div className="flex-1 overflow-y-auto px-4 pb-4"><PanelEmbed.Provider value>{children}</PanelEmbed.Provider></div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"><PanelEmbed.Provider value>{children}</PanelEmbed.Provider></div>
     </motion.div>
   );
 }
