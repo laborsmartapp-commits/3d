@@ -27,6 +27,9 @@ export class Cutaway {
       if (tv.distanceTo(p) < 45 && tv.clone().sub(p).dot(fw) > 0) out.push(tv.clone());
     }
     const ed = this.R.editor; if (ed.enabled) for (const o of ed.items) out.push(new THREE.Vector3(o.x, o.y + 0.6, o.z));
+    // The floor the camera looks at is a focus only when editing or when no character is in view;
+    // otherwise it would cut the wall in front of a character standing outside (e.g. the porch).
+    if (!ed.enabled && out.length) return out;
     caster.set(p, fw); caster.far = 40;
     const h = caster.intersectObjects(this.R.houseFloors, false)[0];
     if (h) out.push(h.point.clone().add(new THREE.Vector3(0, 0.5, 0)));
