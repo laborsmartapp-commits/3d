@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { ConvergenceEngine } from '@/game/convergence/ConvergenceEngine';
 import Toasts from '@/components/game/Toasts';
-import StageStudio from '@/components/studio/StageStudio';
+import StageHUD from '@/components/stage/StageHUD';
 import useStageStudio from '@/hooks/useStageStudio';
 
 export default function Convergence({ district, title = 'The Convergence', overlay, customUI = false }) {
@@ -41,7 +41,7 @@ export default function Convergence({ district, title = 'The Convergence', overl
         </div>
       )}
       <Profiler id="stage-ui" onRender={(id, ph, d) => engine?.prof.onReact(d)}>
-        {s.phase === 'game' && engine?.studio && !customUI && <StageStudio engine={engine} s={s} open={studioOpen} setOpen={setStudioOpen} />}
+        {s.phase === 'game' && engine?.studio && !customUI && <StageHUD engine={engine} s={s} studioOpen={studioOpen} setStudioOpen={setStudioOpen} lift={s.isTouch} />}
         {s.phase === 'game' && engine && overlay?.({ engine, s, studioOpen, setStudioOpen })}
       </Profiler>
       {s.phase === 'game' && <Toasts notice={s.notice} />}

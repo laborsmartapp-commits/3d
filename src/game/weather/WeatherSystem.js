@@ -1,9 +1,6 @@
-import { U } from '../core/shared';
 import { NEUTRAL, clampState, combine, toggleCondition, fromInitial, fromLegacy, isLegacyWeather, sigOf, WX_KEYS } from './state';
-import { SkyRig } from './SkyRig';
-import { Precip, colliderCover } from './Precip';
-import { Ambient } from './Ambient';
-import { Surfaces } from './Surfaces';
+import { colliderCover } from './Precip';
+import { streetRender } from './streetRender';
 
 const KEY = (id) => `mation.weather.${id}`;
 const readLocal = (id) => { try { return JSON.parse(localStorage.getItem(KEY(id)) || 'null'); } catch { return null; } };
@@ -11,19 +8,17 @@ const readLocal = (id) => { try { return JSON.parse(localStorage.getItem(KEY(id)
 // One manual weather + natural-environment system shared by every stage. Time of day and weather
 // stay exactly as the director sets them: nothing here advances, cycles or randomises the state.
 export class WeatherSystem {
-  constructor(e, { stageId, initial, fog, covered } = {}) {
+  // `render` is the stage's rendering adapter; the state, lock, presets and take reproduction are shared.
+  constructor(e, { stageId, initial, fog, covered, render = streetRender } = {}) {
     this.e = e; this.stageId = stageId; this.locked = false; this.known = new Map(); this.dirtyHud = true;
     const cover = covered || colliderCover(e);
     this.s = clampState({ ...NEUTRAL, ...fromInitial(initial), ...(readLocal(stageId) || {}) });
-    this.sky = new SkyRig(e, fog);
-    this.precip = new Precip(e, cover);
-    this.ambient = new Ambient(e);
-    this.surfaces = new Surfaces(e, cover);
+    this.r = render(e, { fog, cover });
     this.changed(false);
   }
 
   get sig() { return this._sig; }
-  get night() { return this.sky.night; }
+  get night() { return this.r.night; }
   // Changes are refused while locked, while a take records and while a take plays back.
   get blocked() {
     if (this.locked) return 'The environment is locked';
@@ -72,16 +67,11 @@ export class WeatherSystem {
     this.known.set(this._sig, this.s);
     if (persist) { try { localStorage.setItem(KEY(this.stageId), JSON.stringify(this.s)); } catch { /* storage full */ } this.e.studio?.dirty?.(); }
   }
-  hud() { return { ...this.s, sig: this._sig, locked: this.locked, surfaces: this.surfaces.supported }; }
+  hud() { return { ...this.s, sig: this._sig, locked: this.locked, surfaces: this.r.surfaces }; }
 
   camera() { const st = this.e.studio; return ((st?.busy || st?.active) && st.outputCam?.()) || this.e.camera; }
   update(dt) {
-    const s = this.s, cam = this.camera();
-    this.sky.update(s, dt, cam);
-    U.wind.value = (0.1 + s.wind * 1.1) * s.vegetation * 2; U.night.value = this.sky.night;
-    this.precip.update(s, dt, cam);
-    this.ambient.update(s, dt, cam, this.sky.night);
-    this.surfaces.update(s);
+    this.r.update(this.s, dt, this.camera());
     if (this.dirtyHud) { this.dirtyHud = false; this.e.emit?.({ weather: this.hud() }); }
   }
 }

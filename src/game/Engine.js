@@ -25,6 +25,9 @@ import { SceneManager } from './studio/SceneManager';
 import { DiagManager } from './diag/DiagManager';
 import { stepPlayer } from './core/step';
 import { celestiaStage } from './stages/adapters';
+import { WeatherSystem } from './weather/WeatherSystem';
+import { celestiaRender } from './weather/celestiaRender';
+import { CONDITIONS } from './weather/state';
 import { R, WATER, SPAWN, DISCOVERIES, RIVER_S, OUTLET_S, GROTTO } from './world/layout';
 
 const V = THREE.Vector3;
@@ -146,6 +149,7 @@ export class Engine {
     await this.loadMyIsland();
     this.applyQuality(this.qName);
     this.stage = celestiaStage(this);
+    this.weather = new WeatherSystem(this, { stageId: this.stage.id, initial: { hour: 15.5, conditions: ['clear'] }, render: celestiaRender });
     this.studio = new SceneManager(this);
     this.diag = new DiagManager(this);
     this.onResize = () => {
@@ -470,7 +474,7 @@ export class Engine {
     const inp = this.diag.input(this.input.consume());
     this.handleKeys(inp);
     let steps = 0;
-    this.env.update(dt);
+    this.weather.update(dt);
     const m = this.mode;
     if (this.hud.phase === 'ready' || (m === 'intro' && !this.intro)) { this.camera.position.set(420 + Math.sin(this.time * 0.1) * 10, 260, 800); this.camera.lookAt(0, 20, 0); }
     else if (m === 'intro') this.updateIntro(dt);
@@ -534,7 +538,7 @@ export class Engine {
     if (this.hudT < 0) {
       this.hudT = 0.15;
       const it = (m === 'play' || m === 'first') && !this.dialogueNpc ? this.interact.current : null;
-      this.emit({ clock: this.env.clock(), stage: stageOf(this.env.hour), weather: WEATHERS[this.env.weather].label, weatherKey: this.env.weather, fps: this.fps, prompt: it ? { verb: it.verb, label: it.label } : null, stats: this.stats, hour: this.env.hour });
+      this.emit({ clock: this.env.clock(), stage: stageOf(this.env.hour), weatherLabel: this.weather.s.conditions.map((k) => CONDITIONS[k].label).join(' + '), weatherKey: this.env.weather, fps: this.fps, prompt: it ? { verb: it.verb, label: it.label } : null, stats: this.stats, hour: this.env.hour });
     }
   };
 

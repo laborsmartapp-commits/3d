@@ -3,7 +3,7 @@ import { ENGINE_VERSION, worldSnapshot } from '../studio/versions';
 // Stage adapter: the only stage-specific surface the shared Scene Manager talks to.
 // Engines also provide: scene, renderer, camera, container, player, rig, emit, qName, fps, applyQuality.
 
-// Manual weather shared by every street-level stage: samples carry the state signature, takes the full start state.
+// Manual weather shared by every stage: samples carry the state signature, takes the full start state.
 const weatherEnv = (e) => ({
   kind: 'manual',
   get: () => ({ h: +e.weather.s.hour.toFixed(3), w: e.weather.sig }),
@@ -16,13 +16,7 @@ export const celestiaStage = (e) => ({
   id: 'celestia-grotto', name: 'Celestia Grotto', version: ENGINE_VERSION, actors: ['krush'],
   location: () => e.island?.name || 'Celestia Grotto',
   snapshot: () => worldSnapshot(e),
-  env: {
-    kind: 'dynamic',
-    get: () => ({ h: +e.env.hour.toFixed(3), w: e.env.weather }),
-    start: () => ({ hour: e.env.hour, weather: e.env.weather, timeScale: e.env.timeScale, rate: e.env.rate }),
-    apply: (s) => { if (!s) return; e.env.hour = s.h; if (e.env.weather !== s.w) e.env.setWeather(s.w); },
-    save: () => ({ h: e.env.hour, w: e.env.weather }),
-  },
+  env: weatherEnv(e), // older island takes (hour + named weather) still replay through the legacy mapping
 });
 
 export const starSquareStage = (e) => ({

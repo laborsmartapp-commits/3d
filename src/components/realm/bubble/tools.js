@@ -14,3 +14,5 @@ export const TOOLS = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 export const STUDIO_TOOLS = ['scenes', 'director', 'cameras', 'recording'];
+// Stages without a set editor get the same column minus Set Edit and Layouts (same order, same positions).
+export const STAGE_TOOLS = TOOLS.filter((t) => t.id !== 'setedit' && t.id !== 'layouts');

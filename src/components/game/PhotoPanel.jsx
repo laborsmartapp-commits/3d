@@ -1,7 +1,6 @@
 import React from 'react';
 import { EyeOff, Eye, X } from 'lucide-react';
 import DevSlider from './DevSlider';
-import WeatherPicker from './WeatherPicker';
 
 export default function PhotoPanel({ engine, s, hideUI, setHideUI }) {
   if (hideUI) {
@@ -17,11 +16,7 @@ export default function PhotoPanel({ engine, s, hideUI, setHideUI }) {
         </div>
       </div>
       <p className="text-[11px] text-muted-foreground mb-2">Drag to orbit · Scroll to zoom · WASD to move · Q/E camera height</p>
-      <div className="grid md:grid-cols-2 gap-x-4">
-        <DevSlider label="Time of day" min={0} max={23.99} step={0.05} get={() => engine.env.hour} set={(v) => { engine.env.hour = v; }} fmt={(v) => `${Math.floor(v)}:${String(Math.floor((v % 1) * 60)).padStart(2, '0')}`} />
-        <DevSlider label="Field of view" min={25} max={100} step={1} get={() => engine.camera.fov} set={(v) => { engine.camera.fov = v; engine.camera.updateProjectionMatrix(); }} fmt={(v) => `${v}°`} />
-      </div>
-      <div className="mt-2"><WeatherPicker engine={engine} current={s.weatherKey} /></div>
+      <DevSlider label="Field of view" min={25} max={100} step={1} get={() => engine.camera.fov} set={(v) => { engine.camera.fov = v; engine.camera.updateProjectionMatrix(); }} fmt={(v) => `${v}°`} />
     </div>
   );
 }

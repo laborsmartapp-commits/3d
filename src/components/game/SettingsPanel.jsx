@@ -17,7 +17,6 @@ export default function SettingsPanel({ engine, s, onClose }) {
       <div className="mt-4">
         <DevSlider label="Master volume" min={0} max={1} get={() => engine.audio.volume} set={(v) => engine.audio.setVolume(v)} fmt={(v) => `${Math.round(v * 100)}%`} />
         <DevSlider label="Camera sensitivity" min={0.3} max={2.5} get={() => engine.input.sens} set={(v) => { engine.input.sens = v; }} />
-        <DevSlider label="Day length speed" min={0.25} max={10} step={0.25} get={() => engine.env.timeScale} set={(v) => { engine.env.timeScale = v; }} fmt={(v) => `${v}x`} />
       </div>
       <p className="text-xs text-muted-foreground mt-5 mb-2">Controls</p>
       <div className="space-y-1">

@@ -14,7 +14,7 @@ export default function TopStatus({ s, engine }) {
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {night ? <Moon className="w-3 h-3 text-accent" /> : <Sun className="w-3 h-3 text-ember" />}
             <span className="tabular-nums">{s.clock}</span><span className="hidden sm:inline">· {s.stage}</span>
-            <WI className="w-3 h-3 ml-1" /><span className="hidden sm:inline">{s.weather}</span>
+            <WI className="w-3 h-3 ml-1" /><span className="hidden sm:inline">{s.weatherLabel}</span>
           </div>
         </div>
         <div className="h-8 w-px bg-white/10" />

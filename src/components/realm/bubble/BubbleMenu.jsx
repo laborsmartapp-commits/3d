@@ -3,10 +3,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, X } from 'lucide-react';
 
 // Master bubble on the right edge; opening it fans the tool bubbles upward.
-export default function BubbleMenu({ tools, open, toggle, tool, pick, dirty, rec, docked = {} }) {
+export default function BubbleMenu({ tools, open, toggle, tool, pick, dirty, rec, docked = {}, lift = false }) {
   const list = [...tools].reverse(); // column grows upward from the master bubble
   return (
-    <div className="absolute right-4 bottom-[10%] z-40 flex flex-col-reverse items-center gap-2.5">
+    <div className={`absolute right-4 z-40 flex flex-col-reverse items-center gap-2.5 ${lift ? 'bottom-[38%]' : 'bottom-[10%]'}`}>
       <button onClick={toggle} aria-label={open ? 'Close studio tools' : 'Open studio tools'} aria-expanded={open}
         className="relative w-14 h-14 rounded-full bg-primary text-primary-foreground grid place-items-center ring-1 ring-white/25 shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-transform">
         <AnimatePresence initial={false} mode="wait">

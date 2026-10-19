@@ -14,8 +14,8 @@ export const WEATHERS = {
   celestialStorm: { label: 'Celestial Storm', cloud: 0.6, rain: 0, fog: 0.2, wind: 0.7, storm: 0.6, magic: 1 },
   magicRain: { label: 'Starfall Rain', cloud: 0.45, rain: 0.45, fog: 0.15, wind: 0.3, storm: 0, magic: 1 },
 };
-const KEYS = ['cloud', 'rain', 'fog', 'wind', 'storm', 'magic'];
-const AUTO = ['clear', 'clear', 'clear', 'cloudy', 'cloudy', 'lightRain', 'mist', 'windy', 'heavyRain', 'thunderstorm', 'magicRain', 'celestialStorm'];
+// Island label for the shared manual conditions (HUD and villager small talk).
+const LABEL_OF = [['thunderstorm', 'thunderstorm'], ['heavyRain', 'heavyRain'], ['lightRain', 'lightRain'], ['heavySnow', 'cloudy'], ['lightSnow', 'cloudy'], ['fog', 'mist'], ['mist', 'mist'], ['windy', 'windy'], ['overcast', 'cloudy'], ['partlyCloudy', 'cloudy']];
 
 export function stageOf(h) {
   if (h >= 5 && h < 7) return 'Dawn';
@@ -28,18 +28,16 @@ export function stageOf(h) {
   return 'Late Night';
 }
 
-const cA = new THREE.Color(), cB = new THREE.Color();
+const cA = new THREE.Color(), cB = new THREE.Color(), UP = new THREE.Vector3(0, 1, 0);
 
 export class Environment {
   constructor(e) {
     this.e = e;
+    // Driven only by the shared manual weather state (see manual()); nothing here advances by itself.
     this.hour = 15.5;
-    this.rate = 24 / 1200;
-    this.timeScale = 1;
     this.weather = 'clear';
-    this.auto = true;
     this.p = { ...WEATHERS.clear };
-    this.nextChange = 3 + Math.random() * 3;
+    this.sun1 = 1; this.azOff = 0; this.lightning = 0;
     this.sunDir = new THREE.Vector3();
     this.moonDir = new THREE.Vector3();
     this.day = 1; this.night = 0; this.sunset = 0; this.flash = 0;
@@ -61,7 +59,13 @@ export class Environment {
     scene.add(this.bolt);
   }
 
-  setWeather(name) { this.weather = name; }
+  manual(s) {
+    this.hour = s.hour;
+    this.weather = LABEL_OF.find(([c]) => s.conditions.includes(c))?.[1] || 'clear';
+    Object.assign(this.p, { cloud: s.cloud, rain: s.rain, fog: Math.max(s.fog, s.haze * 0.5), wind: s.wind, storm: s.lightning, magic: 0 });
+    Object.assign(this.ov, { exposure: s.exposure, ambient: s.ambient });
+    this.sun1 = s.sun; this.azOff = THREE.MathUtils.degToRad(s.sunAz - 35); this.lightning = s.lightning; this.veg = s.vegetation * 2;
+  }
 
   strike() {
     const pp = this.e.player.pos, a = Math.random() * Math.PI * 2, d = 250 + Math.random() * 350;
@@ -76,17 +80,9 @@ export class Environment {
   }
 
   update(dt) {
-    this.hour = (this.hour + dt * this.rate * this.timeScale + 24) % 24;
-    const W = WEATHERS[this.weather], k = 1 - Math.exp(-dt * 0.12);
-    for (const key of KEYS) this.p[key] = lerp(this.p[key], W[key], k);
-    for (const key of ['wind', 'rain', 'cloud', 'storm']) if (this.ov[key] !== null) this.p[key] = this.ov[key];
-    if (this.auto) {
-      this.nextChange -= dt * this.rate * this.timeScale;
-      if (this.nextChange < 0) { this.setWeather(AUTO[Math.floor(Math.random() * AUTO.length)]); this.nextChange = 2 + Math.random() * 4; }
-    }
     const a = ((this.hour - 6) / 24) * Math.PI * 2;
-    this.sunDir.set(Math.cos(a) * 0.85, Math.sin(a), -0.4).normalize();
-    this.moonDir.set(-Math.cos(a) * 0.7 + 0.2, -Math.sin(a) * 0.9 + 0.25, 0.45).normalize();
+    this.sunDir.set(Math.cos(a) * 0.85, Math.sin(a), -0.4).normalize().applyAxisAngle(UP, this.azOff);
+    this.moonDir.set(-Math.cos(a) * 0.7 + 0.2, -Math.sin(a) * 0.9 + 0.25, 0.45).normalize().applyAxisAngle(UP, this.azOff);
     this.day = smoothstep(-0.12, 0.25, this.sunDir.y);
     this.night = 1 - smoothstep(-0.2, 0.08, this.sunDir.y);
     this.sunset = Math.exp(-Math.abs(this.sunDir.y) * 5) * (1 - this.p.cloud * 0.7);
@@ -98,10 +94,10 @@ export class Environment {
     this.sun.target.position.copy(target);
     if (sunUp) {
       this.sun.color.setRGB(1, 0.55 + 0.45 * smoothstep(0, 0.4, this.sunDir.y), 0.35 + 0.6 * smoothstep(0, 0.45, this.sunDir.y));
-      this.sun.intensity = 2.4 * smoothstep(-0.05, 0.2, this.sunDir.y) * (1 - cl * 0.65);
+      this.sun.intensity = 2.4 * smoothstep(-0.05, 0.2, this.sunDir.y) * (1 - cl * 0.65) * this.sun1;
     } else {
       this.sun.color.set('#9fb4ff');
-      this.sun.intensity = 0.55 * (1 - cl * 0.6) * smoothstep(-0.05, 0.3, this.moonDir.y);
+      this.sun.intensity = 0.55 * (1 - cl * 0.6) * smoothstep(-0.05, 0.3, this.moonDir.y) * this.sun1;
     }
     this.hemi.color.set('#1b2455').lerp(cA.set('#a7cde6'), this.day);
     this.hemi.groundColor.set('#0b0a16').lerp(cA.set('#3a4a2a'), this.day);
@@ -112,14 +108,14 @@ export class Environment {
     fogC.lerp(cB.set('#505866').multiplyScalar(0.3 + this.day * 0.7), cl * 0.5);
     this.e.scene.fog.density = 0.0032 * (1 + this.p.fog * 3 + this.p.rain * 1.2) * this.ov.fog * this.e.Q.fog;
     this.e.renderer.toneMappingExposure = this.ov.exposure * (1 - this.p.storm * 0.2);
-    if (this.p.storm > 0.5) {
-      this.lightningT -= dt;
+    if (this.lightning > 0.01) { // strikes flash at random moments while enabled; the weather itself never changes
+      this.lightningT -= dt * (0.4 + this.lightning);
       if (this.lightningT < 0) { this.strike(); this.lightningT = 6 + Math.random() * 12; }
     }
     this.flash = Math.max(0, this.flash - dt * 2.5);
     this.bolt.material.opacity = Math.max(0, this.bolt.material.opacity - dt * 5);
     U.night.value = this.night;
-    U.wind.value = 0.15 + this.p.wind * 0.9;
+    U.wind.value = (0.15 + this.p.wind * 0.9) * (this.veg ?? 1);
     U.light.value = 0.25 + 0.75 * this.day * (1 - cl * 0.4);
     updateNightMaterials(this.night);
     const w = this.e.water?.uniforms;

@@ -54,7 +54,8 @@ export class SceneManager {
     if (!this.scene) return;
     this.saveT = 0; this.saving = true; this.emit();
     const patch = { name: this.scene.name, cameras: this.cams.list.map((c) => ({ ...c })), selected_camera_id: this.cams.selId, timeline: JSON.parse(JSON.stringify(this.dir.tl)), cloud_settings: this.cloud, local_quality: this.localQuality };
-    if (this.e.weather) Object.assign(patch, { weather: this.e.weather.save(), weather_locked: this.e.weather.locked });
+    // While a take replays its own recorded weather, the scene keeps the editor's weather from before playback.
+    if (this.e.weather) Object.assign(patch, { weather: this.playing && this.saved?.env?.conditions ? this.saved.env : this.e.weather.save(), weather_locked: this.e.weather.locked });
     Object.assign(this.scene, patch);
     try { await Scenes().update(this.scene.id, patch); this.saveError = ''; }
     catch (err) { this.saveError = err.message; this.saveT = 5; }

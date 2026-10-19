@@ -13,10 +13,10 @@ import DevPanel from './DevPanel';
 import DirectoryPanel from './DirectoryPanel';
 import SettingsPanel from './SettingsPanel';
 import IslandPanel from './IslandPanel';
-import StudioPanel from '@/components/studio/StudioPanel';
-import StudioBar from '@/components/studio/StudioBar';
+import StageHUD from '@/components/stage/StageHUD';
 
-export default function HUD({ engine, s, panel, setPanel }) {
+// Island HUD; the studio and the Weather bubble live in the shared right-edge bubble menu (StageHUD).
+export default function HUD({ engine, s, panel, setPanel, studioOpen, setStudioOpen }) {
   const close = () => setPanel(null);
   const building = s.mode === 'build';
   const exploring = s.mode === 'play' || s.mode === 'first';
@@ -30,9 +30,8 @@ export default function HUD({ engine, s, panel, setPanel }) {
       {building && <BuildToolbar engine={engine} s={s} catalogOpen={panel === 'catalog'} setPanel={setPanel} />}
       {s.plot && <PlotDialog engine={engine} plot={s.plot} shards={s.shards} readOnly={s.readOnly} />}
       {s.dialogue && <DialogueBox key={s.dialogue.id} engine={engine} d={s.dialogue} />}
-      {s.studio && (s.studio.active || s.studio.status !== 'idle') && <StudioBar engine={engine} st={s.studio} />}
+      {s.studio && <StageHUD engine={engine} s={s} studioOpen={studioOpen} setStudioOpen={setStudioOpen} lift={s.isTouch} />}
       <AnimatePresence>
-        {panel === 'studio' && <StudioPanel key="studio" engine={engine} s={s} onClose={close} />}
         {panel === 'catalog' && building && <BuildPanel key="cat" engine={engine} s={s} onClose={close} />}
         {panel === 'dev' && <DevPanel key="dev" engine={engine} s={s} onClose={close} />}
         {panel === 'directory' && <DirectoryPanel key="dir" engine={engine} s={s} onClose={close} />}
