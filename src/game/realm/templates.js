@@ -1,5 +1,5 @@
 import { DEFAULT_SET } from './defaultSet';
-import { F1, F2, SLAB, TOP, PORCH, groundAt } from './layout';
+import { F1, F2, SLAB, TOP, PORCH, baseGroundAt } from './layout';
 import { prepare } from './catalog';
 
 const N = 0, S = Math.PI, E = Math.PI / 2;
@@ -32,7 +32,7 @@ export const TEMPLATES = {
 };
 
 function resolve(a) {
-  const base = a.f === 1 ? F1 : a.f === 2 ? F2 : a.f === 'p' ? PORCH.y : groundAt(a.x, a.z, 0);
+  const base = a.f === 1 ? F1 : a.f === 2 ? F2 : a.f === 'p' ? PORCH.y : baseGroundAt(a.x, a.z, 0);
   const y = a.dy === 'ceil' ? (a.f === 2 ? TOP : F2 - SLAB) - prepare(a.type).box.max.y : base + (a.dy || 0);
   const o = { key: a.key, type: a.type, x: a.x, y, z: a.z, ry: a.ry || 0 };
   if (a.color) o.color = a.color;

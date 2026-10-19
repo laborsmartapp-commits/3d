@@ -89,13 +89,15 @@ export class SetEditor {
 
   place(o) {
     const def = this.R.set.def(o), p = def.place || 'floor';
-    if (p === 'floor') o.y = groundAt(o.x, o.z, o.y);
+    if (p === 'floor') o.y = groundAt(o.x, o.z, o.y, this.ownWalks(o));
     else if (p === 'surface') o.y = this.surfaceY(o);
     else if (p === 'wall') this.toWall(o);
     else if (p === 'hang') { const f = groundAt(o.x, o.z, o.y - 2.2); o.y = (inHouse(o.x, o.z) ? (f >= F2 - 0.1 ? TOP : F2 - SLAB) : f + 3) - o.box.max.y * o.sy; }
   }
+  // Stand-on surfaces of the pieces being moved: they move with the selection, so they can't support it.
+  ownWalks(o) { return new Set([o, ...this.sel.map((id) => this.R.set.get(id))].map((x) => x?.walk).filter(Boolean)); }
   surfaceY(o) {
-    const g = groundAt(o.x, o.z, o.y), skip = new Set(this.sel.length ? this.sel : [o.id]);
+    const g = groundAt(o.x, o.z, o.y, this.ownWalks(o)), skip = new Set(this.sel.length ? this.sel : [o.id]);
     ray.set(new THREE.Vector3(o.x, o.y + 1.0, o.z), DOWN); ray.far = 3;
     const nodes = this.R.set.list.filter((x) => !skip.has(x.id) && x.id !== o.id && x.node.visible).map((x) => x.node);
     const h = ray.intersectObjects(nodes, true)[0];

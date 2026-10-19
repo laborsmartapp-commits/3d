@@ -8,6 +8,7 @@ import { RealmEnv } from './env';
 import { Cutaway } from './cutaway';
 import { Anchors } from './anchors';
 import { RealmController } from './controller';
+import { walkables } from './layout';
 import { DEV_TOOLS } from './modelPrep';
 import { installModelLab } from './modelLab';
 import { installRealmTest } from './devTest';
@@ -17,6 +18,7 @@ export function buildRealm(e) {
   const R = { e, M: getMaterials(), cut: [], floorMeshes: [], houseFloors: [], wallMeshes: [], doors: [], lightSources: [] };
   R.emit = () => R.ctl?.emit();
   if (e.sky) e.sky.visible = false;
+  walkables.length = 0; // set pieces from a previously built (disposed) realm must not stay walkable
   buildExterior(R);
   buildHouse(R);
   R.set = new SetScene(R);

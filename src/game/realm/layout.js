@@ -33,10 +33,12 @@ export function terrain(x, z) {
 }
 
 // Highest walkable surface at (x, z) that someone standing at height y can reach (stairs, upper floor, risers).
-export function groundAt(x, z, y = 0) {
+// ignore: walkable surfaces that must not support this query (a piece being placed never stands on itself).
+export function groundAt(x, z, y = 0, ignore) {
   const lim = y + 0.65;
   let g = baseGroundAt(x, z, y);
   for (const w of walkables) {
+    if (ignore?.has(w)) continue;
     const dx = x - w.x, dz = z - w.z, c = Math.cos(w.rot), s = Math.sin(w.rot);
     if (Math.abs(dx * c - dz * s) <= w.hw && Math.abs(dx * s + dz * c) <= w.hd && w.y <= lim && w.y > g) g = w.y;
   }
@@ -55,10 +57,6 @@ export function baseGroundAt(x, z, y = 0) {
     const onStair = x >= STAIR.x0 && x <= STAIR.x1 && z >= STAIR.hi && z <= STAIR.lo;
     if (onStair) { const s = Math.min(F2, F1 + (H1 * (STAIR.lo - z + 0.16)) / (STAIR.lo - STAIR.hi)); if (s <= lim) g = s; }
     else if (F2 <= lim) g = F2;
-  }
-  for (const w of walkables) {
-    const dx = x - w.x, dz = z - w.z, c = Math.cos(w.rot), s = Math.sin(w.rot);
-    if (Math.abs(dx * c - dz * s) <= w.hw && Math.abs(dx * s + dz * c) <= w.hd && w.y <= lim && w.y > g) g = w.y;
   }
   return g;
 }
