@@ -35,6 +35,17 @@ export function terrain(x, z) {
 // Highest walkable surface at (x, z) that someone standing at height y can reach (stairs, upper floor, risers).
 export function groundAt(x, z, y = 0) {
   const lim = y + 0.65;
+  let g = baseGroundAt(x, z, y);
+  for (const w of walkables) {
+    const dx = x - w.x, dz = z - w.z, c = Math.cos(w.rot), s = Math.sin(w.rot);
+    if (Math.abs(dx * c - dz * s) <= w.hw && Math.abs(dx * s + dz * c) <= w.hd && w.y <= lim && w.y > g) g = w.y;
+  }
+  return g;
+}
+
+// The lot's own surfaces only (no set pieces). Set placement uses this, so a riser never stacks on itself.
+export function baseGroundAt(x, z, y = 0) {
+  const lim = y + 0.65;
   let g = terrain(x, z);
   if (inR(PORCH, x, z)) g = Math.max(g, PORCH.y);
   else if (inR(STEPS_F, x, z)) g = Math.max(g, PORCH.y * clamp(1 - (z - STEPS_F.z0) / (STEPS_F.z1 - STEPS_F.z0), 0, 1));

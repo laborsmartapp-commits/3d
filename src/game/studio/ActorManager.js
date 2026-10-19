@@ -8,8 +8,9 @@ export class ActorManager {
     this.e = e; this.base = e.player;
     Object.assign(e.player, { actorId: 'krush', charId: 'krush' });
     e.actors = { krush: e.player };
-    // Krush never appears: until a scene's cast loads there is no visible character.
-    e.player.hidden = true; e.scene.remove(e.player.h.root);
+    // Krush only appears on stages where he is the playable character (his Living Realm) and no scene cast is loaded.
+    this.keep = !!e.D?.showPlayer;
+    if (!this.keep) { e.player.hidden = true; e.scene.remove(e.player.h.root); }
   }
 
   get list() { return Object.values(this.e.actors); }
@@ -35,7 +36,7 @@ export class ActorManager {
     }
     for (const a of actors) if (!this.e.actors[a.id]) this.create(a);
     // The default walker only appears when the scene's cast includes it; otherwise it stays as an invisible free-roam body.
-    this.base.hidden = !want.has('krush');
+    this.base.hidden = !want.has('krush') && !(this.keep && !actors.length);
     // Not in the cast: take the default walker out of the scene entirely (no body, no shadow, no dust).
     if (this.base.hidden) this.e.scene.remove(this.base.h.root); else if (!this.base.h.root.parent) this.e.scene.add(this.base.h.root);
     if (this.e.player === this.base && !want.has('krush') && actors[0]) this.control(actors[0].id);
