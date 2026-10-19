@@ -1,0 +1,24 @@
+{
+  "name": "WeatherPreset",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "state": {
+      "type": "object",
+      "description": "Full manual weather state (time, conditions, atmosphere, phenomena)"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "stage_id": {
+      "type": "string",
+      "description": "Stage the preset was saved in (presets work on every stage)"
+    }
+  },
+  "required": [
+    "name",
+    "state"
+  ]
+}

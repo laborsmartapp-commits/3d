@@ -1,0 +1,92 @@
+{
+  "name": "GeneratedStage",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "texture_style": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "archived"
+      ],
+      "default": "active"
+    },
+    "is_template": {
+      "type": "boolean",
+      "default": false
+    },
+    "favorite": {
+      "type": "boolean",
+      "default": false
+    },
+    "version": {
+      "type": "number",
+      "default": 1
+    },
+    "root_id": {
+      "type": "string",
+      "description": "Id of version 1; versions never overwrite each other"
+    },
+    "parent_id": {
+      "type": "string",
+      "description": "Version or stage this one was refined/duplicated from"
+    },
+    "template_origin": {
+      "type": "string"
+    },
+    "creation_mode": {
+      "type": "string",
+      "description": "structured | quick | template | duplicate | refine | variation"
+    },
+    "settings": {
+      "type": "object",
+      "description": "Structured Stage Creator inputs used for generation"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Special details / creative prompt"
+    },
+    "prompt_summary": {
+      "type": "string"
+    },
+    "refine_history": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "spec": {
+      "type": "object",
+      "description": "MationStudio stage spec: zones, structures, nature, props, lights, vfx, cameras, marks, spawn, initial_weather"
+    },
+    "report": {
+      "type": "object",
+      "description": "Validation report: counts, warnings, complexity"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "thumbnail_uri": {
+      "type": "string",
+      "description": "Private file uri"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}
