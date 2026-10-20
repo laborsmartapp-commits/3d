@@ -5,6 +5,8 @@ import { FOOT } from './stageFootprints.ts';
 // 0.35 m body at standing height (square dilation, like the engine's collider test). Shared by the furnishing
 // guard (during generation), the navigation repair (after it) and the final checks.
 export const RES = 0.25, BODY = 0.35;
+// Moving pieces re-floods the grid per candidate: on very large outdoor stages only the check runs, not the search.
+const searchable = (spec) => (spec.bounds.w * spec.bounds.d) / (RES * RES) <= 150000;
 type Box = { x: number; z: number; hw: number; hd: number; c: number; s: number };
 type Shape = { id: string; kind: string; type?: string; boxes: Box[]; circles: { x: number; z: number; r: number }[] };
 const WALKABLE = ['platform', 'path', 'plaza', 'sidewalk', 'bridge', 'road', 'crosswalk', 'gazebo', 'pergola'];
@@ -150,7 +152,7 @@ function rawMap(G: Grid, shapes: Shape[]) { const m = new Uint8Array(G.N); for (
 // ---- during furnishing: each new floor piece of operation `key` may not cut a route that was open before it
 export function guardPlacement(spec, key: string) {
   const mine = spec.furnishings.filter((p) => String(p.id).startsWith(`${key}.`) && footShape(p));
-  if (!mine.length) return { moved: [], rejected: [], notes: [] };
+  if (!mine.length || !searchable(spec)) return { moved: [], rejected: [], notes: [] };
   const arch = archShapes(spec), others = spec.furnishings.filter((p) => !mine.includes(p)).map(footShape).filter(Boolean) as Shape[];
   const G = makeGrid(spec, [...arch, ...others]), T = navTargets(spec, G), base = reachable(spec, G, T).ok, { lane } = walkways(spec);
   const raw = rawMap(G, [...arch, ...others]), moved: string[] = [], rejected: string[] = [], notes: string[] = [];
@@ -182,6 +184,7 @@ const RANK = (S: Shape) => S.kind === 'element' ? (['planter_bed', 'plinth'].inc
 
 export function navRepair(spec) {
   const notes: string[] = [], moved: string[] = [], unresolved: string[] = [], skip = new Set<string>();
+  if (!searchable(spec)) return { notes, moved, unresolved };
   for (let iter = 0; iter < 12; iter++) {
     const arch = archShapes(spec), furn = spec.furnishings.map(footShape).filter(Boolean) as Shape[], all = [...arch, ...furn];
     const byId = new Map(all.map((s) => [s.id, s])), G = makeGrid(spec, all), T = navTargets(spec, G), R = reachable(spec, G, T);

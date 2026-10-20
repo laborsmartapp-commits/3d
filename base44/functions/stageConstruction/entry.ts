@@ -141,7 +141,7 @@ export default async function (req) {
       if (ok.length) {
         const tv = Date.now(), { spec, report } = validateSpec(next, opts);
         // Placement guard: a new floor piece that would cut a walking route is nudged clear, or rejected.
-        for (const { x } of ok) if (x.sections?.includes('furnishings') && spec.walls.length) {
+        for (const { x } of ok) if (x.sections?.includes('furnishings')) {
           const g = guardPlacement(spec, x.key);
           (report.warnings ||= []).push(...g.notes.filter((n) => !n.includes('rejected')));
           report.dropped.push(...g.notes.filter((n) => n.includes('rejected')));
