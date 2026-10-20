@@ -1,0 +1,66 @@
+{
+  "name": "CharacterVoice",
+  "type": "object",
+  "properties": {
+    "character_key": {
+      "type": "string",
+      "description": "char:<builtin key> or asset:<character asset root id>"
+    },
+    "character_name": {
+      "type": "string"
+    },
+    "voice_kind": {
+      "type": "string",
+      "enum": [
+        "custom",
+        "preset"
+      ],
+      "default": "custom"
+    },
+    "voice_id": {
+      "type": "string",
+      "description": "Voice record id (custom)"
+    },
+    "preset": {
+      "type": "string",
+      "description": "river | storm | sunny | spark (preset)"
+    },
+    "stability": {
+      "type": "number",
+      "default": 0.5
+    },
+    "similarity": {
+      "type": "number",
+      "default": 0.75
+    },
+    "expressiveness": {
+      "type": "number",
+      "default": 0.2
+    },
+    "speed": {
+      "type": "number",
+      "default": 1
+    },
+    "speaker_boost": {
+      "type": "boolean",
+      "default": true
+    },
+    "default_emotion": {
+      "type": "string",
+      "default": "neutral"
+    },
+    "delivery_notes": {
+      "type": "string"
+    },
+    "pronunciations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "[{word, say}] spoken spelling, applied before speech"
+    }
+  },
+  "required": [
+    "character_key"
+  ]
+}

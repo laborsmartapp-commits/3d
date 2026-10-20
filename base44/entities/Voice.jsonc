@@ -1,0 +1,71 @@
+{
+  "name": "Voice",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "elevenlabs"
+      ],
+      "default": "elevenlabs"
+    },
+    "provider_voice_id": {
+      "type": "string",
+      "description": "The provider's persistent voice id"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "imported",
+        "created"
+      ],
+      "description": "imported = existing provider voice; created = cloned here from authorized recordings"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ready",
+        "pending_verification",
+        "unavailable"
+      ],
+      "default": "ready",
+      "description": "Only ready voices can speak; nothing is ever substituted for the others"
+    },
+    "status_detail": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "preview_url": {
+      "type": "string"
+    },
+    "labels": {
+      "type": "object"
+    },
+    "sample_uris": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Private reference recordings used to create the voice"
+    },
+    "consent": {
+      "type": "object",
+      "description": "{confirmed, statement, by, at} for voices created from recordings"
+    },
+    "last_checked": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "provider_voice_id"
+  ]
+}
