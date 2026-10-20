@@ -5,13 +5,16 @@ import Convergence from '@/pages/Convergence';
 import RealmHUD from '@/components/realm/RealmHUD';
 import { GEN_TOOLS } from '@/components/realm/bubble/tools';
 import { generatedDistrict } from '@/game/generated';
+import { loadStageAssets } from '@/game/generated/stageAssets';
 import { captureThumb } from '@/components/creator/thumb';
 import ConstructionBanner from '@/components/creator/ConstructionBanner';
 
 // An AI-generated stage, rebuilt from its saved blueprint (no AI call) in the shared stage engine.
 export default function GeneratedStage() {
   const { id } = useParams(), [sp] = useSearchParams(), latest = sp.get('latest'), preview = sp.get('preview');
-  const [rec, setRec] = useState(null), [err, setErr] = useState('');
+  const [rec, setRec] = useState(null), [err, setErr] = useState(''), [assets, setAssets] = useState(null);
+  // Library models / PBR texture sets bound for Stage Creator; the stage still builds if the library is unreachable.
+  useEffect(() => { loadStageAssets().then(setAssets).catch((e) => { console.warn('Stage assets unavailable:', e.message); setAssets({}); }); }, []);
   useEffect(() => {
     setRec(null); setErr('');
     (async () => {
@@ -21,7 +24,7 @@ export default function GeneratedStage() {
       setRec(r);
     })().catch((e) => setErr(e.message));
   }, [id, latest, preview]);
-  const district = useMemo(() => rec && generatedDistrict(rec), [rec]);
+  const district = useMemo(() => rec && assets && generatedDistrict({ ...rec, assets }), [rec, assets]);
   if (err) return <div className="fixed inset-0 flex flex-col items-center justify-center gap-3 bg-background text-sm"><p>{err}</p><Link to="/stages" className="text-primary">Back to Stages</Link></div>;
   if (!district) return <div className="fixed inset-0 flex items-center justify-center bg-background text-sm text-muted-foreground">Loading stage blueprint…</div>;
   return <Convergence key={`${rec.id}${rec.preview ? '-p' : ''}-${rec.updated_date}`} district={district} title={rec.spec.name} customUI overlay={(p) => <Overlay {...p} rec={rec} onRefresh={setRec} />} />;

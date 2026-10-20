@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { T } from '../realm/textures';
 import { styleOf } from './styles';
+import { pbrMaterial } from '../realm/pbr';
 
 // Material inventory (matches the server capability registry). A material = procedural texture + PBR values.
 // [texture, colour over texture, flat colour, roughness, metalness, metres per texture repeat, extras]
@@ -52,12 +53,19 @@ const sat = (c, k) => { if (k === 1) return c; const h = {}; c.getHSL(h); return
 
 // One shared material per (name, tint, finish) for a style. Returns { m, tile }.
 // fin = the blueprint object; its optional rough / metal (0-1) override the material's own PBR finish.
-export function genMaterials(styleKey) {
+// textures: Asset Library PBR sets by material name; a bound set replaces the procedural texture (geometry UVs are
+// in metres / tile, so the set's tile_m sets its real-world scale).
+export function genMaterials(styleKey, textures = {}) {
   const S = styleOf(styleKey), cache = new Map();
   return (name, color, fin) => {
     const k = `${name}|${color || ''}|${fin?.rough ?? ''}|${fin?.metal ?? ''}`;
     if (cache.has(k)) return cache.get(k);
     const [tex, mul, flat, r0, m0, tile, x = {}] = MAT_DEF[name] || MAT_DEF.concrete;
+    const set = textures[name];
+    if (set) {
+      const extra = x.transparent ? { transparent: true, opacity: x.opacity, depthWrite: false } : undefined, r = { m: pbrMaterial(set, { color, extra }), tile: set.tile_m || tile };
+      cache.set(k, r); return r;
+    }
     const rough = fin?.rough ?? r0, metal = fin?.metal ?? m0;
     const useTex = S.tex && tex;
     const c = sat(new THREE.Color(color || (useTex ? mul || flat : flat)), S.sat);

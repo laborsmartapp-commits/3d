@@ -50,6 +50,19 @@ export default async function (req) {
     const job = body.job_id ? await Jobs.get(body.job_id) : null;
     if (!job || job.created_by_id !== user.id) return Response.json({ error: 'Construction job not found' }, { status: 404 });
     if (body.action === 'get') return Response.json({ job, stage: await Stages.get(job.stage_id) });
+    // Repair: the deterministic blueprint repairs (no AI) re-applied to a finished stage, e.g. after a new repair
+    // rule was added. Everything already built keeps its id; only repaired pieces change or are added.
+    if (body.action === 'repair') {
+      if (job.status === 'running') return Response.json({ error: 'Construction is still running' }, { status: 409 });
+      const st = await Stages.get(job.stage_id), spec = st.spec, fix = repairSpec(spec);
+      if (!fix.notes.length && !fix.dropped.length) return Response.json({ notes: [], counts: { furnishings: spec.furnishings.length } });
+      const final = finalChecks(spec);
+      await Stages.update(st.id, { spec, report: { ...st.report, repairs: [...(st.report?.repairs || []), ...fix.notes], dropped: [...(st.report?.dropped || []), ...fix.dropped], final } });
+      const back = await Stages.get(st.id), same = JSON.stringify(back.spec) === JSON.stringify(spec);
+      final.checks.push({ id: 'persistence', label: 'Stage saved and re-read', status: same ? 'pass' : 'fail', detail: same ? 'Re-read from the database unchanged' : 'The saved copy differs from the repaired blueprint' });
+      await Stages.update(st.id, { report: { ...back.report, final } });
+      return Response.json({ notes: fix.notes, dropped: fix.dropped, final: final.checks.map((c) => `${c.status} ${c.label}`), counts: { furnishings: spec.furnishings.length } });
+    }
     // Restore: furnishings an earlier operation could not build (e.g. a catalog piece listed under vegetation)
     // are re-requested by small new operations for the same rooms, then the stage is re-validated. Nothing
     // that was already built is regenerated.

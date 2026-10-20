@@ -32,8 +32,32 @@ function doorZones(walls) {
   return out;
 }
 
+// Dining sets: a dining table (catalog top 2.0 x 1.0 m x scale) gets a full chair arrangement along its long sides
+// (3 per side from 1.8 m, 2 from 1.2 m), matching the chairs already there (type, finish, colour, scale). Existing
+// chairs never move; a slot is skipped when a wall or another floor piece is in the way. Idempotent.
+function completeDining(spec, notes) {
+  for (const t of spec.furnishings.filter((p) => p.type === 'dining_table')) {
+    const s = t.scale || 1, ry = t.ry || 0, c = Math.cos(ry), sn = Math.sin(ry), len = 2 * s;
+    const chairs = () => spec.furnishings.filter((p) => p.type === 'dining_chair');
+    const had = chairs().filter((p) => Math.hypot(p.x - t.x, p.z - t.z) < 1.6 * s), ref = had[0] || {};
+    const offs = len >= 1.8 ? [-0.7, 0, 0.7] : len >= 1.2 ? [-0.45, 0.45] : [0];
+    let n = 0;
+    for (const side of [1, -1]) for (const a of offs) {
+      const lx = a * s, lz = side * s, x = r2(t.x + lx * c + lz * sn), z = r2(t.z - lx * sn + lz * c);
+      if (chairs().some((p) => Math.hypot(p.x - x, p.z - z) < 0.35)) continue;
+      if (spec.walls.some((w) => segDist(w, x, z) < w.t / 2 + 0.35)) continue;
+      if (spec.furnishings.some((p) => p !== t && (p.y == null || p.y < 0.3) && !/^rug|dining_chair/.test(p.type) && Math.hypot(p.x - x, p.z - z) < 0.55)) continue;
+      const o = { id: `${t.id}.c${n + 1}`, type: 'dining_chair', x, z, ry: r2(ry + (side > 0 ? 0 : Math.PI)), scale: ref.scale || 1 };
+      if (ref.color) o.color = ref.color; if (ref.finish) o.finish = ref.finish;
+      spec.furnishings.push(o); n++;
+    }
+    if (n) notes.push(`Dining table ${t.id} had ${had.length} chair(s): added ${n} for a full arrangement`);
+  }
+}
+
 export function repairSpec(spec) {
   const notes = [], dropped = [], doors = doorZones(spec.walls), walls = spec.walls.map(wallBox);
+  completeDining(spec, notes);
   const floorPieces = spec.furnishings.filter((p) => p.y == null || p.y < 0.3);
   const onFloor = (x, z) => !spec.floors.length || spec.floors.some((f) => Math.abs(x - f.x) <= f.w / 2 && Math.abs(z - f.z) <= f.d / 2);
   for (const e of [...spec.elements]) {

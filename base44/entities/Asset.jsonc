@@ -86,6 +86,32 @@
       "items": {
         "type": "string"
       }
+    },
+    "stage_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Stage Creator: catalog furnishing types this object model stands in for (e.g. sofa_sectional, grand_piano)"
+    },
+    "semantic_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Stage Creator: style / property / usage tags (e.g. velvet, mid-century, hero, luxury)"
+    },
+    "material_kind": {
+      "type": "string",
+      "description": "Stage Creator: material or furniture finish this texture set realises (e.g. walnut_wood, marble, velvet)"
+    },
+    "pbr_maps": {
+      "type": "object",
+      "description": "PBR texture set: {base_color, roughness, metallic, normal, ao, height} private file uris (file_uri is the base colour when base_color is absent)"
+    },
+    "tile_m": {
+      "type": "number",
+      "description": "Real-world size of one texture repeat in metres"
     }
   },
   "required": [

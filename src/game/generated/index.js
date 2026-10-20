@@ -21,6 +21,8 @@ import { buildNature } from './nature';
 import { buildVfx } from './vfx';
 import { buildGround, buildMarks } from './ground';
 import { StageProbe } from './probe';
+import { seatFires, liftLights } from './stageFixups';
+import { assetCoverage } from './stageAssets';
 
 // A saved GeneratedStage record as a stage on the shared street-level engine. Stage id is per stage
 // family (all versions share scenes/takes); the editable set is stored per version.
@@ -37,10 +39,12 @@ export function generatedDistrict(rec) {
 
 function buildGenerated(e, spec, L, rec) {
   layoutHook.cur = L; walkables.length = 0;
-  const S = styleOf(spec.style), mat = genMaterials(spec.style), P = e.prof, sync = (n, fn) => (P ? P.sync(n, fn) : fn());
-  const R = { e, M: getMaterials(), cut: [], floorMeshes: [], houseFloors: [], wallMeshes: [], doors: [], lightSources: [], rooms: [], realmId: rec.preview ? `gen-preview-${rec.id}` : `gen-${rec.id}`, baseName: `${spec.name} v${rec.version || 1}` };
+  // rec.assets: Asset Library models / PBR texture sets bound to catalog types and materials (stageAssets.js).
+  const A = rec.assets || {}, S = styleOf(spec.style), mat = genMaterials(spec.style, A.textures), P = e.prof, sync = (n, fn) => (P ? P.sync(n, fn) : fn());
+  const R = { e, M: getMaterials(), cut: [], floorMeshes: [], houseFloors: [], wallMeshes: [], doors: [], lightSources: [], rooms: [], texSets: A.textures || {}, realmId: rec.preview ? `gen-preview-${rec.id}` : `gen-${rec.id}`, baseName: `${spec.name} v${rec.version || 1}` };
   R.emit = () => R.ctl?.emit();
-  R.baseSet = () => ({ objects: spec.furnishings.map((f) => toObject(f, L)), environment: { outdoor: 'auto' }, view: {} });
+  R.baseSet = () => ({ objects: spec.furnishings.map((f) => toObject(f, L, A.models)), environment: { outdoor: 'auto' }, view: {} });
+  R.assets = e.genAssets = assetCoverage(spec, A);
   if (e.sky) e.sky.visible = false;
   const c = {
     e, R, S, L, spec, mat, C: e.colliders, floorMg: new Merge(), wallMg: new Merge(), mg: new Merge(), inst: new Inst(), roofs: [], jets: [], extraNature: [],
@@ -64,7 +68,7 @@ function buildGenerated(e, spec, L, rec) {
   sync('generated: nature (instanced)', () => buildNature(c, [...spec.nature, ...c.extraNature]));
   let vfxTick;
   sync('generated: vfx + lights + marks', () => {
-    vfxTick = buildVfx(c, [...spec.vfx, ...c.jets.map((j, i) => ({ id: `jet${i}`, type: 'water_jet', x: j.x, y: j.y, z: j.z, scale: j.s, count: 8 }))]);
+    vfxTick = buildVfx(c, [...seatFires(spec.vfx, spec.furnishings, L), ...c.jets.map((j, i) => ({ id: `jet${i}`, type: 'water_jet', x: j.x, y: j.y, z: j.z, scale: j.s, count: 8 }))]);
     for (const l of spec.lights) R.lightSources.push({ kind: l.type === 'interior' ? 'room' : l.type === 'exterior' ? 'street' : 'always', room: 'gen', x: l.x, y: l.y, z: l.z, i: l.intensity, d: l.range, c: l.color });
     buildMarks(c, spec.marks);
   });
@@ -74,6 +78,7 @@ function buildGenerated(e, spec, L, rec) {
   });
   const snap = e.renderBundle?.take?.world_snapshot;
   if (snap?.objects) R.store.applySnapshot(snap); else R.store.init();
+  R.lightFixes = liftLights(R, spec);
   const sp = spec.spawn || { x: 0, z: 0 }, probe = new StageProbe(e, sp.x, L.baseGroundAt(sp.x, sp.z, 0) + 1.6, sp.z, c.roofs);
   R.probe = probe; e.genProbe = probe;
   let last = null;
@@ -87,13 +92,16 @@ function buildGenerated(e, spec, L, rec) {
   };
 }
 
-// Blueprint furnishing -> editable set object (stable id = blueprint id).
-function toObject(f, L) {
+// Blueprint furnishing -> editable set object (stable id = blueprint id). A library model bound to the piece's
+// type becomes its visual upgrade (same id, transform, collision and anchors; see SetScene.buildUpgrade).
+function toObject(f, L, models = {}) {
   const place = CATALOG[f.type]?.place || 'floor';
   const y = place === 'floor' ? L.baseGroundAt(f.x, f.z, f.y ?? 0) : f.y ?? 0.76;
   const o = { id: f.id, key: f.id, type: f.type, x: f.x, y, z: f.z, rx: 0, ry: f.ry || 0, rz: 0, sx: f.scale || 1, sy: f.scale || 1, sz: f.scale || 1 };
   if (f.color) o.color = f.color;
   if (f.finish) o.finish = f.finish;
+  const mdl = models[f.type];
+  if (mdl) Object.assign(o, { model_asset_id: mdl.id, model_uri: mdl.uri, model_name: mdl.name });
   return o;
 }
 

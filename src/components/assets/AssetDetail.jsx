@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { fmtSize } from '@/lib/assets';
 import AssetPreview from './AssetPreview';
 import AttachToProduction from './AttachToProduction';
+import StageUse from './StageUse';
 
 const btn = 'rounded-lg px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10';
 
@@ -34,6 +35,7 @@ export default function AssetDetail({ asset, onClose, onChanged, onNewVersion })
         <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">{rows.map(([k, v]) => <React.Fragment key={k}><dt className="text-quiet">{k}</dt><dd className="capitalize-first">{v}</dd></React.Fragment>)}</dl>
         <p className="text-xs text-muted-foreground">Used by: {usedBy.map((p) => p.title).join(', ') || 'no productions'}</p>
         <AttachToProduction asset={asset} onDone={() => base44.entities.Production.filter({ asset_ids: asset.id }, { limit: 20, fields: ['title'] }).then((r) => setUsedBy(r.items))} />
+        <StageUse asset={asset} onChanged={onChanged} />
         {versions.length > 1 && <p className="text-xs text-muted-foreground">Versions: {versions.map((v) => `v${v.version}`).join(', ')}</p>}
         <div className="flex flex-wrap gap-2">
           <button className={btn} onClick={rename}>Rename</button><button className={btn} onClick={move}>Move to folder</button>
