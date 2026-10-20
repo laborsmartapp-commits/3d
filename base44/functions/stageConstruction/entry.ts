@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { STYLES } from '../../shared/stageCapabilities.ts';
 import { validateSpec } from '../../shared/stageValidate.ts';
 import { MODELS, short } from '../../shared/stagePrompt.ts';
-import { initialOps, planRest, buildPrompt, schemaFor, applyOp, opResult, splitOp, oversized, piecesSplit } from '../../shared/stagePipeline.ts';
+import { initialOps, planRest, buildPrompt, schemaFor, applyOp, opResult, splitOp, oversized, piecesSplit, measuredRate } from '../../shared/stagePipeline.ts';
 import { finalChecks } from '../../shared/stageNav.ts';
 
 // Resumable progressive stage construction. "start" saves the brief as a job (no AI call); every "step" runs
@@ -52,7 +52,8 @@ export default async function (req) {
     const ops = job.ops;
     let o = ops.find((x) => x.status !== 'done' && x.status !== 'split');
     if (!o) return Response.json({ job });
-    if (o.status === 'pending' && oversized(o)) { const parts = piecesSplit(o); ops.splice(ops.indexOf(o), 1, ...parts); o = parts[0]; }
+    const rate = measuredRate(ops, o);
+    if (o.status === 'pending' && oversized(o, rate)) { const parts = piecesSplit(o, rate); ops.splice(ops.indexOf(o), 1, ...parts); o = parts[0]; }
     if (o.status === 'running' && Date.now() - Date.parse(o.started_at) < LEASE_MS) return Response.json({ job, busy: true });
     if (o.status === 'failed' && !body.retry) return Response.json({ job, needs_retry: true });
     Object.assign(o, { status: 'running', started_at: now(), attempts: (o.attempts || 0) + 1, error: '' });
@@ -93,7 +94,7 @@ export default async function (req) {
       Object.assign(o, { status: 'failed', finished_at: now(), seconds: Math.round((Date.now() - t0) / 100) / 10, error: short(String(err?.message || err), 300) });
       if (o.kind !== 'validate') Object.assign(m, { ai_calls: m.ai_calls + 1, ai_seconds: m.ai_seconds + o.seconds });
       // A timed-out batch is split once into two smaller batches (new keys); nothing already built is touched.
-      if (o.kind === 'rows' && !o.split_from && o.seconds >= 100) {
+      if ((o.kind === 'rows' || o.kind === 'surfaces') && o.key.length <= 4 && o.seconds >= 100) {
         const parts = splitOp(o, 2, `timed out after ${o.seconds} s`);
         ops.splice(ops.indexOf(o), 1, { ...o, status: 'split', replaced_by: parts.map((p) => p.key), requested: 0, constructed: 0 }, ...parts);
       } else { job.status = 'failed'; job.error = `${o.label}: ${o.error}`; }

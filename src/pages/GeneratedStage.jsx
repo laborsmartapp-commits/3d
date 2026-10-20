@@ -6,6 +6,7 @@ import RealmHUD from '@/components/realm/RealmHUD';
 import { GEN_TOOLS } from '@/components/realm/bubble/tools';
 import { generatedDistrict } from '@/game/generated';
 import { captureThumb } from '@/components/creator/thumb';
+import ConstructionBanner from '@/components/creator/ConstructionBanner';
 
 // An AI-generated stage, rebuilt from its saved blueprint (no AI call) in the shared stage engine.
 export default function GeneratedStage() {
@@ -23,19 +24,20 @@ export default function GeneratedStage() {
   const district = useMemo(() => rec && generatedDistrict(rec), [rec]);
   if (err) return <div className="fixed inset-0 flex flex-col items-center justify-center gap-3 bg-background text-sm"><p>{err}</p><Link to="/stages" className="text-primary">Back to Stages</Link></div>;
   if (!district) return <div className="fixed inset-0 flex items-center justify-center bg-background text-sm text-muted-foreground">Loading stage blueprint…</div>;
-  return <Convergence key={`${rec.id}${rec.preview ? '-p' : ''}`} district={district} title={rec.spec.name} customUI overlay={(p) => <Overlay {...p} rec={rec} />} />;
+  return <Convergence key={`${rec.id}${rec.preview ? '-p' : ''}-${rec.updated_date}`} district={district} title={rec.spec.name} customUI overlay={(p) => <Overlay {...p} rec={rec} onRefresh={setRec} />} />;
 }
 
-function Overlay({ engine, s, studioOpen, setStudioOpen, rec }) {
-  // First visit: capture a library thumbnail once the stage has settled.
+function Overlay({ engine, s, studioOpen, setStudioOpen, rec, onRefresh }) {
+  // First visit: capture a library thumbnail once the stage has settled (after construction finishes).
   useEffect(() => {
-    if (rec.thumbnail_uri || rec.preview) return;
+    if (rec.thumbnail_uri || rec.preview || rec.status === 'building') return;
     const t = setTimeout(() => captureThumb(engine, rec).catch(() => {}), 3500);
     return () => clearTimeout(t);
   }, [engine, rec]);
   return (
     <>
       <RealmHUD engine={engine} s={s} studioOpen={studioOpen} setStudioOpen={setStudioOpen} tools={GEN_TOOLS} />
+      {!rec.preview && <ConstructionBanner rec={rec} onRefresh={onRefresh} />}
       {rec.preview && <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 glass rounded-full px-4 py-1.5 text-xs text-ember">Refinement preview: commit or discard in Stage Creator</div>}
       <Link to="/stages" className="absolute bottom-4 left-4 z-20 glass rounded-full px-3 py-1.5 text-xs hover:bg-card/80">← Stages</Link>
     </>

@@ -73,18 +73,21 @@ export function buildPrompt(spec, job, o) {
   const st = job.settings || {}, phase = o.kind === 'layout' ? 'layout' : o.phase === 'final' ? 'final' : o.phase;
   const doc = capabilityDoc(), reg = Object.fromEntries(DOC[phase].map((k) => [k, doc[k]]));
   const zs = o.zones ? (o.zones.includes('*') ? [{ id: '*' }] : spec.zones.filter((z) => o.zones.includes(z.id))) : null;
+  const bk = o.split_from || o.key; // split parts see exactly what their parent operation would see
   const ctx = [`name: ${spec.name}; summary: ${spec.summary || '-'}; environment: ${spec.environment}; bounds ${spec.bounds.w} x ${spec.bounds.d} m; palette ${(spec.palette || []).join(' ') || '-'}; spawn ${spec.spawn?.x},${spec.spawn?.z}`];
   const add = (sec, list) => { if (list?.length) ctx.push(`${sec} (${head(sec)}):\n${toRows(sec, list).join('\n')}`); };
-  if (o.key !== 'a1') { add('zones', zs && !zs.some((z) => z.id === '*') ? zs : spec.zones); if (job.program?.length) ctx.push(`program (zone|role|major|decor):\n${toRows('program', job.program).join('\n')}`); }
+  if (bk !== 'a1') { add('zones', zs && !zs.some((z) => z.id === '*') ? zs : spec.zones); if (job.program?.length) ctx.push(`program (zone|role|major|decor):\n${toRows('program', job.program).join('\n')}`); }
   const near = zs ? inZones(zs) : () => true;
   const walls = o.sections.includes('walls');
-  if (walls || o.key === 'a4' || o.zones || o.key === 'e1') { add('floors', spec.floors); add('roofs', walls || o.key === 'a4' ? spec.roofs : []); }
-  if (walls || o.key === 'a4' || o.zones || o.key === 'e1') { add('walls', spec.walls.filter(near)); add('elements', spec.elements.filter(near)); }
-  if (o.zones || o.key === 'e1') { add('furnishings', spec.furnishings.filter(near)); add('lights', spec.lights.filter(near)); }
+  if (walls || bk === 'a4' || o.zones || bk === 'e1') { add('floors', spec.floors); add('roofs', walls || bk === 'a4' ? spec.roofs : []); }
+  if (walls || bk === 'a4' || o.zones || bk === 'e1') { add('walls', spec.walls.filter(near)); add('elements', spec.elements.filter(near)); add('buildings', bk === 'a4' ? spec.buildings : []); }
+  if (o.zones || bk === 'e1') { add('furnishings', spec.furnishings.filter(near)); add('lights', spec.lights.filter(near)); }
+  if (bk === 'e1') { add('cameras', spec.cameras.filter((c) => String(c.id).startsWith('e1'))); add('vfx', spec.vfx); add('marks', spec.marks.filter((m) => String(m.id).startsWith('e1'))); }
   if (o.kind === 'surfaces') {
     const list = o.targets.flatMap((sec) => spec[sec].map((x) => `${x.id}|${sec}${x.type ? `:${x.type}` : ''}|${x.material || x.facade || ''}|${x.color || ''}`));
     if (o.targets.includes('floors')) list.unshift(`ground|ground|${spec.ground.material}|${spec.ground.color || ''}`);
-    ctx.push(`objects to finish (id|kind|current material|current color):\n${list.join('\n')}`);
+    const mineList = o.part ? list.filter((_, j) => j % o.part.n === o.part.i - 1) : list;
+    ctx.push(`objects to finish in this operation (id|kind|current material|current color):\n${mineList.join('\n')}`);
   }
   const prog = (zs || []).map((z) => job.program?.find((p) => p.zone === z.id)).filter(Boolean);
   const names = zs ? (zs.some((z) => z.id === '*') ? 'the whole stage' : zs.map((z) => `${z.name} (${z.id})`).join(', ')) : '';
@@ -92,7 +95,7 @@ export function buildPrompt(spec, job, o) {
   const task = ['a1', 'a2', 'a3', 'a4', 'e1'].includes(tk) ? TASK[tk]
     : o.phase === 'furniture' ? TASK.b(names, prog.map((p) => p.major).filter(Boolean).join('; ')) : o.phase === 'decor' ? TASK.d(names, prog.map((p) => p.decor).filter(Boolean).join('; ')) : TASK.c(o.targets.includes('furnishings'));
   const caps = Object.entries(o.caps).map(([k, v]) => `${k} <= ${v}`).join(', ');
-  const sec = o.sections[0], part = o.part ? (PART[sec] ? ` This part: ${PART[sec][o.part.i - 1]}.` : ` This is part ${o.part.i} of ${o.part.n} of this batch: ${o.part.i === 1 ? 'place the most important pieces first (the main group and focal point)' : 'complete it with the remaining pieces, complementing what earlier parts already placed (listed above)'}.`) : '';
+  const sec = o.sections[0], part = o.kind === 'surfaces' ? '' : o.part ? (PART[sec] ? ` This part: ${PART[sec][o.part.i - 1]}.` : ` This is part ${o.part.i} of ${o.part.n} of this batch: ${o.part.i === 1 ? 'place the most important pieces first (the main group and focal point)' : 'complete it with the remaining pieces, complementing what earlier parts already placed (listed above)'}.`) : '';
   return `${rules(spec.style)}
 
 CAPABILITY REGISTRY (subset for this operation):
@@ -100,7 +103,7 @@ ${JSON.stringify(reg)}
 
 DIRECTOR'S STRUCTURED BRIEF:
 ${settingsText(st)}${job.prompt ? `SPECIAL CREATIVE DETAILS: "${job.prompt}"\n` : ''}${job.variation_of ? `This is a VARIATION of an existing stage ("${job.variation_of}"): same brief, clearly different layout and detailing.\n` : ''}
-${o.key === 'a1' ? '' : `STAGE BUILT SO FAR (keep it; do not repeat it):\n${ctx.join('\n')}\n`}
+${bk === 'a1' ? '' : `STAGE BUILT SO FAR (keep it; do not repeat it):\n${ctx.join('\n')}\n`}
 This stage is constructed in small operations; this is "${o.label}". ${task}${part}
 Limits for this operation: ${caps}. Keep the whole answer under ${OUTPUT_CHAR_LIMIT} characters: spend detail on design decisions, not on repetition. "substitutions" = one plain sentence per requested thing the registry cannot build (empty if none).
 
@@ -112,14 +115,31 @@ ${rowRule(o.kind === 'surfaces' ? ['surfaces'] : o.sections)}`;
 export function splitOp(o, n = 2, why = '') {
   const zs = o.zones?.length > 1 ? o.zones : null, k = zs ? Math.min(n, zs.length) : n;
   return Array.from({ length: k }, (_, i) => ({
-    ...o, key: `${o.key}${'abcdefgh'[i]}`, label: `${o.label} (${i + 1}/${k})`, status: 'pending', attempts: 0, error: '', split_from: o.key, split_reason: why,
+    ...o, key: `${o.key}${'abcdefgh'[i]}`, label: `${o.label} (${i + 1}/${k})`, status: 'pending', attempts: 0, error: '', split_from: o.split_from || o.key, split_reason: why,
     zones: zs ? zs.filter((_, j) => j % k === i) : o.zones,
     caps: Object.fromEntries(Object.entries(o.caps).map(([s, v]) => [s, Math.max(1, Math.ceil(v / k))])),
     part: zs ? o.part : { i: i + 1, n: k },
   }));
 }
-export const oversized = (o) => o.kind === 'rows' && !o.split_from && (o.caps.furnishings || 0) > MAX_PIECES;
-export const piecesSplit = (o) => splitOp(o, Math.ceil(o.caps.furnishings / MAX_PIECES), `more than ${MAX_PIECES} pieces in one batch`);
+// Pre-emptive sizing from measured timings: placed objects cost ~4.1-5 s each (27 walls 111.9 s, 20 features 100.2 s),
+// finish rows ~1.2 s each (12 slabs 14 s), plus ~8 s fixed overhead. Every operation is kept under OP_BUDGET_S,
+// well clear of the 120 s cut-off, by splitting it before it runs.
+const SEC_PER_ROW = { surfaces: 1.3 }, PLACED_S = 4.8, OVERHEAD_S = 8;
+export const OP_BUDGET_S = 65;
+// Self-calibrating: once operations of a phase have run, their measured seconds per row replace the default
+// (furniture measured ~8.3 s per piece: 6 pieces in 57.6 s), so later batches are sized from real timings.
+export function measuredRate(ops, o) {
+  const done = ops.filter((x) => x.status === 'done' && x.phase === o.phase && x.kind === o.kind && x.requested > 0 && x.seconds);
+  const rows = done.reduce((n, x) => n + x.requested, 0);
+  return rows ? done.reduce((n, x) => n + Math.max(0, x.seconds - OVERHEAD_S), 0) / rows : null;
+}
+export const estimateSeconds = (o, rate = null) => OVERHEAD_S + Object.entries(o.caps || {}).reduce((n, [s, v]) => n + v * Math.max(SEC_PER_ROW[s] ?? PLACED_S, rate ?? 0), 0);
+// Parent batches split at the budget; already-split parts split again only if they would approach the cut-off.
+export const oversized = (o, rate) => (o.kind === 'rows' || o.kind === 'surfaces') && estimateSeconds(o, rate) > (o.split_from ? 90 : OP_BUDGET_S) && Math.max(...Object.values(o.caps)) > 1;
+export const piecesSplit = (o, rate) => {
+  const est = Math.round(estimateSeconds(o, rate));
+  return splitOp(o, Math.ceil((est - OVERHEAD_S) / (OP_BUDGET_S - OVERHEAD_S)), `estimated ${est} s from measured timings (${rate ? `${rate.toFixed(1)} s per row measured in this phase` : 'default rate'}), over the ${OP_BUDGET_S} s per-operation budget`).map((p, i) => ({ ...p, est_seconds: Math.round(estimateSeconds(p, rate)), replace: i === 0 ? p.replace : undefined }));
+};
 
 // Walls must reach the ceiling above them (a room's flat roof sits at its ceiling height).
 export function fitWalls(spec) {

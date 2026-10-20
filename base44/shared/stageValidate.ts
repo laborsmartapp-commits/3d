@@ -62,6 +62,9 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
     const o = { id: id('buildings', b.id, i), x: inX(b.x), z: inZ(b.z), w: clamp(num(b.w, 10), 2, 80), d: clamp(num(b.d, 10), 2, 80), h: clamp(num(b.h, 12), ...LIMITS.buildingH), ry: num(b.ry, 0), storeys: clamp(Math.round(num(b.storeys, 3)), 1, 30), facade: mat(b.facade, 'brick', `building ${b.id}`), color: hex(b.color), trim_color: hex(b.trim_color), roof: ['flat', 'parapet', 'gable'].includes(b.roof) ? b.roof : 'parapet', windows: ['grid', 'storefront', 'none'].includes(b.windows) ? b.windows : 'grid', awning: hex(b.awning), sign: str(b.sign, 24) };
     const hit = blds.find((q) => overlap(q, o) > 0.3);
     if (hit) { dropped.push(`building ${o.id} overlapped ${hit.id}`); continue; }
+    // A solid building may never stand on a walkable floor slab (it would fill the rooms).
+    const slab = (out.floors || []).find((f) => overlap(f, o) > 0.02);
+    if (slab) { dropped.push(`building ${o.id} stood on floor ${slab.id} inside the rooms`); continue; }
     blds.push(o);
   }
   out.buildings = cap('buildings', blds, B.buildings);
