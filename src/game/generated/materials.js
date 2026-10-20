@@ -50,13 +50,15 @@ export const MAT_DEF = {
 
 const sat = (c, k) => { if (k === 1) return c; const h = {}; c.getHSL(h); return c.setHSL(h.h, Math.min(1, h.s * k), h.l); };
 
-// One shared material per (name, tint) for a style. Returns { m, tile }.
+// One shared material per (name, tint, finish) for a style. Returns { m, tile }.
+// fin = the blueprint object; its optional rough / metal (0-1) override the material's own PBR finish.
 export function genMaterials(styleKey) {
   const S = styleOf(styleKey), cache = new Map();
-  return (name, color) => {
-    const k = `${name}|${color || ''}`;
+  return (name, color, fin) => {
+    const k = `${name}|${color || ''}|${fin?.rough ?? ''}|${fin?.metal ?? ''}`;
     if (cache.has(k)) return cache.get(k);
-    const [tex, mul, flat, rough, metal, tile, x = {}] = MAT_DEF[name] || MAT_DEF.concrete;
+    const [tex, mul, flat, r0, m0, tile, x = {}] = MAT_DEF[name] || MAT_DEF.concrete;
+    const rough = fin?.rough ?? r0, metal = fin?.metal ?? m0;
     const useTex = S.tex && tex;
     const c = sat(new THREE.Color(color || (useTex ? mul || flat : flat)), S.sat);
     const o = { color: c, roughness: Math.min(1, Math.max(S.minRough, rough * S.rough)), metalness: S.flat ? metal * 0.4 : metal, flatShading: S.flat, envMapIntensity: (x.env || 1) * S.env };

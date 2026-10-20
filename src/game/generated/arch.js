@@ -4,7 +4,7 @@ import { tbox, bbox, Merge } from './merge';
 // Walkable floor slabs. Upper storeys are thicker so the ceiling below reads as solid.
 export function buildFloors(c, floors) {
   for (const f of floors) {
-    const { m, tile } = c.mat(f.material, f.color), th = f.y > 0.3 ? 0.25 : 0.12;
+    const { m, tile } = c.mat(f.material, f.color, f), th = f.y > 0.3 ? 0.25 : 0.12;
     c.floorMg.add(m, tbox(f.w, th, f.d, tile), f.x, f.y - th / 2 + 0.012, f.z);
     if (c.S.trims && f.y > 0.3) c.mg.add(c.trim, tbox(f.w + 0.06, 0.08, f.d + 0.06, 1), f.x, f.y - th + 0.04, f.z); // slab edge band
   }
@@ -13,7 +13,7 @@ export function buildFloors(c, floors) {
 // Straight wall with real door / opening gaps (walkable), windows and glass (blocked), trims by style.
 export function buildWall(c, w) {
   const S = c.S, dx = w.x2 - w.x1, dz = w.z2 - w.z1, L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, ry = Math.atan2(-dz, dx);
-  const { m, tile } = c.mat(w.material, w.color), t = w.t, y0 = w.y, H = w.h, r = S.bevel;
+  const { m, tile } = c.mat(w.material, w.color, w), t = w.t, y0 = w.y, H = w.h, r = S.bevel;
   const at = (u) => [w.x1 + ux * u, w.z1 + uz * u];
   const box = (mat, u, y, len, hh, dd, rad = 0) => { const [x, z] = at(u); c.mg.add(mat, rad ? bbox(len, hh, dd, rad) : tbox(len, hh, dd, 1), x, y, z, ry); };
   const piece = (u0, u1, b0, b1, solid) => {
@@ -55,7 +55,7 @@ export function buildWall(c, w) {
 
 // Roofs/ceilings: each is its own node so it can hide while the camera looks down into the room.
 export function buildRoof(c, r) {
-  const S = c.S, mg = new Merge(), g = new THREE.Group(), { m, tile } = c.mat(r.material, r.color);
+  const S = c.S, mg = new Merge(), g = new THREE.Group(), { m, tile } = c.mat(r.material, r.color, r);
   if (r.kind === 'flat') {
     mg.add(m, tbox(r.w, 0.2, r.d, tile), r.x, r.y + 0.1, r.z);
     if (S.trims) mg.add(c.trim, tbox(r.w + 0.12, 0.12, r.d + 0.12, 1), r.x, r.y + 0.26, r.z); // fascia / coping
@@ -81,7 +81,7 @@ export function buildRoof(c, r) {
 
 // Walkable stairs (solid treads stacked from the bottom) with handrails when the style has trims.
 export function buildStairs(c, s) {
-  const S = c.S, { m } = c.mat(s.material), total = s.to_y - s.from_y, n = Math.max(2, Math.ceil(Math.abs(total) / 0.18)), rise = total / n, tread = s.run / n;
+  const S = c.S, { m } = c.mat(s.material, null, s), total = s.to_y - s.from_y, n = Math.max(2, Math.ceil(Math.abs(total) / 0.18)), rise = total / n, tread = s.run / n;
   const sn = Math.sin(s.dir), cs = Math.cos(s.dir);
   for (let i = 0; i < n; i++) {
     const along = -s.run / 2 + tread * (i + 0.5), top = s.from_y + rise * (i + 1), hh = Math.max(0.05, top - s.from_y);

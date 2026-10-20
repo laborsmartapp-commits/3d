@@ -1,0 +1,63 @@
+{
+  "name": "StageGenJob",
+  "type": "object",
+  "properties": {
+    "stage_id": {
+      "type": "string",
+      "description": "GeneratedStage being constructed"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "running",
+        "failed",
+        "completed"
+      ],
+      "default": "running"
+    },
+    "model": {
+      "type": "string"
+    },
+    "quality": {
+      "type": "string"
+    },
+    "settings": {
+      "type": "object",
+      "description": "Original structured creation brief"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Special creative details"
+    },
+    "variation_of": {
+      "type": "string"
+    },
+    "program": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Room program from the layout operation"
+    },
+    "ops": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Construction operations: key, phase, label, status, attempts, timing, requested/constructed counts, not_built, substitutions, error"
+    },
+    "current": {
+      "type": "string"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "ai_calls, ai_seconds, in_chars, out_chars"
+    },
+    "error": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "stage_id"
+  ]
+}

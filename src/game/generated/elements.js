@@ -6,7 +6,7 @@ const line = (e) => { const dx = e.x2 - e.x1, dz = e.z2 - e.z1, L = Math.hypot(d
 // Procedural architectural / landscape elements from the capability registry.
 export function buildElement(c, e) {
   const S = c.S, mg = c.mg, I = c.inst, seg = S.seg, ry = e.ry || 0, cs = Math.cos(ry), sn = Math.sin(ry);
-  const M = (name, color) => c.mat(e.material || name, e.color || color);
+  const M = (name, color) => c.mat(e.material || name, e.color || color, e);
   const W = (lx, lz) => [e.x + lx * cs + lz * sn, e.z - lx * sn + lz * cs];
   const w = e.w || 2, d = e.d || 2;
   switch (e.type) {

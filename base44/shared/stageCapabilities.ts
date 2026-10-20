@@ -135,6 +135,7 @@ export function capabilityDoc() {
     scene_graph: 'Blueprint sections are built into: static merged architecture (floors, walls, roofs, stairs, buildings, elements), instanced nature, an editable Set (furnishings: each one selectable/movable/rotatable/recolourable in Set Edit), VFX, pooled practical lights, production cameras and floor marks.',
     styles: STYLES, materials: MATERIALS, builders: BUILDERS, elements: ELEMENTS, nature: NATURE, vfx: VFX, lights: LIGHTS,
     furnishings: FURNISHINGS, placement: PLACEMENT, budgets: BUDGETS, limits: LIMITS, not_supported: NOT_SUPPORTED,
+    finish_overrides: 'floors, walls, roofs, stairs and elements accept rough (0-1) and metal (0-1) to override the chosen material\'s roughness / metalness (e.g. honed vs polished stone, satin vs matte paint). Textures are procedural (albedo + bump from the same map); there are no image texture or normal-map uploads.',
     collision_and_navigation: 'Players stand on terrain, floors, stairs, platforms, bridges, sidewalks, paths and plazas. Walls, buildings, fences, hedges, columns, plinths and solid furnishings block movement. Leave 1.2 m+ clear walking lanes. Every room must be reachable from the spawn through door/opening gaps; upper storeys need stairs.',
   };
 }

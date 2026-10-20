@@ -21,7 +21,9 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
   const used = new Set();
   const id = (sec, v, i) => { let k = str(v, 40) || `${PREFIX[sec]}${i + 1}`; while (used.has(k)) k += '_'; used.add(k); return k; };
   const list = (sec) => (Array.isArray(s[sec]) ? s[sec] : []);
-  const cap = (sec, arr, n) => { if (arr.length > n) { dropped.push(`${arr.length - n} ${sec} over the ${target} performance budget`); return arr.slice(0, n); } return arr; };
+  const cap = (sec, arr, n) => { if (arr.length > n) { dropped.push(`${arr.length - n} ${sec} over the ${target} performance budget (${arr.slice(n, n + 12).map((o) => o.id).join(', ')})`); return arr.slice(0, n); } return arr; };
+  // Optional finish overrides on architecture: rough / metal 0-1 replace the material's own PBR values.
+  const fin = (o) => { const f = {}; for (const k of ['rough', 'metal']) if (o[k] != null && Number.isFinite(+o[k])) f[k] = clamp(+o[k], 0, 1); return f; };
 
   const out = {
     version: 1, name: str(s.name, 80) || 'Untitled Stage', summary: str(s.summary, 400), category: str(s.category, 40),
@@ -32,7 +34,7 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
   };
 
   out.zones = list('zones').slice(0, LIMITS.zones).map((z, i) => ({ id: id('zones', z.id, i), name: str(z.name, 40) || `Area ${i + 1}`, x: inX(z.x), z: inZ(z.z), w: clamp(num(z.w, 10), 1, W), d: clamp(num(z.d, 10), 1, D) }));
-  out.floors = cap('floors', list('floors').filter((f) => !far(f)).map((f, i) => ({ id: id('floors', f.id, i), x: inX(f.x), z: inZ(f.z), w: clamp(num(f.w, 4), 0.5, W), d: clamp(num(f.d, 4), 0.5, D), y: clamp(num(f.y, 0), ...LIMITS.floorY), material: mat(f.material, 'oak_wood', 'a floor'), color: hex(f.color) })), B.floors);
+  out.floors = cap('floors', list('floors').filter((f) => !far(f)).map((f, i) => ({ id: id('floors', f.id, i), x: inX(f.x), z: inZ(f.z), w: clamp(num(f.w, 4), 0.5, W), d: clamp(num(f.d, 4), 0.5, D), y: clamp(num(f.y, 0), ...LIMITS.floorY), material: mat(f.material, 'oak_wood', `floor ${f.id}`), color: hex(f.color), ...fin(f) })), B.floors);
   out.walls = cap('walls', list('walls').map((w, i) => {
     const x1 = inX(w.x1), z1 = inZ(w.z1), x2 = inX(w.x2), z2 = inZ(w.z2), L = Math.hypot(x2 - x1, z2 - z1);
     if (L < 0.3) return null;
@@ -44,37 +46,37 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
       const sill = kind === 'door' || kind === 'opening' ? 0 : clamp(num(o.sill, kind === 'glass' ? 0.1 : 0.9), 0, h - oh - 0.05);
       return { at: clamp(num(o.at, 0.5), (ow / 2 + 0.05) / L, 1 - (ow / 2 + 0.05) / L), w: r2(ow), kind, sill: r2(sill), h: r2(oh) };
     });
-    return { id: id('walls', w.id, i), x1, z1, x2, z2, y: clamp(num(w.y, 0), ...LIMITS.floorY), h, t: clamp(num(w.t, 0.2), 0.08, 0.6), material: mat(w.material, 'painted_wall', 'a wall'), color: hex(w.color), openings: ops };
+    return { id: id('walls', w.id, i), x1, z1, x2, z2, y: clamp(num(w.y, 0), ...LIMITS.floorY), h, t: clamp(num(w.t, 0.2), 0.08, 0.6), material: mat(w.material, 'painted_wall', `wall ${w.id}`), color: hex(w.color), ...fin(w), openings: ops };
   }).filter(Boolean), B.walls);
-  out.roofs = list('roofs').slice(0, 40).filter((r) => !far(r)).map((r, i) => ({ id: id('roofs', r.id, i), x: inX(r.x), z: inZ(r.z), w: clamp(num(r.w, 6), 1, W), d: clamp(num(r.d, 6), 1, D), y: clamp(num(r.y, 3), 2, 40), kind: ['flat', 'gable', 'glass', 'canopy'].includes(r.kind) ? r.kind : 'flat', material: mat(r.material, 'plaster', 'a roof'), color: hex(r.color) }));
+  out.roofs = list('roofs').slice(0, 40).filter((r) => !far(r)).map((r, i) => ({ id: id('roofs', r.id, i), x: inX(r.x), z: inZ(r.z), w: clamp(num(r.w, 6), 1, W), d: clamp(num(r.d, 6), 1, D), y: clamp(num(r.y, 3), 2, 40), kind: ['flat', 'gable', 'glass', 'canopy'].includes(r.kind) ? r.kind : 'flat', material: mat(r.material, 'plaster', `roof ${r.id}`), color: hex(r.color), ...fin(r) }));
   out.stairs = list('stairs').slice(0, 16).map((st, i) => {
     const from = clamp(num(st.from_y, 0), 0, 20), to = clamp(num(st.to_y, 3), 0.3, 24), rise = Math.abs(to - from);
     let run = clamp(num(st.run, rise * 1.6), 0.5, 30);
     if (run < rise * 1.3) { warn.push(`Stairs ${st.id || i + 1} were too steep; run lengthened to ${r2(rise * 1.5)} m`); run = rise * 1.5; }
-    return { id: id('stairs', st.id, i), x: inX(st.x), z: inZ(st.z), w: clamp(num(st.w, 1.2), 0.8, 8), run: r2(run), from_y: from, to_y: to, dir: num(st.dir, 0), material: mat(st.material, 'oak_wood', 'stairs') };
+    return { id: id('stairs', st.id, i), x: inX(st.x), z: inZ(st.z), w: clamp(num(st.w, 1.2), 0.8, 8), run: r2(run), from_y: from, to_y: to, dir: num(st.dir, 0), material: mat(st.material, 'oak_wood', `stairs ${st.id}`), ...fin(st) };
   });
   // buildings: solid massing; overlapping ones are dropped
   const blds = [];
   for (const [i, b] of list('buildings').entries()) {
     if (far(b)) { dropped.push(`building ${b.id || i + 1} outside the stage bounds`); continue; }
-    const o = { id: id('buildings', b.id, i), x: inX(b.x), z: inZ(b.z), w: clamp(num(b.w, 10), 2, 80), d: clamp(num(b.d, 10), 2, 80), h: clamp(num(b.h, 12), ...LIMITS.buildingH), ry: num(b.ry, 0), storeys: clamp(Math.round(num(b.storeys, 3)), 1, 30), facade: mat(b.facade, 'brick', 'a building'), color: hex(b.color), trim_color: hex(b.trim_color), roof: ['flat', 'parapet', 'gable'].includes(b.roof) ? b.roof : 'parapet', windows: ['grid', 'storefront', 'none'].includes(b.windows) ? b.windows : 'grid', awning: hex(b.awning), sign: str(b.sign, 24) };
+    const o = { id: id('buildings', b.id, i), x: inX(b.x), z: inZ(b.z), w: clamp(num(b.w, 10), 2, 80), d: clamp(num(b.d, 10), 2, 80), h: clamp(num(b.h, 12), ...LIMITS.buildingH), ry: num(b.ry, 0), storeys: clamp(Math.round(num(b.storeys, 3)), 1, 30), facade: mat(b.facade, 'brick', `building ${b.id}`), color: hex(b.color), trim_color: hex(b.trim_color), roof: ['flat', 'parapet', 'gable'].includes(b.roof) ? b.roof : 'parapet', windows: ['grid', 'storefront', 'none'].includes(b.windows) ? b.windows : 'grid', awning: hex(b.awning), sign: str(b.sign, 24) };
     const hit = blds.find((q) => overlap(q, o) > 0.3);
     if (hit) { dropped.push(`building ${o.id} overlapped ${hit.id}`); continue; }
     blds.push(o);
   }
   out.buildings = cap('buildings', blds, B.buildings);
-  out.elements = cap('elements', list('elements').filter((e) => { if (!ELEMENTS[e.type]) { dropped.push(`unsupported element "${e.type}"`); return false; } return true; }).map((e, i) => clean({ ...e, id: id('elements', e.id, i) }, inX, inZ, mat)), B.elements);
+  out.elements = cap('elements', list('elements').filter((e) => { if (!ELEMENTS[e.type]) { dropped.push(`unsupported element "${e.type}" (${e.id})`); return false; } return true; }).map((e, i) => ({ ...clean({ ...e, id: id('elements', e.id, i) }, inX, inZ, mat), ...fin(e) })), B.elements);
   let nCount = 0;
-  out.nature = list('nature').filter((n) => { if (!NATURE[n.type]) { dropped.push(`unsupported nature "${n.type}"`); return false; } return !far(n); }).map((n, i) => {
+  out.nature = list('nature').filter((n) => { if (!NATURE[n.type]) { dropped.push(`unsupported nature "${n.type}" (${n.id})`); return false; } return !far(n); }).map((n, i) => {
     const count = clamp(Math.round(num(n.count, 1)), 1, 60); nCount += count;
     return { id: id('nature', n.id, i), type: n.type, x: inX(n.x), z: inZ(n.z), scale: clamp(num(n.scale, 1), 0.3, 3), count, radius: clamp(num(n.radius, count > 1 ? 6 : 0), 0, 60), color: hex(n.color) };
   });
   if (nCount > B.nature) { warn.push(`Vegetation thinned from ${nCount} to about ${B.nature} instances for the ${target} target`); const k = B.nature / nCount; out.nature.forEach((n) => (n.count = Math.max(1, Math.floor(n.count * k)))); }
   const solid = out.buildings;
   out.furnishings = cap('furnishings', list('furnishings').filter((p) => {
-    if (!CATALOG_SET.has(p.type)) { dropped.push(`unknown furnishing "${p.type}"`); return false; }
-    if (far(p)) { dropped.push(`${p.type} outside the bounds`); return false; }
-    if (solid.some((b) => inside(b, num(p.x), num(p.z)))) { dropped.push(`${p.type} placed inside a solid building`); return false; }
+    if (!CATALOG_SET.has(p.type)) { dropped.push(`unknown furnishing "${p.type}" (${p.id})`); return false; }
+    if (far(p)) { dropped.push(`${p.type} outside the bounds (${p.id})`); return false; }
+    if (solid.some((b) => inside(b, num(p.x), num(p.z)))) { dropped.push(`${p.type} placed inside a solid building (${p.id})`); return false; }
     return true;
   }).map((p, i) => {
     const o = { id: id('furnishings', p.id, i), type: p.type, x: inX(p.x), z: inZ(p.z), ry: num(p.ry, 0), scale: clamp(num(p.scale, 1), 0.3, 4), color: hex(p.color) };
@@ -83,8 +85,8 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
     else if (PLACEMENT.wall.includes(p.type)) o.y = 1.4;
     return o;
   }), B.furnishings);
-  out.vfx = cap('vfx', list('vfx').filter((v) => { if (!VFX[v.type]) { dropped.push(`unsupported effect "${v.type}"${/rain|snow|fog|storm|lightning|cloud|mist/.test(v.type) ? ' (weather lives in the Weather bubble)' : ''}`); return false; } return true; }).map((v, i) => ({ id: id('vfx', v.id, i), type: v.type, x: inX(v.x), y: clamp(num(v.y, 0), 0, 40), z: inZ(v.z), scale: clamp(num(v.scale, 1), 0.2, 20), count: clamp(Math.round(num(v.count, 8)), 1, 40), color: hex(v.color) })), B.vfx);
-  out.lights = cap('lights', list('lights').filter((l) => LIGHTS[l.type] || (dropped.push(`unsupported light "${l.type}"`), false)).map((l, i) => ({ id: id('lights', l.id, i), type: l.type, x: inX(l.x), y: clamp(num(l.y, 2.5), 0.1, 40), z: inZ(l.z), color: hex(l.color) || '#ffd9a8', intensity: clamp(num(l.intensity, 8), 0.5, 40), range: clamp(num(l.range, 7), 1, 30) })), B.lights);
+  out.vfx = cap('vfx', list('vfx').filter((v) => { if (!VFX[v.type]) { dropped.push(`unsupported effect "${v.type}" (${v.id})${/rain|snow|fog|storm|lightning|cloud|mist/.test(v.type) ? ' (weather lives in the Weather bubble)' : ''}`); return false; } return true; }).map((v, i) => ({ id: id('vfx', v.id, i), type: v.type, x: inX(v.x), y: clamp(num(v.y, 0), 0, 40), z: inZ(v.z), scale: clamp(num(v.scale, 1), 0.2, 20), count: clamp(Math.round(num(v.count, 8)), 1, 40), color: hex(v.color) })), B.vfx);
+  out.lights = cap('lights', list('lights').filter((l) => LIGHTS[l.type] || (dropped.push(`unsupported light "${l.type}" (${l.id})`), false)).map((l, i) => ({ id: id('lights', l.id, i), type: l.type, x: inX(l.x), y: clamp(num(l.y, 2.5), 0.1, 40), z: inZ(l.z), color: hex(l.color) || '#ffd9a8', intensity: clamp(num(l.intensity, 8), 0.5, 40), range: clamp(num(l.range, 7), 1, 30) })), B.lights);
 
   // spawn on free walkable ground
   const sp = s.spawn || {};

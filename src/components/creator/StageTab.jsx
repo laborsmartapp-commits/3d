@@ -6,7 +6,8 @@ import RefinePanel from './RefinePanel';
 import SurfacesPanel from './SurfacesPanel';
 import ChoiceRow from './ChoiceRow';
 import CostNotice from './CostNotice';
-import { QUALITY, MODEL_LABEL } from './options';
+import { QUALITY } from './options';
+import { construction, useConstruction } from './construction';
 import { addStageCameras } from '@/game/generated';
 import { captureThumb } from './thumb';
 
@@ -15,9 +16,10 @@ const Btn = ({ icon: Icon, children, ...p }) => <button {...p} className="rounde
 
 // Actions on the generated stage that is open right now.
 export default function StageTab({ engine, st, rec, api, onPick }) {
-  const nav = useNavigate(), R = engine.realm?.R, [msg, setMsg] = useState(''), [q, setQ] = useState('standard');
+  const nav = useNavigate(), R = engine.realm?.R, [msg, setMsg] = useState(''), [q, setQ] = useState('standard'), c = useConstruction();
   const objects = () => R.set.serialize().filter((o) => !o.hidden);
-  const act = async (label, payload, model) => { const d = await (payload.action === 'variation' ? api.generate : api.run)(label, { parent_id: rec.id, ...payload }, model); if (d?.stage) nav(`/stage/${d.stage.id}`); };
+  const act = async (label, payload, model) => { const d = await api.run(label, { parent_id: rec.id, ...payload }, model); if (d?.stage) nav(`/stage/${d.stage.id}`); };
+  const variation = async () => { setMsg('Starting variation construction…'); try { await construction.start({ parent_id: rec.id, quality: q }); setMsg('Variation construction started (progress above).'); } catch (e) { setMsg(e.response?.data?.error || e.message); } };
   const commit = (pv) => act('Committing refinement', { action: 'commit', spec: pv.spec, report: pv.report, summary: pv.summary, instruction: pv.instruction });
   const cams = () => { if (!st?.scene) { setMsg('Open or create a scene first (Scenes bubble).'); return; } setMsg(`Added ${addStageCameras(engine)} stage cameras to “${st.scene.name}”.`); };
   const thumb = async () => { setMsg('Capturing thumbnail…'); await captureThumb(engine, rec); setMsg('Thumbnail updated (stored privately).'); };
@@ -36,7 +38,7 @@ export default function StageTab({ engine, st, rec, api, onPick }) {
       </Sec>
       <Sec title="Generate Variation">
         <ChoiceRow label="AI model" options={QUALITY} value={q} onChange={setQ} />
-        <Btn icon={Shuffle} disabled={api.busy} onClick={() => act('Generating variation', { action: 'variation', quality: q }, MODEL_LABEL[q])}>Generate Variation (new version)</Btn>
+        <Btn icon={Shuffle} disabled={api.busy || c.running} onClick={variation}>Generate Variation (new version)</Btn>
       </Sec>
       <Sec title="Refine Existing Stage"><RefinePanel rec={rec} api={api} objects={objects} commit={commit} /></Sec>
       <Sec title="Surfaces & materials"><SurfacesPanel spec={rec.spec} busy={api.busy} apply={(swaps) => act('Applying materials', { action: 'edit', swaps, current_objects: objects() })} /></Sec>

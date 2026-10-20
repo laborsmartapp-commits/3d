@@ -18,10 +18,12 @@
       "type": "string",
       "enum": [
         "draft",
+        "building",
         "active",
         "archived"
       ],
-      "default": "active"
+      "default": "active",
+      "description": "building = progressive AI construction in progress (see StageGenJob)"
     },
     "is_template": {
       "type": "boolean",
@@ -73,7 +75,11 @@
     },
     "report": {
       "type": "object",
-      "description": "Validation report: counts, warnings, complexity"
+      "description": "Validation report: counts, warnings, complexity, construction progress, final checks"
+    },
+    "job_id": {
+      "type": "string",
+      "description": "StageGenJob that constructed this stage"
     },
     "tags": {
       "type": "array",
