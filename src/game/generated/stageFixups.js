@@ -19,10 +19,11 @@ export function seatFires(vfx, furn, L) {
 // A practical light hung just over a piece of furniture (e.g. 0.25 m above a piano lid) burns a hot spot into
 // glossy finishes. Such lights move up under the ceiling of their room; colour, intensity and range stay.
 export function liftLights(R, spec) {
-  const notes = [];
+  // A light at a lamp (floor/table lamp, sconce, pendant...) is that lamp's glow and stays where it is.
+  const notes = [], lamps = R.set.list.filter((s) => s.proto?.lights?.length);
   for (const l of R.lightSources) {
-    if (l.kind !== 'room') continue;
-    const o = R.set.list.find((s) => s.foot && !s.hidden && l.y > s.y && l.y - (s.y + s.box.max.y * s.sy) < 0.9 && inFoot(s.foot, l.x, l.z));
+    if (l.kind !== 'room' || lamps.some((s) => Math.hypot(s.x - l.x, s.z - l.z) < 0.8)) continue;
+    const o = R.set.list.find((s) => s.foot && !s.hidden && !s.proto?.lights?.length && l.y > s.y && l.y - (s.y + s.box.max.y * s.sy) < 0.9 && inFoot(s.foot, l.x, l.z));
     const roof = o && spec.roofs.find((r) => inRect(r, l.x, l.z));
     if (!roof || roof.y - 0.35 <= l.y) continue;
     notes.push(`${o.type} ${o.id}: light raised ${r2(l.y)} -> ${r2(roof.y - 0.35)} m`); l.y = roof.y - 0.35;
