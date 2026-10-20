@@ -5,6 +5,7 @@ import { MODELS, short } from '../../shared/stagePrompt.ts';
 import { initialOps, planRest, buildPrompt, schemaFor, applyOp, opResult, splitOp, pickBatch } from '../../shared/stagePipeline.ts';
 import { finalChecks } from '../../shared/stageNav.ts';
 import { repairSpec } from '../../shared/stageRepair.ts';
+import { guardPlacement } from '../../shared/stageCirculation.ts';
 import { CATALOG_SET } from '../../shared/stageCapabilities.ts';
 
 // Resumable progressive stage construction. "start" saves the brief as a job (no AI call); every "step" runs one
@@ -57,7 +58,7 @@ export default async function (req) {
       const st = await Stages.get(job.stage_id), spec = st.spec, fix = repairSpec(spec);
       if (!fix.notes.length && !fix.dropped.length) return Response.json({ notes: [], counts: { furnishings: spec.furnishings.length } });
       const final = finalChecks(spec);
-      await Stages.update(st.id, { spec, report: { ...st.report, repairs: [...(st.report?.repairs || []), ...fix.notes], dropped: [...(st.report?.dropped || []), ...fix.dropped], final } });
+      await Stages.update(st.id, { spec, report: { ...st.report, counts: { ...st.report?.counts, furnishings: spec.furnishings.length, marks: spec.marks.length }, repairs: [...(st.report?.repairs || []), ...fix.notes], dropped: [...(st.report?.dropped || []), ...fix.dropped], final } });
       const back = await Stages.get(st.id), same = JSON.stringify(back.spec) === JSON.stringify(spec);
       final.checks.push({ id: 'persistence', label: 'Stage saved and re-read', status: same ? 'pass' : 'fail', detail: same ? 'Re-read from the database unchanged' : 'The saved copy differs from the repaired blueprint' });
       await Stages.update(st.id, { report: { ...back.report, final } });
@@ -139,6 +140,12 @@ export default async function (req) {
       }
       if (ok.length) {
         const tv = Date.now(), { spec, report } = validateSpec(next, opts);
+        // Placement guard: a new floor piece that would cut a walking route is nudged clear, or rejected.
+        for (const { x } of ok) if (x.sections?.includes('furnishings') && spec.walls.length) {
+          const g = guardPlacement(spec, x.key);
+          (report.warnings ||= []).push(...g.notes.filter((n) => !n.includes('rejected')));
+          report.dropped.push(...g.notes.filter((n) => n.includes('rejected')));
+        }
         for (const { x, a, raw, sec, prompt } of ok) {
           const out = JSON.stringify(raw).length; m.out_chars += out;
           if (x.kind === 'layout') { job.program = a.program; ops.push(...planRest(spec, a.program, job.settings?.target)); }

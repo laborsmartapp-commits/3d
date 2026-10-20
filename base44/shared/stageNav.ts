@@ -1,5 +1,6 @@
 import { MATERIALS, CATALOG_SET } from './stageCapabilities.ts';
 import { solidParts } from './stageRepair.ts';
+import { circulation, BODY as NAV_BODY } from './stageCirculation.ts';
 
 // Final blueprint checks: a 2D walkability grid (floors + stairs + walkable elements minus walls, buildings and
 // solid elements, door/opening gaps kept open), flood-filled from the spawn. Furniture footprints are not in the grid.
@@ -58,10 +59,12 @@ export function finalChecks(spec) {
   const mats = new Set([spec.ground.material, ...['floors', 'walls', 'roofs', 'stairs', 'elements'].flatMap((k) => spec[k].map((o) => o.material).filter(Boolean)), ...spec.buildings.map((b) => b.facade)]);
   const badMats = [...mats].filter((m) => !MATERIALS[m]), badTypes = spec.furnishings.filter((p) => !CATALOG_SET.has(p.type));
 
+  const nav = circulation(spec);
   const C = (id, label, pass, detail, soft) => ({ id, label, status: pass ? 'pass' : soft ? 'warn' : 'fail', detail });
   const checks = [
     C('spawn', 'Spawn on walkable floor', start >= 0, start >= 0 ? 'Player start is on open floor' : 'No open floor within 1.5 m of the spawn'),
-    C('zones', 'Every room reachable on foot', !badZones.length, badZones.length ? `Not reachable from the spawn: ${badZones.map((z) => `${z.name} (${z.pct}%)`).join(', ')}` : `${zoneReach.length} rooms reachable (${zoneReach.map((z) => `${z.name} ${z.pct}%`).join(', ')})`),
+    C('navigation', 'Every room, doorway and mark reachable with furniture collision', !nav.bad.length, nav.bad.length ? `Blocked on the furnished stage (${NAV_BODY} m body): ${nav.bad.slice(0, 10).map((t) => t.name).join(', ')}` : `${nav.T.length} targets reachable from the spawn (${nav.T.filter((t) => t.kind === 'room').length} rooms, ${nav.T.filter((t) => t.kind === 'door').length} door approaches, ${nav.T.filter((t) => t.kind === 'mark').length} marks) with every solid furnishing in place`),
+    C('zones', 'Rooms connected by doorways (architecture only)', !badZones.length, badZones.length ? `Not reachable from the spawn: ${badZones.map((z) => `${z.name} (${z.pct}%)`).join(', ')}` : `${zoneReach.length} rooms reachable (${zoneReach.map((z) => `${z.name} ${z.pct}%`).join(', ')})`),
     C('coverage', 'Walkable area connected', walkCells > 0 && reached / walkCells > 0.85, `${Math.round((reached / Math.max(1, walkCells)) * 100)}% of the walkable area connects to the spawn (${Math.round(reached * RES * RES)} m²)`, true),
     C('marks', 'Floor marks reachable', !badMarks.length, badMarks.length ? `Unreachable: ${badMarks.map((m) => m.name).join(', ')}` : `${spec.marks.length} marks reachable`, true),
     C('cameras', 'Production cameras clear of walls', !camInWall.length && spec.cameras.length > 0, camInWall.length ? `Inside a wall: ${camInWall.map((c) => c.name).join(', ')}` : `${spec.cameras.length} cameras`, true),
@@ -69,5 +72,5 @@ export function finalChecks(spec) {
     C('materials', 'All materials supported', !badMats.length, badMats.length ? `Unknown: ${badMats.join(', ')}` : `${mats.size} registry materials in use`),
     C('references', 'Object references valid', !dup.length && !badTypes.length, dup.length || badTypes.length ? `Duplicate ids: ${dup.slice(0, 6).join(', ') || 'none'}; unknown furnishings: ${badTypes.length}` : `${ids.size} objects with unique ids, all furnishings in the catalog`),
   ];
-  return { checks, note: 'Reachability is a 2D blueprint check on a 0.25 m grid (walls, buildings and solid elements block; door and opening gaps are walkable). Furniture footprints are not part of this grid; the in-engine collider check happens when the stage is opened.', checked_at: new Date().toISOString() };
+  return { checks, note: 'Navigation uses the engine collision on a 0.25 m grid: wall runs between door/opening gaps, element colliders and every solid floor furnishing (measured catalog footprints, compound shapes for irregular pieces) with the player body. The architecture-only check (below) is a 2D blueprint check on a 0.25 m grid (walls, buildings and solid elements block; door and opening gaps are walkable). Furniture footprints are not part of this grid; the in-engine collider check happens when the stage is opened.', checked_at: new Date().toISOString() };
 }

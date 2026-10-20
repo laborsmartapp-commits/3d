@@ -1,6 +1,7 @@
 import { capabilityDoc, MATERIALS, BUDGETS, FURNITURE_FINISHES } from './stageCapabilities.ts';
 import { ROWS, opSchema, LAYOUT_EXTRA, rowRule, parseRows, parseHills, toRows } from './stageSchemas.ts';
 import { rules, settingsText, short } from './stagePrompt.ts';
+import { walkways } from './stageCirculation.ts';
 
 // Progressive construction: a stage is built by many small AI operations, each validated and saved on its own.
 // Measured (claude-sonnet-5): plain row output streams at ~99 chars/s, but spatial design time dominates:
@@ -88,6 +89,10 @@ export function buildPrompt(spec, job, o) {
   if (walls || bk === 'a4' || o.zones || bk === 'e1') { add('floors', spec.floors); add('roofs', walls || bk === 'a4' ? spec.roofs : []); }
   if (walls || bk === 'a4' || o.zones || bk === 'e1') { add('walls', spec.walls.filter(near)); add('elements', spec.elements.filter(near)); add('buildings', bk === 'a4' ? spec.buildings : []); }
   if (o.zones || bk === 'e1') { add('furnishings', spec.furnishings.filter(near)); add('lights', spec.lights.filter(near)); }
+  if (o.zones && o.sections?.includes('furnishings') && spec.walls.length) {
+    const ww = walkways(spec, o.zones).text;
+    if (ww.length) ctx.push(`reserved walkways (keep ~1 m clear along these routes; place solid furniture beside them, never on them; pieces that block a route are moved or rejected):\n${ww.join('\n')}`);
+  }
   if (bk === 'e1') { add('cameras', spec.cameras.filter((c) => String(c.id).startsWith('e1'))); add('vfx', spec.vfx); add('marks', spec.marks.filter((m) => String(m.id).startsWith('e1'))); }
   if (o.kind === 'surfaces') {
     const list = o.targets.flatMap((sec) => spec[sec].map((x) => `${x.id}|${sec}${x.type ? `:${x.type}` : ''}|${x.material || x.facade || x.finish || ''}|${x.color || ''}`));

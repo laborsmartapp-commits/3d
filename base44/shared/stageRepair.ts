@@ -1,6 +1,7 @@
 // Deterministic blueprint repairs run before the final checks (no AI): solid elements standing in a doorway are
 // moved clear of it, and production cameras inside a wall or solid element are pulled toward their look target.
 // Every change is reported. Footprints match the engine's colliders (src/game/generated/elements.js).
+import { navRepair } from './stageCirculation.ts';
 const r2 = (v) => Math.round(v * 100) / 100;
 
 // Axis-aligned collider footprints of one element: [{x, z, hw, hd}].
@@ -90,5 +91,7 @@ export function repairSpec(spec) {
     const x = r2(c.x + (dx / L) * k), z = r2(c.z + (dz / L) * k);
     notes.push(`Camera ${c.name} was inside a wall or solid feature: moved ${r2(k)} m toward its target to ${x},${z}`); c.x = x; c.z = z;
   }
+  // Circulation with the final furniture collision: the fewest, most movable pieces are moved to reopen routes.
+  notes.push(...navRepair(spec).notes);
   return { notes, dropped };
 }
