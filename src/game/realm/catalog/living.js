@@ -45,6 +45,8 @@ export default {
   armchair: { name: 'Armchair', cat: 'Living Room', color: '#c98b5c', anchors: [sit('Sit', 0, 0.5, 0.12)], build: (k, c) => sofaBody(k, c, 0.95, 1, 0.9) },
   sectional: {
     name: 'Sectional Sofa', cat: 'Living Room', color: '#7d8b99',
+    // Compound collision (local metres, scale 1): the main seat run + the chaise, so the open inside of the L stays walkable.
+    cols: [[0, 0, 1.45, 0.475], [0.97, 0.85, 0.48, 0.45]],
     anchors: [sit('Sit Left', -1.0, 0.5, 0.15), sit('Sit Center', -0.1, 0.5, 0.15), sit('Sit Right', 0.8, 0.5, 0.15), sit('Lounge on Chaise', 0.97, 0.5, 0.95)],
     build(k, c) {
       sofaBody(k, c, 2.9, 3);

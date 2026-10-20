@@ -143,7 +143,8 @@ export class SetScene {
 
   physics(o) {
     const C = this.e.colliders;
-    if (o.col) { C.remove(o.col); o.col = null; }
+    for (const k of o.cols || []) C.remove(k);
+    o.col = null; o.cols = null;
     if (o.walk) { const i = walkables.indexOf(o.walk); if (i >= 0) walkables.splice(i, 1); o.walk = null; }
     const def = this.def(o); if (o.hidden || !def) return;
     const b = o.box, hw = ((b.max.x - b.min.x) / 2) * o.sx, hd = ((b.max.z - b.min.z) / 2) * o.sz;
@@ -151,7 +152,15 @@ export class SetScene {
     const wx = o.x + lx * c + lz * s, wz = o.z - lx * s + lz * c;
     o.foot = { x: wx, z: wz, hw, hd, rot: o.ry };
     const place = def.place || 'floor';
-    if (def.solid !== false && place === 'floor' && hw > 0.12 && hd > 0.12) o.col = C.addBox(wx, wz, hw * 0.9, hd * 0.9, o.ry, o.y - 0.3, o.y + b.max.y * o.sy, 'set');
+    if (def.solid !== false && place === 'floor' && hw > 0.12 && hd > 0.12) {
+      const y0 = o.y - 0.3, y1 = o.y + b.max.y * o.sy;
+      // Irregular pieces (L-sectional, grand piano...) declare compound boxes; others use 90% of their bounds.
+      const parts = def.cols
+        ? def.cols.map(([cx, cz, bw, bd]) => [o.x + cx * o.sx * c + cz * o.sz * s, o.z - cx * o.sx * s + cz * o.sz * c, Math.max(0.05, bw * o.sx - 0.04), Math.max(0.05, bd * o.sz - 0.04)])
+        : [[wx, wz, hw * 0.9, hd * 0.9]];
+      o.cols = parts.map(([x, z, a, d]) => Object.assign(C.addBox(x, z, a, d, o.ry, y0, y1, 'set'), { owner: o.id, label: def.name }));
+      o.col = o.cols[0];
+    }
     if (def.walk) { o.walk = { x: wx, z: wz, hw, hd, rot: o.ry, y: o.y + def.walk * o.sy }; walkables.push(o.walk); }
   }
 

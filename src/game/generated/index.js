@@ -23,6 +23,8 @@ import { buildGround, buildMarks } from './ground';
 import { StageProbe } from './probe';
 import { seatFires, liftLights } from './stageFixups';
 import { assetCoverage } from './stageAssets';
+import { NavWarn } from './navWarn';
+import { navReport, navTour } from './navWalk';
 
 // A saved GeneratedStage record as a stage on the shared street-level engine. Stage id is per stage
 // family (all versions share scenes/takes); the editable set is stored per version.
@@ -54,11 +56,13 @@ function buildGenerated(e, spec, L, rec) {
   sync('generated: ground + terrain', () => buildGround(c, root));
   sync('generated: architecture', () => {
     buildFloors(c, spec.floors);
-    spec.walls.forEach((w) => buildWall(c, w));
+    // Colliders remember the blueprint object that made them, so navigation reports can name an obstruction.
+    const own = (id, fn) => { const had = new Set(c.C.items); fn(); for (const k of c.C.items) if (!had.has(k)) k.owner = id; };
+    spec.walls.forEach((w) => own(w.id, () => buildWall(c, w)));
     L.stairs.forEach((s) => buildStairs(c, s));
     spec.roofs.forEach((r) => buildRoof(c, r));
     spec.buildings.forEach((b) => buildBuilding(c, b));
-    spec.elements.forEach((x) => buildElement(c, x));
+    spec.elements.forEach((x) => own(x.id, () => buildElement(c, x)));
   });
   sync('generated: merge static geometry', () => {
     R.floorMeshes.push(...c.floorMg.build(root));
@@ -79,6 +83,8 @@ function buildGenerated(e, spec, L, rec) {
   const snap = e.renderBundle?.take?.world_snapshot;
   if (snap?.objects) R.store.applySnapshot(snap); else R.store.init();
   R.lightFixes = liftLights(R, spec);
+  R.nav = new NavWarn(e, spec, L); setTimeout(() => R.nav.baseline(), 2500);
+  e.genNav = { report: () => navReport(e, R, spec, L), tour: (rooms) => navTour(e, R, spec, L, rooms), warn: R.nav };
   const sp = spec.spawn || { x: 0, z: 0 }, probe = new StageProbe(e, sp.x, L.baseGroundAt(sp.x, sp.z, 0) + 1.6, sp.z, c.roofs);
   R.probe = probe; e.genProbe = probe;
   let last = null;

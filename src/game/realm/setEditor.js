@@ -82,10 +82,12 @@ export class SetEditor {
     if (!this.before) return;
     this.hist.push(this.before); this.fut = []; this.before = null; if (this.hist.length > 80) this.hist.shift();
     if (this.rel) this.attach();
-    this.R.store.markDirty();
+    this.R.store.markDirty(); this.navCheck();
   }
   push() { this.hist.push(this.R.set.serialize()); if (this.hist.length > 80) this.hist.shift(); this.fut = []; }
-  change(fn) { this.push(); fn(); this.check(); this.attach(); this.R.store.markDirty(); }
+  change(fn) { this.push(); fn(); this.check(); this.attach(); this.R.store.markDirty(); this.navCheck(); }
+  // Generated stages: warn (never undo) when an edit closes the way to a room or doorway.
+  navCheck() { const o = this.items[0]; this.R.nav?.afterEdit(o ? `${this.R.set.def(o)?.name || o.type} (${o.id})` : ''); }
 
   place(o) {
     const def = this.R.set.def(o), p = def.place || 'floor';
@@ -117,8 +119,8 @@ export class SetEditor {
       o.overlap = false; if (!this.collide || !o.foot || (this.R.set.def(o).place || 'floor') !== 'floor') continue;
       const A = corners(o.foot); A.push(A[0]);
       for (const k of C.query(o.foot.x, o.foot.z, Math.hypot(o.foot.hw, o.foot.hd) + 0.5)) {
-        if (k === o.col || k.type !== 'b' || (k.tag !== 'set' && k.tag !== 'wall') || o.y + 0.2 < k.y0 || o.y + 0.2 > k.y1) continue;
-        if (this.items.some((x) => x.col === k)) continue;
+        if (o.cols?.includes(k) || k.type !== 'b' || (k.tag !== 'set' && k.tag !== 'wall') || o.y + 0.2 < k.y0 || o.y + 0.2 > k.y1) continue;
+        if (this.items.some((x) => x.cols?.includes(k))) continue;
         const B = corners({ x: k.x, z: k.z, hw: k.hw, hd: k.hd, rot: k.rot }); B.push(B[0]);
         if (sat(A, B)) { o.overlap = true; break; }
       }
