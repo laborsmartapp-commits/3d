@@ -19,8 +19,8 @@ export const MAT_DEF = {
   walnut_wood: ['walnut', '#ffffff', '#6e4a33', 0.38, 0, 2.4],
   painted_wood: ['wood', '#ffffff', '#e9e2d6', 0.55, 0, 2],
   weathered_wood: ['fence', '#c9c1b5', '#9a8f80', 0.85, 0, 2],
-  plaster: [null, null, '#efe8dc', 0.92, 0, 2],
-  painted_wall: [null, null, '#e9e2d6', 0.8, 0, 2],
+  plaster: [null, null, '#efe8dc', 0.92, 0, 2, { bump: 'concrete', bumpScale: 0.5 }],
+  painted_wall: [null, null, '#e9e2d6', 0.8, 0, 2, { bump: 'concrete', bumpScale: 0.25 }],
   siding: ['siding', '#ffffff', '#e6dcc6', 0.8, 0, 2.5],
   roof_shingle: ['shingles', '#ffffff', '#3a3d44', 0.95, 0, 3],
   tile: ['tile', '#ffffff', '#ece7de', 0.25, 0, 1.8],
@@ -63,6 +63,8 @@ export function genMaterials(styleKey) {
     const c = sat(new THREE.Color(color || (useTex ? mul || flat : flat)), S.sat);
     const o = { color: c, roughness: Math.min(1, Math.max(S.minRough, rough * S.rough)), metalness: S.flat ? metal * 0.4 : metal, flatShading: S.flat, envMapIntensity: (x.env || 1) * S.env };
     if (useTex) { o.map = T[tex](); if (S.bump) { o.bumpMap = o.map; o.bumpScale = S.bump; } }
+    // Untextured paints/plasters still get a fine surface relief from a procedural height map.
+    else if (S.tex && x.bump) { o.bumpMap = T[x.bump](); o.bumpScale = x.bumpScale; }
     if (x.transparent) Object.assign(o, { transparent: true, opacity: x.opacity, depthWrite: false });
     if (x.emissive) Object.assign(o, { emissive: c.clone(), emissiveIntensity: x.emissive * S.emit });
     const physical = !S.flat && ((x.clearcoat || S.clear) && metal < 0.5 && rough < 0.6 || x.sheen);

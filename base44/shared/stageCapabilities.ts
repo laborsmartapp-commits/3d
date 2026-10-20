@@ -112,6 +112,21 @@ export const PLACEMENT = {
   wall: ['wall_art', 'poster', 'mirror_wall', 'mirror_wide', 'mirror_round', 'clock_wall', 'wall_cabinet', 'range_hood', 'wall_shelf', 'towel_rack', 'acoustic_panel', 'diffuser', 'booth_foam', 'neon_onair', 'wall_sconce', 'curtains'],
 };
 
+// Finishes a furnishing's main surface can take (upholstery, casegoods, metal, glass). Built from procedural
+// albedo + bump maps with sheen / clearcoat; set per piece with the "material" column of a surfaces row.
+export const FURNITURE_FINISHES = {
+  velvet: 'deep-pile velvet upholstery, strong sheen (sofas, armchairs, ottomans)', boucle: 'nubby boucle upholstery, soft matte loops',
+  linen: 'woven linen upholstery, matte', leather: 'fine-grain leather, satin clearcoat',
+  walnut: 'lacquered walnut wood grain', oak: 'lacquered oak wood grain', ebony: 'near-black lacquered ebony grain',
+  lacquer: 'high-gloss lacquer (tint)', marble: 'veined marble (table tops, plinths)', travertine: 'honed travertine stone',
+  brass: 'polished brass', chrome: 'mirror chrome', glass: 'clear glass',
+};
+
+// Freestanding building massing only belongs on stages that are (part of) a city, street or district, or whose
+// brief asks for a skyline/backdrop. Interior categories get no buildings unless the brief explicitly wants one.
+export const INTERIOR_CATEGORY = /interior|residential|living|apartment|penthouse|loft|house|home|bedroom|suite|office|studio|lounge|room|lobby|library|gallery/i;
+export const BACKDROP_REQUEST = /city|skyline|street|urban|downtown|neighbo|courtyard|backdrop|town|district|facade|buildings? outside/i;
+
 export const BUDGETS = {
   mobile: { buildings: 12, walls: 60, floors: 40, elements: 60, nature: 160, furnishings: 70, vfx: 6, lights: 16 },
   balanced: { buildings: 24, walls: 120, floors: 70, elements: 120, nature: 400, furnishings: 140, vfx: 12, lights: 28 },
@@ -122,6 +137,7 @@ export const LIMITS = { boundsMin: 16, boundsMax: 240, wallH: [0.4, 12], buildin
 
 export const NOT_SUPPORTED = [
   'Arbitrary sculpted/organic meshes (no external 3D-asset generator is connected): characters, vehicles, detailed statues and unique hero props are limited to the listed catalog pieces and procedural builders.',
+  'Furniture is procedural (rounded-box / lathe / tube assemblies from the catalog); there are no imported high-detail furniture models in the asset library.',
   'Curved walls (approximate with several straight segments).',
   'Imported texture images or normal maps from the internet (textures are procedural).',
   'Weather, time of day, sky, fog, rain, snow or lightning (always controlled by the Weather bubble).',
@@ -134,7 +150,8 @@ export function capabilityDoc() {
     coordinate_rules: 'x = east/west, z = north/south, all positions within +-bounds.w/2 and +-bounds.d/2. Rotation ry in radians around y. A furnishing with ry=0 faces +z.',
     scene_graph: 'Blueprint sections are built into: static merged architecture (floors, walls, roofs, stairs, buildings, elements), instanced nature, an editable Set (furnishings: each one selectable/movable/rotatable/recolourable in Set Edit), VFX, pooled practical lights, production cameras and floor marks.',
     styles: STYLES, materials: MATERIALS, builders: BUILDERS, elements: ELEMENTS, nature: NATURE, vfx: VFX, lights: LIGHTS,
-    furnishings: FURNISHINGS, placement: PLACEMENT, budgets: BUDGETS, limits: LIMITS, not_supported: NOT_SUPPORTED,
+    furnishings: FURNISHINGS, furniture_finishes: FURNITURE_FINISHES, placement: PLACEMENT, budgets: BUDGETS,
+    buildings_rule: 'Freestanding "buildings" massing is for city, street and district stages. Interior stages (residential, office, studio...) get none unless the brief asks for a city/skyline backdrop, and then only well away (6 m+) from the rooms.', limits: LIMITS, not_supported: NOT_SUPPORTED,
     finish_overrides: 'floors, walls, roofs, stairs and elements accept rough (0-1) and metal (0-1) to override the chosen material\'s roughness / metalness (e.g. honed vs polished stone, satin vs matte paint). Textures are procedural (albedo + bump from the same map); there are no image texture or normal-map uploads.',
     collision_and_navigation: 'Players stand on terrain, floors, stairs, platforms, bridges, sidewalks, paths and plazas. Walls, buildings, fences, hedges, columns, plinths and solid furnishings block movement. Leave 1.2 m+ clear walking lanes. Every room must be reachable from the spawn through door/opening gaps; upper storeys need stairs.',
   };

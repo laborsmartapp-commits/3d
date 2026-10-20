@@ -1,4 +1,4 @@
-import { MATERIALS, ELEMENTS, NATURE, VFX, LIGHTS, CATALOG_SET, PLACEMENT, BUDGETS, LIMITS, STYLES } from './stageCapabilities.ts';
+import { MATERIALS, ELEMENTS, NATURE, VFX, LIGHTS, CATALOG_SET, PLACEMENT, BUDGETS, LIMITS, STYLES, FURNITURE_FINISHES, INTERIOR_CATEGORY, BACKDROP_REQUEST } from './stageCapabilities.ts';
 
 const num = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -10,7 +10,7 @@ const PREFIX = { zones: 'z', floors: 'f', walls: 'w', roofs: 'r', stairs: 's', b
 
 // Turns an AI blueprint (or a patched one) into a buildable spec: only registered components, sane
 // scale, inside the bounds, within budget, spawn on free walkable ground. Everything dropped is reported.
-export function validateSpec(raw, { style, target = 'balanced', environment } = {}) {
+export function validateSpec(raw, { style, target = 'balanced', environment, category, brief = '' } = {}) {
   const warn = [], dropped = [], B = BUDGETS[target] || BUDGETS.balanced;
   const s = raw && typeof raw === 'object' ? raw : {};
   const W = clamp(num(s.bounds?.w, 80), LIMITS.boundsMin, LIMITS.boundsMax), D = clamp(num(s.bounds?.d, 80), LIMITS.boundsMin, LIMITS.boundsMax);
@@ -55,10 +55,14 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
     if (run < rise * 1.3) { warn.push(`Stairs ${st.id || i + 1} were too steep; run lengthened to ${r2(rise * 1.5)} m`); run = rise * 1.5; }
     return { id: id('stairs', st.id, i), x: inX(st.x), z: inZ(st.z), w: clamp(num(st.w, 1.2), 0.8, 8), run: r2(run), from_y: from, to_y: to, dir: num(st.dir, 0), material: mat(st.material, 'oak_wood', `stairs ${st.id}`), ...fin(st) };
   });
-  // buildings: solid massing; overlapping ones are dropped
-  const blds = [];
+  // buildings: solid massing; overlapping ones are dropped. Category-aware: an interior stage gets no freestanding
+  // buildings unless its brief asks for a city/skyline backdrop, and then only 6 m+ clear of the rooms.
+  const blds = [], cat = str(category || s.category, 60), interior = out.environment === 'indoor' || INTERIOR_CATEGORY.test(cat);
+  const backdrop = BACKDROP_REQUEST.test(String(brief || '')), gap = (b) => Math.min(...out.floors.map((f) => Math.max(Math.abs(b.x - f.x) - (b.w + f.w) / 2, Math.abs(b.z - f.z) - (b.d + f.d) / 2)), 99);
   for (const [i, b] of list('buildings').entries()) {
     if (far(b)) { dropped.push(`building ${b.id || i + 1} outside the stage bounds`); continue; }
+    if (interior && !backdrop) { dropped.push(`building ${b.id || i + 1}: freestanding building massing does not belong in a ${cat || 'interior'} stage (the brief asks for no city/skyline backdrop)`); continue; }
+    if (interior && gap({ x: num(b.x), z: num(b.z), w: num(b.w, 10), d: num(b.d, 10) }) < 6) { dropped.push(`building ${b.id || i + 1}: backdrop building within 6 m of the rooms would block the windows`); continue; }
     const o = { id: id('buildings', b.id, i), x: inX(b.x), z: inZ(b.z), w: clamp(num(b.w, 10), 2, 80), d: clamp(num(b.d, 10), 2, 80), h: clamp(num(b.h, 12), ...LIMITS.buildingH), ry: num(b.ry, 0), storeys: clamp(Math.round(num(b.storeys, 3)), 1, 30), facade: mat(b.facade, 'brick', `building ${b.id}`), color: hex(b.color), trim_color: hex(b.trim_color), roof: ['flat', 'parapet', 'gable'].includes(b.roof) ? b.roof : 'parapet', windows: ['grid', 'storefront', 'none'].includes(b.windows) ? b.windows : 'grid', awning: hex(b.awning), sign: str(b.sign, 24) };
     const hit = blds.find((q) => overlap(q, o) > 0.3);
     if (hit) { dropped.push(`building ${o.id} overlapped ${hit.id}`); continue; }
@@ -70,19 +74,23 @@ export function validateSpec(raw, { style, target = 'balanced', environment } = 
   out.buildings = cap('buildings', blds, B.buildings);
   out.elements = cap('elements', list('elements').filter((e) => { if (!ELEMENTS[e.type]) { dropped.push(`unsupported element "${e.type}" (${e.id})`); return false; } return true; }).map((e, i) => ({ ...clean({ ...e, id: id('elements', e.id, i) }, inX, inZ, mat), ...fin(e) })), B.elements);
   let nCount = 0;
-  out.nature = list('nature').filter((n) => { if (!NATURE[n.type]) { dropped.push(`unsupported nature "${n.type}" (${n.id})`); return false; } return !far(n); }).map((n, i) => {
+  // A catalog furnishing listed under nature (e.g. plant_tall) is placed as an editable set piece instead.
+  const movers = list('nature').filter((n) => !NATURE[n.type] && CATALOG_SET.has(n.type));
+  movers.forEach((n) => warn.push(`${n.type} (${n.id}) is a furnishing, not vegetation: placed as an editable set piece`));
+  out.nature = list('nature').filter((n) => !movers.includes(n)).filter((n) => { if (!NATURE[n.type]) { dropped.push(`unsupported nature "${n.type}" (${n.id})`); return false; } return !far(n); }).map((n, i) => {
     const count = clamp(Math.round(num(n.count, 1)), 1, 60); nCount += count;
     return { id: id('nature', n.id, i), type: n.type, x: inX(n.x), z: inZ(n.z), scale: clamp(num(n.scale, 1), 0.3, 3), count, radius: clamp(num(n.radius, count > 1 ? 6 : 0), 0, 60), color: hex(n.color) };
   });
   if (nCount > B.nature) { warn.push(`Vegetation thinned from ${nCount} to about ${B.nature} instances for the ${target} target`); const k = B.nature / nCount; out.nature.forEach((n) => (n.count = Math.max(1, Math.floor(n.count * k)))); }
   const solid = out.buildings;
-  out.furnishings = cap('furnishings', list('furnishings').filter((p) => {
+  out.furnishings = cap('furnishings', [...list('furnishings'), ...movers.map((n) => ({ id: n.id, type: n.type, x: n.x, z: n.z, scale: n.scale, color: n.color }))].filter((p) => {
     if (!CATALOG_SET.has(p.type)) { dropped.push(`unknown furnishing "${p.type}" (${p.id})`); return false; }
     if (far(p)) { dropped.push(`${p.type} outside the bounds (${p.id})`); return false; }
     if (solid.some((b) => inside(b, num(p.x), num(p.z)))) { dropped.push(`${p.type} placed inside a solid building (${p.id})`); return false; }
     return true;
   }).map((p, i) => {
     const o = { id: id('furnishings', p.id, i), type: p.type, x: inX(p.x), z: inZ(p.z), ry: num(p.ry, 0), scale: clamp(num(p.scale, 1), 0.3, 4), color: hex(p.color) };
+    if (p.finish) { if (FURNITURE_FINISHES[p.finish]) o.finish = p.finish; else warn.push(`Unknown furniture finish "${p.finish}" on ${p.id}: built-in finish kept`); }
     if (p.y != null) o.y = clamp(num(p.y), 0, 30);
     else if (PLACEMENT.surface.includes(p.type)) o.y = 0.76;
     else if (PLACEMENT.wall.includes(p.type)) o.y = 1.4;

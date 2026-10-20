@@ -6,7 +6,9 @@ import { prepareModel, getFit, putFit } from './modelPrep';
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 const DEF = { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0, sx: 1, sy: 1, sz: 1, hidden: false, locked: false, color: null, group: null };
-const FIELDS = ['id', 'key', 'type', 'name', 'asset_id', 'asset_uri', 'x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz', 'color', 'hidden', 'locked', 'group', 'model_asset_id', 'model_uri', 'model_name', 'model_fit'];
+const FIELDS = ['id', 'key', 'type', 'name', 'asset_id', 'asset_uri', 'x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz', 'color', 'hidden', 'locked', 'group', 'model_asset_id', 'model_uri', 'model_name', 'model_fit', 'finish'];
+// Furniture finish -> [material kind, default colour] (matches FURNITURE_FINISHES in the stage capability registry).
+const FINISH = { velvet: ['velvet'], boucle: ['boucle', '#efe9df'], linen: ['linen'], leather: ['fine_leather', '#6b4430'], walnut: ['fine_wood', '#6a452c'], oak: ['fine_wood', '#b8875a'], ebony: ['fine_wood', '#2a1d16'], lacquer: ['lacquer'], marble: ['marble', '#f2efe9'], travertine: ['travertine', '#d9c8a9'], brass: ['brass', '#c9a24f'], chrome: ['chrome', '#e8ecef'], glass: ['glass', '#cfe6f2'] };
 export const ASSET_DEF = { name: 'Imported Model', cat: 'Imported Models', place: 'floor', solid: true };
 // A model that never finishes loading falls back to the original piece instead of waiting forever.
 const withTimeout = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
@@ -113,9 +115,14 @@ export class SetScene {
 
   recolor(o) {
     const main = o.proto?.main; if (!main) return;
+    // A furniture finish (velvet, walnut, marble...) replaces the piece's main surface material.
+    const fk = FINISH[o.finish], fin = fk && this.R.M.tint(fk[0], o.color || fk[1] || `#${main.color.getHexString()}`);
     for (const m of o.node.children) {
-      if (!m.isMesh || (m.material !== main && !m.userData.mainClone)) continue;
-      if (!o.color) { if (m.userData.mainClone) m.material.dispose(); m.material = main; m.userData.mainClone = false; continue; }
+      if (!m.isMesh || (m.material !== main && !m.userData.mainClone && !m.userData.finish)) continue;
+      if (m.userData.mainClone) m.material.dispose();
+      m.userData.mainClone = false; m.userData.finish = !!fin;
+      if (fin) { m.material = fin; continue; }
+      if (!o.color) { m.material = main; continue; }
       if (!m.userData.mainClone) { m.material = main.clone(); m.userData.mainClone = true; }
       m.material.color.set(o.color);
       if (m.material.sheenColor) m.material.sheenColor.set(o.color).lerp(new THREE.Color('#ffffff'), 0.35);

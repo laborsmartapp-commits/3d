@@ -1,4 +1,4 @@
-import { capabilityDoc, MATERIALS, BUDGETS } from './stageCapabilities.ts';
+import { capabilityDoc, MATERIALS, BUDGETS, FURNITURE_FINISHES } from './stageCapabilities.ts';
 import { ROWS, opSchema, LAYOUT_EXTRA, rowRule, parseRows, parseHills, toRows } from './stageSchemas.ts';
 import { rules, settingsText, short } from './stagePrompt.ts';
 
@@ -40,10 +40,16 @@ export function planRest(spec, program, target) {
     op('c2', 'materials', 'Wall surfaces', ['surfaces'], { surfaces: 50 }, { kind: 'surfaces', targets: ['walls'] }),
     op('c3', 'materials', 'Furniture finishes', ['surfaces'], { surfaces: 60 }, { kind: 'surfaces', targets: ['furnishings'] }),
     ...groups.map((g, i) => op(`d${i + 1}`, 'decor', `Decor & lighting · ${name(g)}`, ['furnishings', 'lights', 'nature'], { furnishings: clamp(Math.round((left * 0.55 * area(g)) / total), 4, 30), lights: lightsEach, nature: spec.environment === 'outdoor' ? 8 : 2 }, { zones: g.map((r) => r.z.id) })),
-    op('e1', 'final', 'Production cameras, marks & effects', ['cameras', 'marks', 'vfx', 'lights'], { cameras: 6, marks: 8, vfx: Math.min(8, B.vfx), lights: 6 }, { replace: ['cameras', 'marks'] }),
+    ...finalOps(Math.min(8, B.vfx)),
     op('e2', 'final', 'Final validation', [], {}, { kind: 'validate' }),
   ];
 }
+
+// Production setup as two independent operations (cameras/marks vs effects/fill lights) that run side by side.
+export const finalOps = (vfx = 8) => [
+  op('e1a', 'final', 'Production cameras & marks', ['cameras', 'marks'], { cameras: 6, marks: 8 }, { replace: ['cameras', 'marks'], split_from: 'e1', independent: true, theme: 'production cameras and floor marks' }),
+  op('e1b', 'final', 'Effects & fill lights', ['vfx', 'lights'], { vfx, lights: 6 }, { split_from: 'e1', independent: true, theme: 'VFX (fire in the fireplace etc.) and fill lights where a room is still dark' }),
+];
 
 // Each operation sees only the part of the capability registry it needs (smaller prompt = faster call).
 const DOC = {
@@ -51,7 +57,7 @@ const DOC = {
   architecture: ['coordinate_rules', 'builders', 'elements', 'materials', 'finish_overrides', 'limits', 'not_supported', 'collision_and_navigation'],
   furniture: ['coordinate_rules', 'furnishings', 'placement', 'collision_and_navigation'],
   decor: ['coordinate_rules', 'furnishings', 'placement', 'lights', 'nature', 'collision_and_navigation'],
-  materials: ['materials', 'finish_overrides'],
+  materials: ['materials', 'finish_overrides', 'furniture_finishes'],
   final: ['coordinate_rules', 'vfx', 'lights', 'collision_and_navigation'],
 };
 const head = (sec) => ROWS[sec].split(' ').map((p) => p.split(':')[0]).join('|');
@@ -64,7 +70,7 @@ const TASK = {
   a3: 'OPERATION: straight wall segments around and between the zones. Exterior walls along the outer edges of the rooms (split at corners), interior walls only where the program wants separation. Door/opening gaps so every room is reachable from the spawn; windows or floor-to-ceiling glass in exterior walls (panoramic glass where the brief asks for it). Wall height = the ceiling height above it. Wall base y = its floor\'s y.',
   a4: 'OPERATION: architectural features with real geometry from ELEMENTS: columns, raised platforms (hearth plinth, dais, stage), plinths, railings, arches, planter beds, pools, pergolas. Exterior buildings only when the stage needs a backdrop outside the windows, and they must stay inside the stage bounds (enlarging bounds is not possible in this operation). Furniture-like pieces (fireplaces, shelving, sofas) are NOT elements: they come in the furniture batches.',
   b: (names, need) => `OPERATION: place the MAJOR furniture for ${names}${need ? ` (${need})` : ''}: seating, tables, cabinetry, fireplace, piano, large statement pieces. Compose designed arrangements: seating grouped around a focal point (fireplace, view, TV), coffee table centred in the group, accent chairs angled in, consoles against walls, real proportions for the room's scale. Keep each piece's centre at least half its depth from walls and clear of door/opening gaps; 1.2 m walking lanes. Rugs, lamps, art and small decor come later. Use short ids (p1, p2...).`,
-  c: (furn) => (furn ? 'OPERATION: furniture finishes. Furniture pieces have built-in materials; set each listed piece\'s colour only (leave material, rough and metal empty) so upholstery, wood and metal tones form a coordinated, rich palette for the style.' : 'OPERATION: assign registry materials and finishes to the EXISTING objects listed below (id|material|color|rough|metal, one row per object; the ground row has id "ground"). Choose surfaces that fit each object and room (polished stone vs honed stone, oak vs walnut, satin paint vs plaster), coordinate them with the palette and the brief\'s materials, use rough/metal only to refine a finish. Do not add objects.'),
+  c: (furn) => (furn ? 'OPERATION: furniture finishes. For each listed piece set material = one FURNITURE_FINISHES name for its MAIN surface (seating: velvet, boucle, linen or leather; tables, consoles, cabinetry and shelving: walnut, oak, ebony, lacquer, marble or travertine; small accents: brass, chrome or glass; rugs, art, plants and lamps: leave material empty) plus a colour, so upholstery, wood, stone and metal form a coordinated, layered luxury palette for the brief (no two adjacent seats identical unless a matched pair). Leave rough and metal empty.' : 'OPERATION: assign registry materials and finishes to the EXISTING objects listed below (id|material|color|rough|metal, one row per object; the ground row has id "ground"). Choose surfaces that fit each object and room (polished stone vs honed stone, oak vs walnut, satin paint vs plaster), coordinate them with the palette and the brief\'s materials, use rough/metal only to refine a finish. Do not add objects.'),
   d: (names, need) => `OPERATION: decorative detailing for ${names}${need ? ` (${need})` : ''}. Rugs under seating groups; wall art, mirrors and wall sconces on walls (y 1.4-1.9, ry facing out of the wall into the room); floor and table lamps; pendant or chandelier over focal points (y near the ceiling); curtains at windows; plants in corners; books, vases, candles, centrepieces and sculptures ON tables and shelves (y = that surface's height: coffee table 0.45, side table 0.6, console 0.8, dining table 0.76). Add an interior lights[] entry at each lamp, sconce or chandelier that should really illuminate (y at the bulb). Do not repeat pieces that already exist; keep lanes clear. Short ids (p1, l1, n1...).`,
   e1: 'OPERATION: production setup. 3-6 production cameras (a wide master, a medium on the main seating group, a close angle at the focal point, a high or low dramatic angle) with clear sightlines to their look target, 4-8 floor marks where actors perform, VFX only where they belong (fire inside a fireplace at its position, y about 0.3), plus fill lights only where a room is still dark.',
 };
@@ -84,7 +90,7 @@ export function buildPrompt(spec, job, o) {
   if (o.zones || bk === 'e1') { add('furnishings', spec.furnishings.filter(near)); add('lights', spec.lights.filter(near)); }
   if (bk === 'e1') { add('cameras', spec.cameras.filter((c) => String(c.id).startsWith('e1'))); add('vfx', spec.vfx); add('marks', spec.marks.filter((m) => String(m.id).startsWith('e1'))); }
   if (o.kind === 'surfaces') {
-    const list = o.targets.flatMap((sec) => spec[sec].map((x) => `${x.id}|${sec}${x.type ? `:${x.type}` : ''}|${x.material || x.facade || ''}|${x.color || ''}`));
+    const list = o.targets.flatMap((sec) => spec[sec].map((x) => `${x.id}|${sec}${x.type ? `:${x.type}` : ''}|${x.material || x.facade || x.finish || ''}|${x.color || ''}`));
     if (o.targets.includes('floors')) list.unshift(`ground|ground|${spec.ground.material}|${spec.ground.color || ''}`);
     const mineList = o.part ? list.filter((_, j) => j % o.part.n === o.part.i - 1) : list;
     ctx.push(`objects to finish in this operation (id|kind|current material|current color):\n${mineList.join('\n')}`);
@@ -95,7 +101,7 @@ export function buildPrompt(spec, job, o) {
   const task = ['a1', 'a2', 'a3', 'a4', 'e1'].includes(tk) ? TASK[tk]
     : o.phase === 'furniture' ? TASK.b(names, prog.map((p) => p.major).filter(Boolean).join('; ')) : o.phase === 'decor' ? TASK.d(names, prog.map((p) => p.decor).filter(Boolean).join('; ')) : TASK.c(o.targets.includes('furnishings'));
   const caps = Object.entries(o.caps).map(([k, v]) => `${k} <= ${v}`).join(', ');
-  const sec = o.sections[0], part = o.kind === 'surfaces' ? '' : o.part ? (PART[sec] ? ` This part: ${PART[sec][o.part.i - 1]}.` : ` This is part ${o.part.i} of ${o.part.n} of this batch: ${o.part.i === 1 ? 'place the most important pieces first (the main group and focal point)' : 'complete it with the remaining pieces, complementing what earlier parts already placed (listed above)'}.`) : '';
+  const sec = o.sections[0], part = o.kind === 'surfaces' ? '' : o.theme ? ` This part covers ONLY: ${o.theme}. Other parts of this batch place the other kinds of objects at the same time, so stay within this theme.` : o.part ? (PART[sec] ? ` This part: ${PART[sec][o.part.i - 1]}.` : ` This is part ${o.part.i} of ${o.part.n} of this batch: ${o.part.i === 1 ? 'place the most important pieces first (the main group and focal point)' : 'complete it with the remaining pieces, complementing what earlier parts already placed (listed above)'}.`) : '';
   return `${rules(spec.style)}
 
 CAPABILITY REGISTRY (subset for this operation):
@@ -112,7 +118,20 @@ ${rowRule(o.kind === 'surfaces' ? ['surfaces'] : o.sections)}`;
 
 // Split an operation into n smaller parts (new keys, so ids never collide). Used before running a batch that is
 // too large, and automatically once when an operation times out.
+// Decor batches split by theme instead of order, so their parts are independent and can run side by side.
+const THEMES = [['rugs, curtains and soft textiles', null], ['wall art, mirrors and wall sconces', null], ['floor lamps, table lamps, pendants and chandeliers, each with an interior lights[] entry at its bulb', 'lights'], ['plants and tabletop decor (books, vases, candles, centrepieces, sculptures on the existing tables and shelves)', 'nature']];
+function themedSplit(o, n, why) {
+  const k = Math.max(2, n), groups = Array.from({ length: k }, (_, i) => (k >= 4 ? [THEMES[i % 4]] : THEMES.filter((_, j) => j % k === i)));
+  const owner = (sec) => Math.max(0, groups.findIndex((g) => g.some((t) => t[1] === sec)));
+  return groups.map((g, i) => {
+    const caps = { furnishings: Math.max(1, Math.ceil((o.caps.furnishings || 0) / k)) };
+    for (const sec of ['lights', 'nature']) if (o.caps[sec] && owner(sec) === i) caps[sec] = o.caps[sec];
+    return { ...o, key: `${o.key}${'abcdefgh'[i]}`, label: `${o.label} · ${g.map((t) => t[0].split(',')[0].split(' (')[0]).join(' + ')}${i >= 4 ? ' (2nd set)' : ''}`, status: 'pending', attempts: 0, error: '', split_from: o.split_from || o.key, split_reason: why, independent: true,
+      theme: g.map((t) => t[0]).join('; ') + (i >= 4 ? ' (a second set, in other parts of the room)' : ''), sections: Object.keys(caps), caps, part: undefined };
+  });
+}
 export function splitOp(o, n = 2, why = '') {
+  if (o.phase === 'decor' && !o.theme && o.caps.furnishings && !(o.zones?.length > 1)) return themedSplit(o, n, why);
   const zs = o.zones?.length > 1 ? o.zones : null, k = zs ? Math.min(n, zs.length) : n;
   return Array.from({ length: k }, (_, i) => ({
     ...o, key: `${o.key}${'abcdefgh'[i]}`, label: `${o.label} (${i + 1}/${k})`, status: 'pending', attempts: 0, error: '', split_from: o.split_from || o.key, split_reason: why,
@@ -125,7 +144,7 @@ export function splitOp(o, n = 2, why = '') {
 // finish rows ~1.2 s each (12 slabs 14 s), plus ~8 s fixed overhead. Every operation is kept under OP_BUDGET_S,
 // well clear of the 120 s cut-off, by splitting it before it runs.
 const SEC_PER_ROW = { surfaces: 1.3 }, PLACED_S = 4.8, OVERHEAD_S = 8;
-export const OP_BUDGET_S = 65;
+export const OP_BUDGET_S = 55;
 // Self-calibrating: once operations of a phase have run, their measured seconds per row replace the default
 // (furniture measured ~8.3 s per piece: 6 pieces in 57.6 s), so later batches are sized from real timings.
 export function measuredRate(ops, o) {
@@ -135,7 +154,7 @@ export function measuredRate(ops, o) {
 }
 export const estimateSeconds = (o, rate = null) => OVERHEAD_S + Object.entries(o.caps || {}).reduce((n, [s, v]) => n + v * Math.max(SEC_PER_ROW[s] ?? PLACED_S, rate ?? 0), 0);
 // Parent batches split at the budget; already-split parts split again only if they would approach the cut-off.
-export const oversized = (o, rate) => (o.kind === 'rows' || o.kind === 'surfaces') && estimateSeconds(o, rate) > (o.split_from ? 90 : OP_BUDGET_S) && Math.max(...Object.values(o.caps)) > 1;
+export const oversized = (o, rate) => (o.kind === 'rows' || o.kind === 'surfaces') && estimateSeconds(o, rate) > (o.split_from ? 80 : OP_BUDGET_S) && Math.max(...Object.values(o.caps)) > 1;
 export const piecesSplit = (o, rate) => {
   const est = Math.round(estimateSeconds(o, rate));
   return splitOp(o, Math.ceil((est - OVERHEAD_S) / (OP_BUDGET_S - OVERHEAD_S)), `estimated ${est} s from measured timings (${rate ? `${rate.toFixed(1)} s per row measured in this phase` : 'default rate'}), over the ${OP_BUDGET_S} s per-operation budget`).map((p, i) => ({ ...p, est_seconds: Math.round(estimateSeconds(p, rate)), replace: i === 0 ? p.replace : undefined }));
@@ -153,6 +172,25 @@ export function fitWalls(spec) {
   return notes;
 }
 
+// Independent operations of one phase (different rooms, or different surface targets) run side by side in a
+// single step, each still its own < 120 s AI call. Parts of one split batch build on each other, so they stay
+// sequential; architecture and final operations always run alone.
+export const MAX_PARALLEL = 6;
+export function pickBatch(ops) {
+  const out = [], root = (x) => (x.independent ? x.key : x.split_from || x.key), par = (x) => (x.kind === 'rows' || x.kind === 'surfaces') && x.phase !== 'architecture';
+  for (let i = 0; i < ops.length && out.length < MAX_PARALLEL; i++) {
+    let o = ops[i];
+    if (o.status === 'done' || o.status === 'split') continue;
+    if (out.length && (o.status !== 'pending' || !par(o) || o.phase !== out[0].phase)) break;
+    const rate = measuredRate(ops, o);
+    if (o.status === 'pending' && oversized(o, rate)) { const parts = piecesSplit(o, rate); ops.splice(i, 1, ...parts); o = parts[0]; }
+    if (out.some((x) => root(x) === root(o))) continue;
+    out.push(o);
+    if (o.status !== 'pending' || !par(o)) break;
+  }
+  return out;
+}
+
 export const schemaFor = (o) => (o.kind === 'layout' ? opSchema(['zones', 'program'], LAYOUT_EXTRA) : opSchema(o.sections));
 
 // Merge one operation's result into the stage. Ids are prefixed with the operation key, and a retry first removes
@@ -166,12 +204,14 @@ export function applyOp(spec, job, o, raw) {
   }
   if (o.kind === 'surfaces') {
     const list = parseRows('surfaces', raw.surfaces), use = list.slice(0, o.caps.surfaces);
+    if (!list.length) throw new Error('The AI returned no finish rows for this batch; it will be retried');
     if (list.length > use.length) notes.push(`${list.length - use.length} surface rows over this batch's limit were not applied`);
     let applied = 0;
     for (const r of use) {
       const hit = r.id === 'ground' ? ['ground', next.ground] : o.targets.map((sec) => [sec, next[sec].find((x) => x.id === r.id)]).find(([, x]) => x);
       if (!hit) { notes.push(`No object with id ${r.id}: finish not applied`); continue; }
       const [sec, x] = hit, furn = sec === 'furnishings';
+      if (r.material && furn) { if (FURNITURE_FINISHES[r.material]) x.finish = r.material; else notes.push(`Unknown furniture finish "${r.material}" for ${r.id}: kept its built-in finish`); }
       if (r.material && !furn) { if (MATERIALS[r.material]) x[sec === 'buildings' ? 'facade' : 'material'] = r.material; else notes.push(`Unknown material "${r.material}" for ${r.id}: kept ${x.material || x.facade}`); }
       if (typeof r.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(r.color)) x.color = r.color;
       if (!furn && sec !== 'buildings' && sec !== 'ground') for (const k of ['rough', 'metal']) if (r[k] != null) x[k] = r[k];
@@ -188,6 +228,7 @@ export function applyOp(spec, job, o, raw) {
     const own = (v) => String(v || '').replace(/^([a-z]\d+[a-z]?\.)+/i, '');
     next[sec] = [...keep, ...use.map((x, i) => ({ ...x, id: `${o.key}.${short(own(x.id), 24) || i + 1}` }))];
   }
+  if (!requested && o.sections.length) throw new Error('The AI returned no objects for this operation; it will be retried');
   return { next, requested, applied: requested, notes, adjust: fitWalls(next) };
 }
 

@@ -72,6 +72,14 @@ function make() {
     marbleFloor: () => std({ map: map(T.marble(), 0.5), roughness: 0.15 }),
     porchFloor: () => std({ map: T.porch(), roughness: 0.7 }),
     grass: () => std({ map: T.grass(), roughness: 0.95, vertexColors: true }),
+    // Furniture finishes (generated stages choose these per piece; the hand-built sets keep their own kinds).
+    velvet: (c) => phys({ color: c, map: map(T.fabric(), 2), bumpMap: map(T.fabric(), 2), bumpScale: 0.6, roughness: 0.72, sheen: 1, sheenRoughness: 0.32, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), 0.5) }),
+    boucle: (c) => phys({ color: c, map: map(T.foam(), 3), bumpMap: map(T.foam(), 3), bumpScale: 2.2, roughness: 1, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color('#ffffff') }),
+    linen: (c) => phys({ color: c, map: T.fabric(), bumpMap: T.fabric(), bumpScale: 0.9, roughness: 0.95, sheen: 0.25, sheenRoughness: 0.7, sheenColor: new THREE.Color(c).lerp(new THREE.Color('#ffffff'), 0.4) }),
+    fine_leather: (c) => phys({ color: c, bumpMap: map(T.concrete(), 6), bumpScale: 0.35, roughness: 0.48, clearcoat: 0.35, clearcoatRoughness: 0.35 }),
+    fine_wood: (c) => phys({ color: c, map: T.wood(), bumpMap: T.wood(), bumpScale: 0.25, roughness: 0.38, clearcoat: 0.55, clearcoatRoughness: 0.18 }),
+    lacquer: (c) => phys({ color: c, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.06 }),
+    travertine: (c) => std({ color: c, map: T.stone(), bumpMap: T.stone(), bumpScale: 0.5, roughness: 0.62 }),
   };
   const cache = new Map();
   const tint = (kind, color = '#ffffff') => {

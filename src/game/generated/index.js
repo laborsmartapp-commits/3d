@@ -20,6 +20,7 @@ import { buildElement } from './elements';
 import { buildNature } from './nature';
 import { buildVfx } from './vfx';
 import { buildGround, buildMarks } from './ground';
+import { StageProbe } from './probe';
 
 // A saved GeneratedStage record as a stage on the shared street-level engine. Stage id is per stage
 // family (all versions share scenes/takes); the editable set is stored per version.
@@ -73,10 +74,12 @@ function buildGenerated(e, spec, L, rec) {
   });
   const snap = e.renderBundle?.take?.world_snapshot;
   if (snap?.objects) R.store.applySnapshot(snap); else R.store.init();
+  const sp = spec.spawn || { x: 0, z: 0 }, probe = new StageProbe(e, sp.x, L.baseGroundAt(sp.x, sp.z, 0) + 1.6, sp.z, c.roofs);
+  R.probe = probe; e.genProbe = probe;
   let last = null;
   return (t) => {
     const dt = last === null ? 0 : Math.min(0.05, Math.max(0, t - last)); last = t;
-    R.ctl.tick(t, dt); vfxTick(t, dt);
+    R.ctl.tick(t, dt); vfxTick(t, dt); probe.tick(t);
     // Ceilings lift away while the camera looks down into the room from above (dollhouse view).
     const cam = e.studio?.viewThrough ? e.studio.outputCam() || e.camera : e.camera, p = e.player.pos, cp = cam.position;
     for (const r of c.roofs) r.node.visible = !(cp.y > r.r.y + 0.3 && (inRect(r.r, p.x, p.z, 1) || inRect(r.r, cp.x, cp.z)));
@@ -89,6 +92,7 @@ function toObject(f, L) {
   const y = place === 'floor' ? L.baseGroundAt(f.x, f.z, f.y ?? 0) : f.y ?? 0.76;
   const o = { id: f.id, key: f.id, type: f.type, x: f.x, y, z: f.z, rx: 0, ry: f.ry || 0, rz: 0, sx: f.scale || 1, sy: f.scale || 1, sz: f.scale || 1 };
   if (f.color) o.color = f.color;
+  if (f.finish) o.finish = f.finish;
   return o;
 }
 
