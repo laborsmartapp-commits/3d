@@ -8,7 +8,8 @@ const G = {
   upper: new THREE.CapsuleGeometry(0.06, 0.24, 3, 8), fore: new THREE.CapsuleGeometry(0.052, 0.22, 3, 8), hand: new THREE.SphereGeometry(0.055, 8, 6),
   thigh: new THREE.CapsuleGeometry(0.08, 0.3, 3, 8), shin: new THREE.CapsuleGeometry(0.068, 0.3, 3, 8), foot: new THREE.BoxGeometry(0.12, 0.07, 0.24),
   eye: new THREE.SphereGeometry(0.018, 6, 4), belt: new THREE.CylinderGeometry(0.2, 0.21, 0.08, 12),
-  cloak: new THREE.PlaneGeometry(0.46, 0.85, 1, 4), skirt: new THREE.CylinderGeometry(0.21, 0.32, 0.45, 12, 1, true),
+  // Cloak: an open, flared shell wrapping the back (it was a flat plane that read as a purple panel from above).
+  cloak: new THREE.CylinderGeometry(0.2, 0.3, 0.85, 14, 4, true, Math.PI * 0.58, Math.PI * 0.84), skirt: new THREE.CylinderGeometry(0.21, 0.32, 0.45, 12, 1, true),
 };
 
 function part(geo, mat, y, parent) { const mesh = new THREE.Mesh(geo, mat); mesh.position.y = y; mesh.castShadow = true; parent.add(mesh); return mesh; }
@@ -49,7 +50,7 @@ export function createHumanoid(o = {}) {
   if (o.cloak) {
     cloak = new THREE.Group(); cloak.position.set(0, 0.62, -0.16); torso.add(cloak);
     const c = new THREE.Mesh(G.cloak, new THREE.MeshStandardMaterial({ color: o.cloak, side: THREE.DoubleSide, roughness: 0.9 }));
-    c.position.y = -0.42; c.castShadow = true; cloak.add(c);
+    c.position.set(0, -0.42, 0.17); c.castShadow = true; cloak.add(c);
   }
   root.scale.setScalar(o.scale || 1);
   return { root, body, hips, torso, head, armL, armR, elbowL, elbowR, legL, legR, kneeL, kneeR, cloak };

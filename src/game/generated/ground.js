@@ -1,11 +1,15 @@
 import * as THREE from 'three';
+import { MAT_DEF } from './materials';
 
 // Terrain plane (hills displaced, faceted for low poly) extending past the bounds, plus invisible boundary walls.
 export function buildGround(c, root) {
   const { w, d } = c.spec.bounds, pad = 60, W = w + pad * 2, D = d + pad * 2, step = c.S.flat ? 3 : 1.5;
   const nx = Math.min(180, Math.ceil(W / step)), nz = Math.min(180, Math.ceil(D / step));
   const g = new THREE.PlaneGeometry(W, D, nx, nz).rotateX(-Math.PI / 2), pos = g.attributes.position, uv = g.attributes.uv;
-  const { m, tile } = c.mat(c.spec.ground.material, c.spec.ground.color);
+  // The ground plane is the exterior around the rooms. An interior polish (e.g. polished concrete with clearcoat)
+  // laid outdoors mirrors the sun into one bright patch, so it gets the weathered (satin) version of the same material.
+  const base = MAT_DEF[c.spec.ground.material], weathered = base && base[3] < 0.6 && !base[6]?.transparent ? { rough: 0.62 } : undefined;
+  const { m, tile } = c.mat(c.spec.ground.material, c.spec.ground.color, weathered);
   let seed = 9;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
