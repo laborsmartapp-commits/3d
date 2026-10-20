@@ -82,7 +82,8 @@ function buildGenerated(e, spec, L, rec) {
     R.ctl.tick(t, dt); vfxTick(t, dt); probe.tick(t);
     // Ceilings lift away while the camera looks down into the room from above (dollhouse view).
     const cam = e.studio?.viewThrough ? e.studio.outputCam() || e.camera : e.camera, p = e.player.pos, cp = cam.position;
-    for (const r of c.roofs) r.node.visible = !(cp.y > r.r.y + 0.3 && (inRect(r.r, p.x, p.z, 1) || inRect(r.r, cp.x, cp.z)));
+    // From well above the building (overhead / architectural view) every ceiling lifts away.
+    for (const r of c.roofs) r.node.visible = !(cp.y > r.r.y + 0.3 && (inRect(r.r, p.x, p.z, 1) || inRect(r.r, cp.x, cp.z) || cp.y > r.r.y + 4));
   };
 }
 

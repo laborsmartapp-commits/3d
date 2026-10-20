@@ -4,6 +4,8 @@ import { validateSpec } from '../../shared/stageValidate.ts';
 import { MODELS, short } from '../../shared/stagePrompt.ts';
 import { initialOps, planRest, buildPrompt, schemaFor, applyOp, opResult, splitOp, pickBatch } from '../../shared/stagePipeline.ts';
 import { finalChecks } from '../../shared/stageNav.ts';
+import { repairSpec } from '../../shared/stageRepair.ts';
+import { CATALOG_SET } from '../../shared/stageCapabilities.ts';
 
 // Resumable progressive stage construction. "start" saves the brief as a job (no AI call); every "step" runs one
 // small operation, or up to three independent ones side by side (each its own AI call, < 120 s), validates the
@@ -48,6 +50,26 @@ export default async function (req) {
     const job = body.job_id ? await Jobs.get(body.job_id) : null;
     if (!job || job.created_by_id !== user.id) return Response.json({ error: 'Construction job not found' }, { status: 404 });
     if (body.action === 'get') return Response.json({ job, stage: await Stages.get(job.stage_id) });
+    // Restore: furnishings an earlier operation could not build (e.g. a catalog piece listed under vegetation)
+    // are re-requested by small new operations for the same rooms, then the stage is re-validated. Nothing
+    // that was already built is regenerated.
+    if (body.action === 'restore') {
+      if (job.status === 'running') return Response.json({ error: 'Construction is still running' }, { status: 409 });
+      const re = /^unsupported nature "([a-z_]+)" \(([^)]+)\)/, add = [];
+      for (const x of job.ops) {
+        if (x.status !== 'done' || !x.zones || x.restored) continue;
+        const types = (x.not_built || []).map((n) => n.match(re)).filter((mt) => mt && CATALOG_SET.has(mt[1])).map((mt) => mt[1]);
+        if (!types.length) continue;
+        const list = Object.entries(types.reduce((a, t) => ({ ...a, [t]: (a[t] || 0) + 1 }), {})).map(([t, n]) => `${n} x ${t}`).join(', ');
+        x.restored = `${x.key}r`;
+        add.push({ key: `${x.key}r`, phase: x.phase, label: `Restore · ${x.label.split('·')[1]?.trim() || x.label} · ${list}`, kind: 'rows', sections: ['furnishings'], caps: { furnishings: types.length }, zones: x.zones, status: 'pending', attempts: 0, independent: true, restore_of: x.key,
+          theme: `ONLY these pieces, which an earlier pass could not build: ${list}. They are catalog furnishings (not vegetation): place them in open corners or beside the seating, clear of walking lanes, doors and existing pieces` });
+      }
+      const n = job.ops.filter((x) => x.kind === 'validate').length;
+      add.push({ key: `e${n + 2}`, phase: 'final', label: 'Final validation (after repairs)', kind: 'validate', sections: [], caps: {}, status: 'pending', attempts: 0 });
+      const saved = await Jobs.update(job.id, { ops: [...job.ops, ...add], status: 'running', error: '' });
+      return Response.json({ job: saved, added: add.map((x) => x.key) });
+    }
     if (body.action !== 'step') return Response.json({ error: 'Unknown action' }, { status: 400 });
     if (job.status === 'completed') return Response.json({ job });
 
@@ -75,6 +97,8 @@ export default async function (req) {
     if (o.kind === 'validate') {
       try {
         const { spec, report } = validateSpec(stage.spec, opts);
+        const fix = repairSpec(spec);
+        report.repairs = fix.notes; report.dropped = [...report.dropped, ...fix.dropped];
         const final = finalChecks(spec);
         report.substitutions = ops.flatMap((x) => x.substitutions || []).slice(0, 40);
         report.ai = { model: job.model, seconds: Math.round(m.ai_seconds), calls: m.ai_calls };

@@ -4,12 +4,15 @@ import * as THREE from 'three';
 // environment, whose bright softbox panels reflected in mirror-polished floors as unexplained white blobs that
 // matched nothing in the room. The probe makes glossy surfaces reflect the stage's real walls, windows and ceiling.
 export class StageProbe {
-  constructor(e, x, y, z, roofs) { this.e = e; this.pos = new THREE.Vector3(x, y, z); this.roofs = roofs; this.tex = null; this.key = ''; this.next = 1.2; }
-  // Re-bakes only when the sun/exposure changed (Weather bubble), checked once a second.
+  // First bake on the first frame (a slow first frame must not show the generic studio reflections meanwhile).
+  constructor(e, x, y, z, roofs) { this.e = e; this.pos = new THREE.Vector3(x, y, z); this.roofs = roofs; this.tex = null; this.key = ''; this.next = 0; }
+  // Re-bakes only when the sun direction/intensity or exposure changed (Weather bubble), checked once a second.
+  // The sun follows the player, so its direction (not its position) is compared.
   tick(t) {
     if (t < this.next) return; this.next = t + 1;
     const e = this.e; let sun = null; e.scene.traverse((o) => { if (!sun && o.isDirectionalLight) sun = o; });
-    const key = sun ? [sun.position.x, sun.position.y, sun.position.z, sun.intensity, e.renderer.toneMappingExposure, e.scene.environmentIntensity].map((v) => Math.round(v * 20)).join() : 'none';
+    const d = sun && sun.position.clone().sub(sun.target.position).normalize();
+    const key = sun ? [d.x, d.y, d.z, sun.intensity, e.renderer.toneMappingExposure, e.scene.environmentIntensity].map((v) => Math.round(v * 20)).join() : 'none';
     if (key !== this.key) { this.key = key; this.bake(); }
   }
   bake() {

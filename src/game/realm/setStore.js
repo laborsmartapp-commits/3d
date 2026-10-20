@@ -11,7 +11,18 @@ export class SetStore {
   // A generated stage supplies its own realm id and base set (its blueprint furnishings).
   get realm() { return this.R.realmId || REALM; }
   base() { return this.R.baseSet ? this.R.baseSet() : buildTemplate('everyday'); }
-  payload() { return { objects: this.R.set.serialize(), environment: this.R.env.save(), view: this.R.cutaway.save(), object_count: this.R.set.items.size }; }
+  payload() {
+    const d = { objects: this.R.set.serialize(), environment: this.R.env.save(), view: this.R.cutaway.save(), object_count: this.R.set.items.size };
+    if (this.R.baseSet) d.base_ids = this.base().objects.map((o) => o.id); // blueprint pieces this set already knows about
+    return d;
+  }
+  // A generated stage's blueprint can gain pieces after a set was saved (construction or restore finishing later):
+  // those are added, while every piece the user moved, restyled or deleted keeps the saved state.
+  withNew(d) {
+    if (!this.R.baseSet || !Array.isArray(d.base_ids)) return d;
+    const known = new Set(d.base_ids), add = this.base().objects.filter((o) => !known.has(o.id));
+    return add.length ? { ...d, objects: [...(d.objects || []), ...add] } : d;
+  }
   applyData(d) {
     const P = this.R.e.prof, n = (d.objects || []).length, sync = (k, fn) => (P ? P.sync(`set apply (${n} objects): ${k}`, fn) : fn());
     sync('objects', () => this.R.set.load(d.objects || [])); sync('environment', () => this.R.env.load(d.environment));
@@ -26,7 +37,7 @@ export class SetStore {
       const page = await this.api.filter({ realm: this.realm }, { sort: '-updated_date', limit: 50 });
       this.list = page.items;
       const act = this.list.find((x) => x.is_active) || this.list[0];
-      if (act) { this.current = act; this.applyData(act); }
+      if (act) { this.current = act; this.applyData(this.withNew(act)); }
     } catch (err) { this.error = `Could not load saved sets: ${err.message}`; }
     this.loaded = true; this.R.emit();
   }
@@ -66,10 +77,10 @@ export class SetStore {
       if (this.current?.id !== id) await this.deactivate();
       await this.api.update(id, { is_active: true });
       const rec = await this.api.get(id);
-      this.list = this.list.map((x) => (x.id === id ? rec : x)); this.current = rec; this.applyData(rec);
+      this.list = this.list.map((x) => (x.id === id ? rec : x)); this.current = rec; this.applyData(this.withNew(rec));
     });
   }
   rename(id, name) { return this.run(async () => { await this.api.update(id, { name }); const r = this.list.find((x) => x.id === id); if (r) r.name = name; if (this.current?.id === id) this.current.name = name; }); }
   remove(id) { if (id === this.current?.id) return; return this.run(async () => { await this.api.delete(id); this.list = this.list.filter((x) => x.id !== id); }); }
-  revert() { if (this.current) this.applyData(this.current); else this.applyData(this.base()); }
+  revert() { if (this.current) this.applyData(this.withNew(this.current)); else this.applyData(this.base()); }
 }

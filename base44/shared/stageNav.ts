@@ -1,4 +1,5 @@
 import { MATERIALS, CATALOG_SET } from './stageCapabilities.ts';
+import { solidParts } from './stageRepair.ts';
 
 // Final blueprint checks: a 2D walkability grid (floors + stairs + walkable elements minus walls, buildings and
 // solid elements, door/opening gaps kept open), flood-filled from the spawn. Furniture footprints are not in the grid.
@@ -34,9 +35,9 @@ export function finalChecks(spec) {
   }
   for (const b of spec.buildings) rect(block, b.x, b.z, b.w, b.d, b.ry || 0, BODY);
   for (const e of spec.elements) {
-    if (['column', 'fountain'].includes(e.type)) disc(block, e.x, e.z, (e.r || (e.type === 'column' ? 0.3 : 2.2)) + BODY);
-    else if (['plinth', 'pool', 'planter_bed'].includes(e.type)) rect(block, e.x, e.z, e.w || 1, e.d || e.w || 1, e.ry || 0, BODY);
-    else if (['fence', 'railing', 'hedge'].includes(e.type) && e.x1 != null) seg(e.x1, e.z1, e.x2, e.z2, 0.2 + BODY);
+    // Same footprints as the engine's colliders (arch posts included).
+    for (const p of solidParts(e)) rect(block, p.x, p.z, p.hw * 2, p.hd * 2, 0, BODY);
+    if (['fence', 'railing', 'hedge'].includes(e.type) && e.x1 != null) seg(e.x1, e.z1, e.x2, e.z2, 0.2 + BODY);
   }
   const ok = (i) => i >= 0 && walk[i] && !block[i];
 

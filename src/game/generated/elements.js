@@ -113,8 +113,9 @@ export function buildElement(c, e) {
       return;
     }
     case 'plinth': {
-      const h = e.h || 1, st = M('marble').m; mg.add(st, S.bevel ? bbox(w, h, w, S.bevel) : tbox(w, h, w, 1), e.x, h / 2, e.z, ry);
-      c.C.addBox(e.x, e.z, w / 2, w / 2, ry, -1, h, 'plinth');
+      // Depth defaults to the width (square pedestal); a hearth plinth is long and shallow.
+      const h = e.h || 1, pd = e.d || w, st = M('marble').m; mg.add(st, S.bevel ? bbox(w, h, pd, S.bevel) : tbox(w, h, pd, 1), e.x, h / 2, e.z, ry);
+      c.C.addBox(e.x, e.z, w / 2, pd / 2, ry, -1, h, 'plinth');
     }
   }
 }
