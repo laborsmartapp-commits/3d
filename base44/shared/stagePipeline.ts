@@ -233,7 +233,10 @@ export function applyOp(spec, job, o, raw) {
     const own = (v) => String(v || '').replace(/^([a-z]\d+[a-z]?\.)+/i, '');
     next[sec] = [...keep, ...use.map((x, i) => ({ ...x, id: `${o.key}.${short(own(x.id), 24) || i + 1}` }))];
   }
-  if (!requested && o.sections.length) throw new Error('The AI returned no objects for this operation; it will be retried');
+  // Open-air stages (streets, gardens, parks) legitimately need no walls, ceilings or stairs: an empty answer
+  // there is a valid "nothing to build", not a failed call.
+  const optional = next.environment === 'outdoor' && o.sections.every((s) => ['walls', 'roofs', 'stairs'].includes(s));
+  if (!requested && o.sections.length && !optional) throw new Error('The AI returned no objects for this operation; it will be retried');
   return { next, requested, applied: requested, notes, adjust: fitWalls(next) };
 }
 
