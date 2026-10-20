@@ -4,6 +4,8 @@ import { now } from './PerformanceRecorder';
 import { CHARACTERS } from './characters';
 import { AudioEngine, loadBuffer, peaksOf, AUDIO_DEFAULTS } from './AudioEngine';
 import { newTimeline, coverAt, holdAt, clipEnd, uid, animLayers, overlaps, ANIM_DEFAULTS } from './Timeline';
+import { lipCurve, wordsOf, mouthAt } from './lipsync';
+import { applyFace } from './face';
 
 const OVERLAP = { perf: 'the higher-priority (then newer) pass plays where they overlap', anim: 'they blend where they overlap', audio: 'they mix where they overlap' };
 
@@ -77,6 +79,17 @@ export class DirectorManager {
     const buf = await loadBuffer(asset.file_uri), start = +at.toFixed(2);
     this.edit((tl) => tl.clips.push({ ...AUDIO_DEFAULTS, id: uid('aud'), kind: 'audio', track, actor: null, asset_id: asset.id, uri: asset.file_uri, label: asset.name, len: buf.duration, peaks: peaksOf(buf), start, end: +(start + buf.duration).toFixed(3) }));
   }
+  // A generated dialogue line: an audio clip owned by the speaking actor (mouth curve + word timing for
+  // lip-sync) plus a talk gesture for the same span. Returns the line's end time.
+  async addLine(asset, actor, at, { alignment, emotion, voice, text } = {}) {
+    const buf = await loadBuffer(asset.file_uri), start = +at.toFixed(2), end = +(start + buf.duration).toFixed(3);
+    const lips = lipCurve(buf, alignment), words = wordsOf(alignment);
+    this.edit((tl) => {
+      tl.clips.push({ ...AUDIO_DEFAULTS, id: uid('aud'), kind: 'audio', track: 'dialogue', actor, asset_id: asset.id, uri: asset.file_uri, label: asset.name, len: buf.duration, peaks: peaksOf(buf), start, end, lips, words, emotion, voice, text });
+      tl.clips.push({ ...ANIM_DEFAULTS, id: uid('anim'), kind: 'anim', actor, anim: 'talk', label: 'Talk', weight: 0.7, start, end });
+    });
+    return end;
+  }
   splitClip(id, t = this.t) {
     this.edit((tl) => {
       const c = tl.clips.find((x) => x.id === id); if (!c || c.kind === 'perf' || t <= c.start + 0.05 || t >= c.end - 0.05) return;
@@ -120,6 +133,8 @@ export class DirectorManager {
     // Body animation layers blend over the locomotion pose; they never move the root (movement track owns it).
     p.anim.layers = animLayers(clips, id, t);
     p.finish(dt, false);
+    // Dialogue clips owned by this actor drive its mouth and expression (after the body pose is applied).
+    applyFace(p, k?.mo != null && !clips.some((x) => x.actor === id && x.lips) ? { mouth: k.mo, emotion: k.fe } : mouthAt(clips, id, t), dt);
   }
   // Actors without a movement track keep wherever they were walked to as their start placement.
   keepPlacements() {
@@ -187,7 +202,7 @@ export class DirectorManager {
       if (this.audio.playing) this.drift = this.t - this.audio.time(); // reported, never corrected by changing audio speed
       if (this.stopAt && this.t >= this.stopAt) sm.stop();
       // The recorded actor still performs its scheduled dances/animations, and they are captured into the take.
-      const rp = this.e.actors[sm.pass.actor]; if (rp) rp.anim.layers = animLayers(this.tl.clips, sm.pass.actor, this.t);
+      const rp = this.e.actors[sm.pass.actor]; if (rp) { rp.anim.layers = animLayers(this.tl.clips, sm.pass.actor, this.t); applyFace(rp, mouthAt(this.tl.clips, sm.pass.actor, this.t), dt); }
       return this.drive(dt, sm.pass.actor);
     }
     if (this.state === 'playing') {

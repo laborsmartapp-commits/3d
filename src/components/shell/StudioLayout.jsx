@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Clapperboard, Mountain, Film, Server, Menu, X, Video, Package, Activity, Settings, Shield, Music } from 'lucide-react';
+import { LayoutDashboard, Clapperboard, Mountain, Film, Server, Menu, X, Video, Package, Activity, Settings, Shield, Music, Mic } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 
 const NAV = [
   ['/', 'Dashboard', LayoutDashboard], ['/productions', 'My Productions', Clapperboard], ['/stages', '3D Stages', Mountain],
   ['/assets', 'Asset Library', Package], ['/assets?cat=animation', 'Animation Library', Activity], ['/assets?cat=audio', 'Audio Library', Music],
-  ['/recordings', 'Recorded Scenes', Film], ['/renders', 'Render Queue', Server], ['/settings', 'Settings', Settings],
+  ['/recordings', 'Recorded Scenes', Film], ['/renders', 'Render Queue', Server], ['/voices', 'Voice Library', Mic], ['/settings', 'Settings', Settings],
 ];
 const cls = (on) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors ${on ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'}`;
 

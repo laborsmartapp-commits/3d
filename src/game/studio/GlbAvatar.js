@@ -35,7 +35,7 @@ export async function attachGlb(p, uri) {
   const hb = new THREE.Box3().setFromObject(p.h.body), H = (hb.max.y - hb.min.y) / p.h.root.scale.y || 1.8;
   const mb = new THREE.Box3().setFromObject(model), s = H / ((mb.max.y - mb.min.y) || 1);
   model.scale.setScalar(s); model.position.y = -mb.min.y * s;
-  p.h.body.visible = false; p.h.root.add(model);
+  p.h.body.visible = false; p.h.root.add(model); p.glbModel = model;
   const sitPose = makeSitPose(model), baseY = model.position.y;
   const walk = g.animations.find(isWalk) || await libraryWalk() || g.animations[0];
   const mixer = new THREE.AnimationMixer(model), act = walk && mixer.clipAction(walk).play();

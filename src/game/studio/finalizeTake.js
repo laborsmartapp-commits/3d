@@ -35,7 +35,7 @@ export async function finalizeTake(sm) {
       const a = {};
       for (const x of cast) {
         const p = sm.e.actors[x.id]; if (!p) continue;
-        a[x.id] = { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase || 0), sp: r3(p.anim.speed || 0), at: r4(p.anim.t || 0), ly: JSON.parse(JSON.stringify(p.anim.layers || [])) };
+        a[x.id] = { p: [r3(p.pos.x), r3(p.pos.y), r3(p.pos.z)], y: r4(p.yaw), m: p.anim.mode, ph: r4(p.anim.phase || 0), sp: r3(p.anim.speed || 0), at: r4(p.anim.t || 0), mo: r3(p.face?.mouth || 0), fe: p.face?.emotion || null, ly: JSON.parse(JSON.stringify(p.anim.layers || [])) };
       }
       samples.push({ t: r4(t), a, c: sm.cams.pose(cam.id), ci: cam.id, e: env });
     }

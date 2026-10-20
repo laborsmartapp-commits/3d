@@ -23,6 +23,7 @@ import RenderQueue from '@/pages/RenderQueue';
 import ProductionDetail from '@/pages/ProductionDetail';
 import AssetLibrary from '@/pages/AssetLibrary';
 import Settings from '@/pages/Settings';
+import Voices from '@/pages/Voices';
 import AdminPortal from '@/pages/AdminPortal';
 import LivingRealm from '@/pages/LivingRealm';
 import TimelineLab from '@/pages/TimelineLab';
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
         <Route path="/productions/:id" element={<ProductionDetail />} />
         <Route path="/assets" element={<AssetLibrary />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/voices" element={<Voices />} />
       </Route>
       <Route path="/admin" element={<AdminPortal />} />
       <Route path="/admin/:section" element={<AdminPortal />} />
