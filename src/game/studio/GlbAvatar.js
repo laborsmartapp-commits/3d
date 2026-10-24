@@ -8,6 +8,7 @@ import { base44 } from '@/api/base44Client';
 import { makeSitPose } from './rigPose';
 import { makeIdle, rotationsOnly } from './glbIdle';
 import { fixBindRig, retargetClip } from './retarget';
+import { polishGlb } from './glbLook';
 
 const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/')).setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map();
@@ -48,6 +49,7 @@ export async function attachGlb(p, uri) {
   const hb = new THREE.Box3().setFromObject(p.h.body), H = (hb.max.y - hb.min.y) / p.h.root.scale.y || 1.8;
   const mb = new THREE.Box3().setFromObject(model), s = H / ((mb.max.y - mb.min.y) || 1);
   model.scale.setScalar(s); model.position.y = -mb.min.y * s;
+  polishGlb(model, p.e?.renderer);
   p.h.body.visible = false; p.h.root.add(model); p.glbModel = model;
   const sitPose = makeSitPose(model), baseY = model.position.y;
   // The body shows right away; walk and idle cycles join as soon as they load.
