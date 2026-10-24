@@ -15,6 +15,7 @@ import { CameraRig } from './systems/CameraRig';
 import { AudioManager } from './systems/Audio';
 import { Interaction } from './systems/Interaction';
 import { Player } from './actors/Player';
+import { applyKrushModel } from './studio/ActorManager';
 import { NPCManager, makeDialogue } from './actors/NPCs';
 import { Animals } from './actors/Animals';
 import { SkyLife } from './actors/SkyLife';
@@ -119,6 +120,7 @@ export class Engine {
     this.scene.add(this.water.mesh);
     this.buildWaterfalls();
     this.player = new Player(this);
+    applyKrushModel(this.player);
     this.env = new Environment(this);
     this.input = new Input(r.domElement);
     this.rig = new CameraRig(this);

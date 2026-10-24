@@ -4,6 +4,7 @@ import { Colliders } from '../systems/Colliders';
 import { Input } from '../systems/Input';
 import { CameraRig } from '../systems/CameraRig';
 import { Player } from '../actors/Player';
+import { applyKrushModel } from '../studio/ActorManager';
 import { FX } from '../fx/Particles';
 import { makeMaterials } from './materials';
 import { Batch } from './geo';
@@ -88,6 +89,7 @@ export class ConvergenceEngine {
     this.fx = new FX(scene);
     const sp = this.D.spawn;
     this.player = new Player(this);
+    applyKrushModel(this.player);
     this.player.respawn(sp);
     this.input = new Input(r.domElement);
     this.rig = new CameraRig(this);
