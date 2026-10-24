@@ -13,7 +13,17 @@ export class Anchors {
       if (o.hidden || !o.node.visible) continue;
       for (const a of this.R.set.anchors(o)) out.push({ verb: a.label, label: o.name || this.R.set.def(o).name, x: a.x, y: a.y, z: a.z, r: 1.7, act: () => this.use(a) });
     }
-    return out;
+    return out.concat(this.R.hoops.candidates());
+  }
+  // Steps the controlled actor toward g; true (standing at the mark, facing g.yaw) once arrived.
+  walkTo(g, dt) {
+    const p = this.e.player, dx = g.x - p.pos.x, dz = g.z - p.pos.z, d = Math.hypot(dx, dz), step = Math.min(d, 1.5 * dt);
+    if (d < 0.04) { p.yaw = g.yaw; p.anim.mode = 'idle'; p.anim.speed = 0; p.finish(dt, false); return true; }
+    p.sitting = null; p.pos.x += (dx / d) * step; p.pos.z += (dz / d) * step; p.pos.y = groundAt(p.pos.x, p.pos.z, p.pos.y);
+    p.yaw = lerpAngle(p.yaw, d > 0.25 ? Math.atan2(dx, dz) : g.yaw, 1 - Math.exp(-dt * 10));
+    Object.assign(p.anim, { mode: 'walk', speed: 1.5 }); p.anim.phase += ((1.5 * dt) / 1.3) * Math.PI * 2; p.anim.t += dt; p.vel.set(0, 0, 0);
+    p.finish(dt, false);
+    return false;
   }
   use(a) {
     const p = this.e.player;
@@ -22,15 +32,16 @@ export class Anchors {
   }
   stand() { const p = this.e.player; if (!p.sitting) return; p.sitting = null; p.pos.x += Math.sin(p.yaw) * 0.55; p.pos.z += Math.cos(p.yaw) * 0.55; p.pos.y = groundAt(p.pos.x, p.pos.z, p.pos.y + 0.3); }
   update(dt, inp) {
-    const p = this.e.player;
+    const p = this.e.player, h = this.R.hoops;
+    h.tickBall(dt);
+    if (h.active) {
+      if ((inp.move.x || inp.move.y) && (h.phase === 'fetch' || h.phase === 'carry')) { h.cancel(); return { move: false }; }
+      this.emit(null); h.update(dt, (g, s) => this.walkTo(g, s));
+      return { move: true };
+    }
     if (this.go) {
-      const g = this.go, dx = g.x - p.pos.x, dz = g.z - p.pos.z, d = Math.hypot(dx, dz), step = Math.min(d, 1.5 * dt);
       if (inp.move.x || inp.move.y) { this.go = null; return { move: false }; }
-      if (d < 0.04) { p.yaw = g.yaw; p.anim.mode = 'idle'; p.anim.speed = 0; this.go = null; g.done(); p.finish(dt, false); this.emit(null); return { move: true }; }
-      p.sitting = null; p.pos.x += (dx / d) * step; p.pos.z += (dz / d) * step; p.pos.y = groundAt(p.pos.x, p.pos.z, p.pos.y);
-      p.yaw = lerpAngle(p.yaw, d > 0.25 ? Math.atan2(dx, dz) : g.yaw, 1 - Math.exp(-dt * 10));
-      Object.assign(p.anim, { mode: 'walk', speed: 1.5 }); p.anim.phase += ((1.5 * dt) / 1.3) * Math.PI * 2; p.anim.t += dt; p.vel.set(0, 0, 0);
-      p.finish(dt, false);
+      if (this.walkTo(this.go, dt)) { const g = this.go; this.go = null; g.done(); this.emit(null); }
       return { move: true };
     }
     if (this.choice) {

@@ -7,6 +7,7 @@ import { SetStore } from './setStore';
 import { RealmEnv } from './env';
 import { Cutaway } from './cutaway';
 import { Anchors } from './anchors';
+import { Hoops } from './hoops';
 import { RealmController } from './controller';
 import { walkables, layoutHook } from './layout';
 import { DEV_TOOLS } from './modelPrep';
@@ -28,6 +29,7 @@ export function buildRealm(e) {
     R.store = new SetStore(R);
     R.env = new RealmEnv(R);
     R.cutaway = new Cutaway(R);
+    R.hoops = new Hoops(R);
     R.anchors = new Anchors(R);
     R.editor = new SetEditor(R);
     R.ctl = e.realm = new RealmController(R);
