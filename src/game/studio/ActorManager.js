@@ -3,7 +3,7 @@ import { CHARACTERS } from './characters';
 import { attachGlb } from './GlbAvatar';
 
 // Krush's body model (replaces the built-in procedural figure everywhere he appears).
-const KRUSH_MODEL = 'https://media.base44.com/files/public/6ab6497ea34096d474396b48/1fdcf9ff4_KrushUndies.glb';
+const KRUSH_MODEL = 'https://media.base44.com/files/public/6ab6497ea34096d474396b48/2fdfdb371_Krundies.glb';
 export const applyKrushModel = (p) => { if (!p.glbModel) p.ready = attachGlb(p, KRUSH_MODEL).catch((err) => console.warn('Krush model failed to load', err)); };
 
 // One Player instance (own transform, rig, animation state) per actor. e.player is only "who has the controls".
