@@ -7,6 +7,9 @@ export const POSES = {
   carry: { u: [0.3, -0.92, 0.08], f: [0.92, 0.15, -0.38] },
   set: { u: [0.55, 0.3, 0.38], f: [0.12, 1, -0.2], lu: [0.5, 0.25, 0.45], lf: [0.2, 0.85, -0.65] },
   release: { u: [0.5, 0.86, 0.06], f: [0.62, 0.78, 0], lu: [0.45, 0.65, 0.4], lf: [0.25, 0.9, 0.05] },
+  // Dribble: right hand at the hip meeting the ball (up) and pushing it down (down); left arm out as a guard.
+  dribbleUp: { u: [0.15, -0.95, 0.3], f: [0.7, -0.6, 0.2], lu: [0.3, -0.8, 0.5], lf: [0.85, 0.05, 0.15] },
+  dribbleDown: { u: [0.3, -0.9, 0.25], f: [0.25, -0.97, 0.05], lu: [0.3, -0.8, 0.5], lf: [0.85, 0.05, 0.15] },
 };
 const va = new THREE.Vector3(), vb = new THREE.Vector3(), cur = new THREE.Vector3(), qq = new THREE.Quaternion(), qa = new THREE.Quaternion(), qb = new THREE.Quaternion();
 const findBone = (m, re) => { let b = null; m.traverse((o) => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; };

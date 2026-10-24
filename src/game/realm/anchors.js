@@ -13,7 +13,7 @@ export class Anchors {
       if (o.hidden || !o.node.visible) continue;
       for (const a of this.R.set.anchors(o)) out.push({ verb: a.label, label: o.name || this.R.set.def(o).name, x: a.x, y: a.y, z: a.z, r: 1.7, act: () => this.use(a) });
     }
-    return out.concat(this.R.hoops.candidates());
+    return out.concat(this.R.hoops?.candidates() || []);
   }
   // Steps the controlled actor toward g; true (standing at the mark, facing g.yaw) once arrived.
   walkTo(g, dt) {
@@ -33,8 +33,14 @@ export class Anchors {
   stand() { const p = this.e.player; if (!p.sitting) return; p.sitting = null; p.pos.x += Math.sin(p.yaw) * 0.55; p.pos.z += Math.cos(p.yaw) * 0.55; p.pos.y = groundAt(p.pos.x, p.pos.z, p.pos.y + 0.3); }
   update(dt, inp) {
     const p = this.e.player, h = this.R.hoops;
-    h.tickBall(dt);
-    if (h.active) {
+    h?.tickBall(dt);
+    if (h?.active) {
+      // Free dribbling: Krush moves normally; E shoots at the nearest hoop, Esc stops and drops the ball.
+      if (h.phase === 'dribble') {
+        this.emit({ verb: 'Shoot', label: 'Dribbling · Esc to stop' });
+        if (inp.interact) h.shootHere(); else if (inp.pressed?.has('Escape')) { h.cancel(); this.emit(null); }
+        return { move: false };
+      }
       if ((inp.move.x || inp.move.y) && (h.phase === 'fetch' || h.phase === 'carry')) { h.cancel(); return { move: false }; }
       this.emit(null); h.update(dt, (g, s) => this.walkTo(g, s));
       return { move: true };
@@ -59,10 +65,11 @@ export class Anchors {
         const near = new Map();
         for (const c of this.candidates()) {
           if (Math.abs(c.y - p.pos.y - 0.5) > 1.4) continue; const d = Math.hypot(c.x - p.pos.x, c.z - p.pos.z);
-          if (d < c.r && (!near.has(c.label) || d < near.get(c.label).d)) near.set(c.label, { ...c, d });
+          const key = c.key || c.label;
+          if (d < c.r && (!near.has(key) || d < near.get(key).d)) near.set(key, { ...c, d });
         }
         const opts = [...near.values()].sort((a, b) => a.d - b.d), alts = opts.filter((c) => c.d - (opts[0]?.d ?? 0) < AMBIG).slice(0, 3);
-        best = alts.length > 1 ? { verb: 'Choose', label: alts.map((c) => c.label).join(' or '), options: alts, act: () => { this.choice = { options: alts }; this.emit(this.choice); } } : opts[0] || null;
+        best = alts.length > 1 ? { verb: 'Choose', label: [...new Set(alts.map((c) => c.label))].join(' or '), options: alts, act: () => { this.choice = { options: alts }; this.emit(this.choice); } } : opts[0] || null;
       }
       this.cur = best; if (!this.choice) this.emit(best);
     }

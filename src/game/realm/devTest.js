@@ -14,7 +14,7 @@ const noInput = () => ({ move: { x: 0, y: 0 }, keys: new Set(), pressed: new Set
 export function installRealmTest(R) {
   const e = R.e, P = () => e.player;
   const state = () => { const p = P(); return { x: r3(p.pos.x), y: r3(p.pos.y), z: r3(p.pos.z), yaw: r3(p.yaw), onGround: p.onGround, mode: p.anim.mode, sitting: !!p.sitting, zone: zoneAt(p.pos.x, p.pos.z, p.pos.y), prompt: R.anchors.cur?.verb || null, hidden: !!p.hidden }; };
-  const t = { tSim: 0, spots: Object.keys(SPOTS), state };
+  const t = { tSim: 0, spots: Object.keys(SPOTS), state, hoops: R.hoops, set: R.set };
 
   t.start = (name) => {
     const s = SPOTS[name]?.(R); if (!s) throw new Error(`No test spot "${name}"`);

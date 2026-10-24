@@ -55,6 +55,7 @@ export class RealmController {
     info.reset();
     R.env.update(dt, t);
     R.set.tick(t, R.env.s);
+    R.hoops?.post(dt);
     for (const d of R.doors) d.update(dt);
     R.editor.update();
     e.syncZone?.();
