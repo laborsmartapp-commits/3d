@@ -2,9 +2,10 @@ import { Player } from '../actors/Player';
 import { CHARACTERS } from './characters';
 import { attachGlb } from './GlbAvatar';
 
-// Krush's body model (replaces the built-in procedural figure everywhere he appears).
-const KRUSH_MODEL = 'https://media.base44.com/files/public/6ab6497ea34096d474396b48/f25420f7c_KrundiesWalk.glb';
-export const applyKrushModel = (p) => { if (!p.glbModel) p.ready = attachGlb(p, KRUSH_MODEL).catch((err) => console.warn('Krush model failed to load', err)); };
+import { krushModel } from './krushLooks';
+
+// Krush's body model (replaces the built-in procedural figure everywhere he appears; chosen in Settings).
+export const applyKrushModel = (p) => { if (!p.glbModel) p.ready = attachGlb(p, krushModel()).catch((err) => console.warn('Krush model failed to load', err)); };
 
 // One Player instance (own transform, rig, animation state) per actor. e.player is only "who has the controls".
 export class ActorManager {
@@ -23,9 +24,9 @@ export class ActorManager {
     const c = CHARACTERS[a.char] || CHARACTERS.jay, p0 = this.e.player;
     const x = a.x ?? p0.pos.x + 2, z = a.z ?? p0.pos.z + 1;
     const p = new Player(this.e, c.colors, { x, y: a.y ?? p0.pos.y, z, yaw: a.yaw ?? p0.yaw });
-    Object.assign(p, { actorId: a.id, charId: a.char });
+    Object.assign(p, { actorId: a.id, charId: a.char, assetUri: a.asset_uri || null });
     p.finish(0, false);
-    const uri = a.asset_uri || (a.char === 'krush' ? KRUSH_MODEL : null);
+    const uri = a.asset_uri || (a.char === 'krush' ? krushModel() : null);
     if (uri) p.ready = attachGlb(p, uri).catch((err) => console.warn('Library character failed to load', err));
     this.e.actors[a.id] = p;
     return p;

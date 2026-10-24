@@ -50,6 +50,9 @@ export async function attachGlb(p, uri) {
   const mb = new THREE.Box3().setFromObject(model), s = H / ((mb.max.y - mb.min.y) || 1);
   model.scale.setScalar(s); model.position.y = -mb.min.y * s;
   polishGlb(model, p.e?.renderer);
+  // Swapping models: take the previous one off and restore the un-wrapped animation step.
+  if (p.glbModel) { p.h.root.remove(p.glbModel); p.finish = p.baseFinish; }
+  p.baseFinish ||= p.finish;
   p.h.body.visible = false; p.h.root.add(model); p.glbModel = model;
   const sitPose = makeSitPose(model), baseY = model.position.y;
   // The body shows right away; walk and idle cycles join as soon as they load.
